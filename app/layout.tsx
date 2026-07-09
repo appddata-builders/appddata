@@ -1,24 +1,17 @@
 import type { Metadata } from "next";
-import { Krub, Diphylleia, Geist_Mono } from "next/font/google";
+import { Comfortaa, Geist_Mono } from "next/font/google";
 import Navbar from "./components/navbar";
 import PageTransition from "./components/page-transition";
 import RouteScrollReset from "./components/route-scroll-reset";
 import WhatsAppFloat from "./components/whatsapp-float";
 import "./globals.css";
 
-const krub = Krub({
-  variable: "--font-krub",
+const comfortaa = Comfortaa({
+  variable: "--font-comfortaa",
   subsets: ["latin"],
-  weight: ["200", "300", "400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
   fallback: ["system-ui", "sans-serif"],
-});
-
-const diphylleia = Diphylleia({
-  variable: "--font-diphylleia",
-  subsets: ["latin"],
-  weight: "400",
-  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -47,9 +40,9 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${krub.variable} ${diphylleia.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${comfortaa.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className={`${diphylleia.className} min-h-full flex flex-col bg-white text-[#111827] font-sans`}>
+      <body className={`${comfortaa.className} min-h-full flex flex-col bg-white text-[#111827] font-sans`}>
         <RouteScrollReset />
         <Navbar />
         <WhatsAppFloat />
