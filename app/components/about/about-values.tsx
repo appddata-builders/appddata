@@ -27,7 +27,7 @@ export default function AboutValues() {
   return (
     <section className="w-full max-w-6xl px-4 py-10 sm:px-0 sm:py-16">
       <div className="mb-8 max-w-3xl">
-        <p className="text-[0.7rem] uppercase tracking-[0.45em] text-[#efc99e]">
+        <p className="text-[0.7rem] uppercase tracking-[0.45em] text-[#7aa4ee]">
           Nos define
         </p>
         <h2 className="mt-4 text-3xl font-light tracking-[0.08em] text-[#111827] sm:text-5xl">

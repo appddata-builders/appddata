@@ -78,7 +78,7 @@ export function AdminChrome({ email, name, children }: AdminChromeProps) {
       >
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[0.65rem] uppercase tracking-[0.34em] text-primary/80">Appstract</p>
+            <p className="text-[0.65rem] uppercase tracking-[0.34em] text-primary/80">appdda</p>
             <p className="mt-2 text-sm uppercase tracking-[0.22em] text-foreground/80">Panel interno</p>
           </div>
           <button

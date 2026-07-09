@@ -45,7 +45,7 @@ export default function Brand({
       <div className={`relative shrink-0 ${styles.plane} ${planeClassName}`.trim()}>
         <motion.img
           src="/brand-plane.png"
-          alt="Appstract"
+          alt="appdda"
           className="h-full w-full object-contain backface-hidden transform-[translateZ(0)]"
           loading="eager"
           decoding="async"
@@ -54,19 +54,16 @@ export default function Brand({
       </div>
 
       <div
-        className={`flex overflow-hidden font-semibold  ${styles.text} ${textClassName}`.trim()}
+        className={`flex overflow-hidden font-(family-name:--font-diphylleia) ${styles.text} ${textClassName}`.trim()}
       >
         {textContent ?? (
           <>
-            <span className="inline-block text-[#589bf9]">a</span>
+            <span className="inline-block text-[#589bf9]">A</span>
             <span className="inline-block text-[#589bf9]">p</span>
             <span className="inline-block text-[#589bf9]">p</span>
-            <span className="inline-block text-[#414141]">s</span>
-            <span className="inline-block text-[#414141]">t</span>
-            <span className="inline-block text-[#414141]">r</span>
-            <span className="inline-block text-[#414141]">a</span>
-            <span className="inline-block text-[#414141]">c</span>
-            <span className="inline-block text-[#414141]">t</span>
+            <span className="inline-block text-[#8a8b8c]">d</span>
+            <span className="inline-block text-[#8a8b8c]">d</span>
+            <span className="inline-block text-[#8a8b8c]">a</span>
           </>
         )}
       </div>

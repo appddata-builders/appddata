@@ -8,7 +8,7 @@ const testimonials = [
     avatar:
       "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
     quote:
-      "Appstract aterrizo nuestra idea en una pagina clara, elegante y lista para presentar el proyecto con seriedad.",
+      "appdda aterrizo nuestra idea en una pagina clara, elegante y lista para presentar el proyecto con seriedad.",
     author: "Jaime Fragozo",
     role: "Lake Sport Club",
   },

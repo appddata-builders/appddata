@@ -5,10 +5,10 @@ import IminMark from "../imin/imin-mark";
 
 const textRows = [
   "PERSONALIZA  TEXTO  IMAGEN  IDENTIDAD",
-  "TIPOGRAFIA  CONTENIDO  TEXTO  APPSTRACT",
+  "TIPOGRAFIA  CONTENIDO  TEXTO  appdda",
   "EDITOR  COLORES  TEXTO  PERSONALIZA",
   "TEXTO  MENSAJES  IDENTIDAD  TEXTO  UI",
-  "APPSTRACT  IDENTIDAD  COLORES  TEXTO",
+  "appdda  IDENTIDAD  COLORES  TEXTO",
   "MENSAJES  CONTENIDO  DISENO  WEB IDENTIDAD",
   "PRODUCTO  PERSONALIZA  TEXTO  UI IMIN",
   "EDITOR  MENSAJES  TEXTO  MARCA IDENTIDAD",
@@ -76,7 +76,7 @@ export default function HomeText({
     <section
       className={`relative flex min-h-[144vh] w-full max-w-none items-center justify-center overflow-hidden rounded-[2.25rem] bg-slate-50/80 px-4 py-12 backdrop-blur-sm sm:px-10 ${className}`.trim()}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(103,232,249,0.08),transparent_34%),radial-gradient(circle_at_center,rgba(168,85,247,0.08),transparent_58%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(66,111,235,0.10),transparent_34%),radial-gradient(circle_at_center,rgba(56,81,245,0.10),transparent_58%)]" />
 
       <div className="absolute inset-0 flex w-full flex-col justify-center gap-3 sm:gap-5">
         <TextStrip
@@ -88,18 +88,18 @@ export default function HomeText({
           text={textRows[1]}
           duration={36}
           reverse
-          opacityClass="text-orange-300/10"
+          opacityClass="text-blue-600/10"
         />
         <TextStrip
           text={textRows[2]}
           duration={32}
-          opacityClass="text-slate-500/10"
+          opacityClass="text-slate-400/10"
         />
         <TextStrip
           text={textRows[3]}
           duration={38}
           reverse
-          opacityClass="text-orange-400/8"
+          opacityClass="text-blue-600/10"
         />
         <TextStrip
           text={textRows[4]}

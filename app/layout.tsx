@@ -1,17 +1,24 @@
 import type { Metadata } from "next";
-import { Comfortaa, Geist_Mono } from "next/font/google";
+import { Krub, Diphylleia, Geist_Mono } from "next/font/google";
 import Navbar from "./components/navbar";
 import PageTransition from "./components/page-transition";
 import RouteScrollReset from "./components/route-scroll-reset";
 import WhatsAppFloat from "./components/whatsapp-float";
 import "./globals.css";
 
-const comfortaa = Comfortaa({
-  variable: "--font-comfortaa",
+const krub = Krub({
+  variable: "--font-krub",
   subsets: ["latin"],
-  weight: "300",
+  weight: ["200", "300", "400", "500", "600", "700"],
   display: "swap",
   fallback: ["system-ui", "sans-serif"],
+});
+
+const diphylleia = Diphylleia({
+  variable: "--font-diphylleia",
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -20,10 +27,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Appstract",
+  title: "appdda",
   description: "Desarrollamos páginas web para ti",
   keywords: [
-    "Appstract",
+    "appdda",
     "Dev",
     "Tech",
     "Desarrollo",
@@ -40,9 +47,9 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${comfortaa.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${krub.variable} ${diphylleia.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className={`${comfortaa.className} min-h-full flex flex-col bg-white text-[#111827] font-sans`}>
+      <body className={`${diphylleia.className} min-h-full flex flex-col bg-white text-[#111827] font-sans`}>
         <RouteScrollReset />
         <Navbar />
         <WhatsAppFloat />

@@ -87,9 +87,9 @@ export default function AboutTimeline() {
                 }}
                 className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white px-5 py-5 shadow-[0_18px_70px_rgba(15,23,42,0.08)] sm:px-6 sm:py-6"
               >
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(128,82,221,0.12),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(103,232,249,0.08),transparent_28%)]" />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(66,111,235,0.14),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(56,81,245,0.10),transparent_28%)]" />
 
-                <div className="absolute left-[-2.35rem] top-7 flex h-8 w-8 items-center justify-center rounded-full border border-[#589bf9]/24 bg-[#589bf9]/10 text-[0.6rem] uppercase tracking-[0.16em] text-[#0C6CC6] shadow-[0_10px_30px_rgba(128,82,221,0.14)] sm:left-[-2.8rem] sm:h-10 sm:w-10">
+                <div className="absolute left-[-2.35rem] top-7 flex h-8 w-8 items-center justify-center rounded-full border border-[#589bf9]/24 bg-[#589bf9]/10 text-[0.6rem] uppercase tracking-[0.16em] text-[#0C6CC6] shadow-[0_10px_30px_rgba(66,111,235,0.14)] sm:left-[-2.8rem] sm:h-10 sm:w-10">
                   {milestone.year}
                 </div>
 
@@ -113,7 +113,7 @@ export default function AboutTimeline() {
                     <div className="w-full max-w-[10rem] rounded-[1.25rem] border border-slate-200 bg-slate-50 p-3">
                       <div className="h-2.5 w-16 rounded-full bg-slate-300" />
                       <div className="mt-3 h-8 rounded-[0.8rem] bg-[#589bf9]/18" />
-                      <div className="mt-3 h-14 rounded-[0.9rem] bg-[radial-gradient(circle_at_top_left,rgba(128,82,221,0.16),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))]" />
+                      <div className="mt-3 h-14 rounded-[0.9rem] bg-[radial-gradient(circle_at_top_left,rgba(66,111,235,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))]" />
                     </div>
                   </div>
                 </div>

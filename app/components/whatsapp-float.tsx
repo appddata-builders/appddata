@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { IoClose } from "react-icons/io5";
 
 const WHATSAPP_PHONE = "5512879683";
-const WHATSAPP_MESSAGE = "Buenas tardes, Appstract, quisiera conocer mas sobre sus productos.";
+const WHATSAPP_MESSAGE = "Buenas tardes, appdda, quisiera conocer mas sobre sus productos.";
 const WHATSAPP_URL = `https://api.whatsapp.com/send?phone=${WHATSAPP_PHONE}&text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
 const HOME_LOADER_DURATION_MS = 4400;
 
@@ -78,7 +78,7 @@ export default function WhatsAppFloat() {
         target="_blank"
         rel="noreferrer"
         aria-label="Contactar por WhatsApp"
-        className="flex h-16 w-16 items-center justify-center rounded-full border border-emerald-500/24 bg-green-500/6 text-emerald-600 shadow-[0_16px_40px_rgba(16,185,129,0.16)] backdrop-blur-xl transition hover:border-emerald-500/40 hover:bg-emerald-50 md:h-20 md:w-20"
+        className="flex h-16 w-16 items-center justify-center rounded-full border border-emerald-500/24 bg-green-500/15 text-emerald-600 shadow-[0_16px_40px_rgba(16,185,129,0.16)] backdrop-blur-xl transition hover:border-emerald-500/40 hover:bg-emerald-50 md:h-20 md:w-20"
       >
         <svg
           aria-hidden="true"

@@ -4,15 +4,12 @@ import { motion, type Variants } from "framer-motion";
 import Brand from "./brand";
 
 const tailLetters = [
-  { letter: "a", className: "text-[#589bf9]" },
+  { letter: "A", className: "text-[#589bf9]" },
   { letter: "p", className: "text-[#589bf9]" },
   { letter: "p", className: "text-[#589bf9]" },
-  { letter: "s", className: "text-[#414141]" },
-  { letter: "t", className: "text-[#414141]" },
-  { letter: "r", className: "text-[#414141]" },
-  { letter: "a", className: "text-[#414141]" },
-  { letter: "c", className: "text-[#414141]" },
-  { letter: "t", className: "text-[#414141]" },
+  { letter: "d", className: "text-[#8a8b8c]" },
+  { letter: "d", className: "text-[#8a8b8c]" },
+  { letter: "a", className: "text-[#8a8b8c]" },
 ];
 
 const containerVariants: Variants = {
@@ -56,7 +53,7 @@ export default function Loader() {
         },
       }}
     >
-      <div className="relative flex flex-col items-center gap-7 px-6">
+      <div className="flex flex-col items-center gap-12 px-6">
         <div className="flex items-center gap-2 sm:gap-4">
           <motion.div
             initial={{
@@ -103,13 +100,13 @@ export default function Loader() {
           </motion.div>
         </div>
 
-        <div className="h-0.5 overflow-hidden rounded-full bg-slate-100 w-64 md:w-114 bottom-0 right-0 absolute">
+        <div className="h-px w-56 overflow-hidden rounded-full bg-slate-200 md:w-80">
           <motion.div
-            className="h-full w-1/3 bg-linear-to-r from-transparent via-[#589bf9] to-[#525252]"
+            className="h-full w-1/2 bg-linear-to-r from-transparent via-[#589bf9] to-transparent"
             initial={{ x: "-100%" }}
-            animate={{ x: "200%" }}
+            animate={{ x: "300%" }}
             transition={{
-              duration: 1,
+              duration: 1.4,
               repeat: Infinity,
               ease: "easeInOut",
             }}

@@ -10,9 +10,9 @@ const imageCards = [
     description:
       "Cambia imagenes que se ajustan al momento que estas viviendo.",
     imageSrc: "/IMIN.png",
-    imageAlt: "Vista base del sitio Appstract",
+    imageAlt: "Vista base del sitio appdda",
     altImageSrc: "/brand-plane.png",
-    altImageAlt: "Vista editable del branding Appstract",
+    altImageAlt: "Vista editable del branding appdda",
     accent: "from-[#589bf9]/28 via-transparent to-cyan-300/10",
   },
   {
@@ -174,7 +174,7 @@ function ParallaxCard({ card, y, rotate, className = "" }: ParallaxCardProps) {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-[1.1fr_0.9fr]">
-              <div className="relative min-h-60 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,rgba(128,82,221,0.14),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,1))]">
+              <div className="relative min-h-60 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,rgba(66,111,235,0.16),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,1))]">
                 <div className="absolute inset-x-0 top-0 h-20 bg-linear-to-b from-black/6 to-transparent" />
                 <div className="absolute left-4 top-4 h-14 w-32 rounded-2xl border border-slate-200 bg-slate-100" />
                 <div className="absolute bottom-4 left-4 right-4 h-20 rounded-2xl border border-slate-200 bg-slate-50" />

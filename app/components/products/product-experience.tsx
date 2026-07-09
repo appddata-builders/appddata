@@ -51,13 +51,13 @@ export default function ProductExperience() {
     <section className="w-full max-w-6xl px-4 pb-20 pt-6 sm:px-6 sm:pb-24">
       <div className="mb-8 max-w-3xl">
         <p className="text-[0.7rem] uppercase tracking-[0.45em] text-[#0C6CC6] font-bold">
-          Conoce Appstract en acción
+          Conoce appdda en acción
         </p>
         <h2 className="mt-4 text-3xl font-light tracking-[0.08em] text-[#111827] sm:text-5xl">
           Sitios web que nos respaldan
         </h2>
         <p className="mt-5 text-sm leading-7 tracking-[0.04em] text-slate-700 sm:text-base">
-          Mira los diseños de sitios que nuestros clientes han lanzado con Appstract, cada uno con su propia identidad y propósito:
+          Mira los diseños de sitios que nuestros clientes han lanzado con appdda, cada uno con su propia identidad y propósito:
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export default function ProductExperience() {
                   <div className="h-3 w-24 rounded-full bg-slate-300" />
                   <div className="h-8 rounded-[0.8rem] bg-slate-100" />
                   <div className="grid grid-cols-[1.2fr_0.8fr] gap-3">
-                    <div className="relative overflow-hidden rounded-2xl bg-[radial-gradient(circle_at_top_left,rgba(128,82,221,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))]">
+                    <div className="relative overflow-hidden rounded-2xl bg-[radial-gradient(circle_at_top_left,rgba(66,111,235,0.16),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))]">
                       <div className="absolute inset-0 bg-white/72" />
                       <div className="absolute inset-x-3 top-3 h-4 rounded-full bg-slate-100" />
                       <div className="absolute left-3 top-10 h-8 w-[58%] rounded-[0.9rem] border border-slate-200 bg-slate-100" />
@@ -96,7 +96,7 @@ export default function ProductExperience() {
                         href={site.href}
                         target="_blank"
                         rel="noreferrer"
-                        className="absolute inset-0 flex items-center justify-center"
+                        className="absolute inset-0 flex items-center justify-center z-50"
                         aria-label={`Abrir ${site.name}`}
                       >
                         <motion.img

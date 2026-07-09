@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CiLogin } from "react-icons/ci";
 import { FaUserCircle, FaRegEdit } from "react-icons/fa";
 import { AiFillProduct } from "react-icons/ai";
@@ -23,7 +23,14 @@ type NavbarContentProps = {
 
 function NavbarContent({ pathname }: NavbarContentProps) {
   const [openPathname, setOpenPathname] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
   const isOpen = openPathname === pathname;
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <motion.div
@@ -38,9 +45,9 @@ function NavbarContent({ pathname }: NavbarContentProps) {
         duration: 0.22,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="fixed left-1/2 top-4 z-40 w-[min(94vw,58rem)] -translate-x-1/2 sm:top-5"
+      className={`fixed left-0 top-0 z-40 w-full rounded-b-3xl border border-slate-200 bg-stone-50/80 overflow-hidden transition-shadow duration-300 ${scrolled ? "shadow-[0_8px_32px_rgba(15,23,42,0.10)]" : ""}`}
     >
-      <div className="flex items-center justify-between gap-3 rounded-full border border-slate-200 bg-white/92 px-3 py-2.5 backdrop-blur-sm sm:gap-4 sm:px-4 sm:py-3">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-2.5 backdrop-blur-sm sm:gap-4 sm:px-6 sm:py-3">
         <Link
           href="/?from=logo"
           className="flex min-w-0 flex-none items-center justify-center"
@@ -48,7 +55,7 @@ function NavbarContent({ pathname }: NavbarContentProps) {
           <Brand size="sm" />
         </Link>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-3 sm:gap-4">
           <button
             type="button"
             aria-label={isOpen ? "Close menu" : "Open menu"}
@@ -78,7 +85,7 @@ function NavbarContent({ pathname }: NavbarContentProps) {
           <Link
             href="/account"
             aria-label="Crear cuenta o iniciar sesion"
-            className="flex h-9 items-center gap-2 rounded-full border border-[#589bf9]/20 bg-[#589bf9]/10 px-3 text-[#0C6CC6] transition hover:border-[#589bf9]/38 hover:bg-[#589bf9]/16 sm:h-11 sm:px-4"
+            className="flex h-9 items-center gap-2 rounded-full border border-[#589bf9]/20 bg-[#589bf9]/8 px-3 text-[#0C6CC6] transition hover:border-[#589bf9]/38 hover:bg-[#589bf9]/16 sm:h-11 sm:px-4"
           >
             <FaUserCircle className="h-4 w-4 shrink-0 sm:h-[1.05rem] sm:w-[1.05rem]" />
             <span className="hidden text-[0.68rem] uppercase tracking-[0.24em] sm:inline-block">
