@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { FcGoogle } from "react-icons/fc";
+import { FaApple, FaFacebook } from "react-icons/fa";
 
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -152,14 +154,17 @@ export default function AccountRegisterPage() {
             </div>
 
             <div className="grid gap-3">
-              <Button type="button" variant="outline" className="w-full" disabled>
-                Google (pronto)
+              <Button type="button" variant="outline" className="relative w-full" disabled>
+                <FcGoogle className="absolute left-4 h-5 w-5" />
+                <span>Google</span>
               </Button>
-              <Button type="button" variant="outline" className="w-full" disabled>
-                Apple (pronto)
+              <Button type="button" variant="outline" className="relative w-full" disabled>
+                <FaApple className="absolute left-4 h-5 w-5 text-[#111827]" />
+                <span>Apple</span>
               </Button>
-              <Button type="button" variant="outline" className="w-full" disabled>
-                Facebook (pronto)
+              <Button type="button" variant="outline" className="relative w-full" disabled>
+                <FaFacebook className="absolute left-4 h-5 w-5 text-[#1877F2]" />
+                <span>Facebook</span>
               </Button>
             </div>
 
