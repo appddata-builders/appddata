@@ -9,6 +9,10 @@
  *   - modo "media": bloquea la navegacion; al clickear una imagen (foreground o
  *     background) o un video avisa al editor con el "kind", que responde con
  *     "set-media" para reemplazar la fuente. Los videos solo aceptan mp4.
+ *   - modo "style": bloquea la navegacion; al clickear un icono avisa
+ *     "icon-selected" (el editor responde "set-icon" con el SVG nuevo) y al
+ *     clickear cualquier otro elemento avisa "color-selected" (el editor
+ *     responde "set-color" para pintar texto o fondo).
  *
  * El scroll nunca se bloquea (no interceptamos wheel/touch). Solo se activa
  * cuando la pagina esta dentro de un iframe, asi que no afecta a visitantes.
@@ -153,6 +157,43 @@
     return null;
   }
 
+  // Sube desde el elemento clickeado hasta encontrar un icono: un <svg> inline
+  // o un <i>/<span> con clases tipicas de fuentes de iconos (Font Awesome, etc).
+  function findIcon(el) {
+    while (el && el !== document.body) {
+      if (el.nodeType === 1) {
+        var tag = el.tagName ? el.tagName.toLowerCase() : "";
+        if (tag === "svg") {
+          return el;
+        }
+        if (
+          (tag === "i" || tag === "span") &&
+          typeof el.className === "string" &&
+          /(^|\s)(fa|fas|far|fab|fa-|bi|bi-|icon|material-icons|glyphicon|material-symbols)/i.test(
+            el.className,
+          )
+        ) {
+          return el;
+        }
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  // En modo "style", devuelve que se puede editar bajo el cursor: un icono
+  // (para reemplazar) o cualquier elemento (para pintar color).
+  function styleTargetUnder(target) {
+    var icon = findIcon(target);
+    if (icon) {
+      return { el: icon, kind: "icon" };
+    }
+    if (target && target.nodeType === 1 && target !== document.body) {
+      return { el: target, kind: "color" };
+    }
+    return null;
+  }
+
   // Devuelve el elemento editable bajo el cursor segun el modo, o null.
   function editableUnder(target) {
     if (mode === "text") {
@@ -161,6 +202,10 @@
     if (mode === "media") {
       var media = findMedia(target);
       return media ? media.el : null;
+    }
+    if (mode === "style") {
+      var styleTarget = styleTargetUnder(target);
+      return styleTarget ? styleTarget.el : null;
     }
     return null;
   }
@@ -295,6 +340,27 @@
       post({ type: "media-selected", selector: cssPath(media.el), kind: media.kind });
       return;
     }
+
+    if (mode === "style") {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      var styleTarget = styleTargetUnder(target);
+      if (!styleTarget) {
+        return;
+      }
+
+      if (styleTarget.kind === "icon") {
+        post({ type: "icon-selected", selector: cssPath(styleTarget.el) });
+      } else {
+        post({
+          type: "color-selected",
+          selector: cssPath(styleTarget.el),
+          hasText: hasDirectText(styleTarget.el),
+        });
+      }
+      return;
+    }
   }
 
   // Captura en fase de captura para ganarle al router SPA y a los <a>.
@@ -315,7 +381,9 @@
       document.body.style.cursor = editable
         ? mode === "media"
           ? "copy"
-          : "text"
+          : mode === "style"
+            ? "pointer"
+            : "text"
         : "not-allowed";
     },
     true,
@@ -383,6 +451,43 @@
     }
   }
 
+  // --- Estilo: color e iconos ---------------------------------------------
+
+  function applyColor(selector, colorTarget, color) {
+    var el = document.querySelector(selector);
+    if (!el) {
+      return;
+    }
+    if (colorTarget === "background") {
+      el.style.backgroundColor = color;
+    } else {
+      el.style.color = color;
+    }
+  }
+
+  function applyIcon(selector, svgMarkup) {
+    var oldEl = document.querySelector(selector);
+    if (!oldEl || !oldEl.parentNode) {
+      return;
+    }
+
+    var tmp = document.createElement("div");
+    tmp.innerHTML = svgMarkup;
+    var newEl = tmp.firstElementChild;
+    if (!newEl) {
+      return;
+    }
+
+    // Conserva el tamano y color del icono original para que encaje visualmente.
+    var cs = window.getComputedStyle(oldEl);
+    newEl.style.width = cs.width;
+    newEl.style.height = cs.height;
+    newEl.style.color = cs.color;
+    newEl.style.verticalAlign = cs.verticalAlign;
+
+    oldEl.parentNode.replaceChild(newEl, oldEl);
+  }
+
   window.addEventListener("message", function (event) {
     if (!isAllowed(event.origin)) {
       return;
@@ -405,12 +510,28 @@
 
       setHover(null);
       document.body.style.cursor =
-        mode === "media" ? "copy" : mode === "text" ? "text" : "";
+        mode === "media"
+          ? "copy"
+          : mode === "text"
+            ? "text"
+            : mode === "style"
+              ? "pointer"
+              : "";
       return;
     }
 
     if (data.type === "set-media" && data.selector && data.kind && data.src) {
       applyMedia(data.selector, data.kind, data.src);
+      return;
+    }
+
+    if (data.type === "set-color" && data.selector && data.color) {
+      applyColor(data.selector, data.colorTarget, data.color);
+      return;
+    }
+
+    if (data.type === "set-icon" && data.selector && data.svg) {
+      applyIcon(data.selector, data.svg);
       return;
     }
   });
