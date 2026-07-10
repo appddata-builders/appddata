@@ -245,7 +245,7 @@ export default function IminTutorialWorkspace() {
             ref={iframeRef}
             src={LIVE_SITE_URL}
             title="refautomex.com"
-            className="block h-[95vh] w-full border-0 bg-white"
+            className="block h-[90vh] w-full border-0 bg-white"
             referrerPolicy="no-referrer-when-downgrade"
             onLoad={() => setBridgeReady(false)}
           />
