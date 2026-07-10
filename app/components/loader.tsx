@@ -4,7 +4,7 @@ import { motion, type Variants } from "framer-motion";
 import Brand from "./brand";
 
 const tailLetters = [
-  { letter: "A", className: "text-[#589bf9]" },
+  { letter: "a", className: "text-[#589bf9]" },
   { letter: "p", className: "text-[#589bf9]" },
   { letter: "p", className: "text-[#589bf9]" },
   { letter: "d", className: "text-[#8a8b8c]" },

@@ -4,13 +4,14 @@
  * Recibe comandos por postMessage desde el editor IMIN (la app padre que
  * incrusta este sitio en un <iframe>) y aplica edicion en vivo:
  *   - modo "navigate": no hace nada, el sitio navega normal.
- *   - modo "text": bloquea la navegacion y hace contentEditable el texto que
- *     se clickee; devuelve los cambios al editor.
- *   - modo "image": bloquea la navegacion; al clickear una imagen avisa al
- *     editor, que responde con "set-image" para reemplazar el src.
+ *   - modo "text": bloquea la navegacion y hace contentEditable SOLO el texto
+ *     que ya existe (no deja crear texto donde no lo hay); devuelve los cambios.
+ *   - modo "media": bloquea la navegacion; al clickear una imagen (foreground o
+ *     background) o un video avisa al editor con el "kind", que responde con
+ *     "set-media" para reemplazar la fuente. Los videos solo aceptan mp4.
  *
- * El scroll nunca se bloquea. Solo se activa cuando la pagina esta dentro de
- * un iframe, asi que no afecta a los visitantes normales.
+ * El scroll nunca se bloquea (no interceptamos wheel/touch). Solo se activa
+ * cuando la pagina esta dentro de un iframe, asi que no afecta a visitantes.
  *
  * Seguridad: solo acepta mensajes de los origenes en ALLOWED_PARENT_ORIGINS.
  * Agrega ahi el origen donde despliegues el editor IMIN.
@@ -26,16 +27,17 @@
   var ALLOWED_PARENT_ORIGINS = [
     // 1) Pruebas: el editor IMIN corriendo en tu localhost.
     "http://localhost:3000",
-    "http://127.0.0.1:3000",
     // 2) Produccion: reemplaza por el dominio real donde despliegues el editor
-    //    IMIN (este proyecto). Ejemplo: "https://imin.tudominio.com".
-    //    Puedes dejar tambien los de localhost sin problema.
-    // "https://TU-DOMINIO-DEL-EDITOR",
+    "https://appstracts.netlify.app",
   ];
+
+  var HOVER_OUTLINE = "2px dashed #589bf9";
+  var ACTIVE_OUTLINE = "2px solid #589bf9";
 
   var mode = "navigate";
   var parentOrigin = null;
   var currentEditable = null;
+  var hoverEl = null;
   var sendTimer = null;
 
   function isAllowed(origin) {
@@ -87,10 +89,111 @@
     window.parent.postMessage(payload, parentOrigin);
   }
 
+  // --- Deteccion de "donde SI se puede editar" -----------------------------
+
+  // Verdadero si el elemento tiene texto propio (un nodo de texto directo con
+  // contenido). Asi no convertimos en editable un contenedor vacio.
+  function hasDirectText(el) {
+    if (!el || el.nodeType !== 1) {
+      return false;
+    }
+
+    var tag = el.tagName;
+    if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") {
+      return false;
+    }
+
+    for (var i = 0; i < el.childNodes.length; i++) {
+      var node = el.childNodes[i];
+      if (node.nodeType === 3 && node.nodeValue && node.nodeValue.trim() !== "") {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Sube desde el elemento clickeado hasta encontrar uno con texto propio.
+  function findTextEl(el) {
+    while (el && el !== document.body) {
+      if (hasDirectText(el)) {
+        return el;
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  // Verdadero si el elemento pinta una imagen de fondo (url(...)).
+  function hasBackgroundImage(el) {
+    if (!el || el.nodeType !== 1) {
+      return false;
+    }
+    var bg = window.getComputedStyle(el).backgroundImage;
+    return !!bg && bg !== "none" && bg.indexOf("url(") !== -1;
+  }
+
+  // Sube desde el elemento clickeado hasta encontrar un medio reemplazable:
+  // una imagen <img>, un <video>, o un fondo con background-image.
+  function findMedia(el) {
+    while (el && el !== document.body) {
+      if (el.nodeType === 1) {
+        if (el.tagName === "IMG") {
+          return { el: el, kind: "image" };
+        }
+        if (el.tagName === "VIDEO") {
+          return { el: el, kind: "video" };
+        }
+        if (hasBackgroundImage(el)) {
+          return { el: el, kind: "background" };
+        }
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  // Devuelve el elemento editable bajo el cursor segun el modo, o null.
+  function editableUnder(target) {
+    if (mode === "text") {
+      return findTextEl(target);
+    }
+    if (mode === "media") {
+      var media = findMedia(target);
+      return media ? media.el : null;
+    }
+    return null;
+  }
+
+  // --- Resaltado por hover -------------------------------------------------
+
+  function clearHover() {
+    if (hoverEl && hoverEl !== currentEditable) {
+      hoverEl.style.outline = "";
+      hoverEl.style.outlineOffset = "";
+    }
+    hoverEl = null;
+  }
+
+  function setHover(el) {
+    if (hoverEl === el) {
+      return;
+    }
+    clearHover();
+    if (el && el !== currentEditable) {
+      el.style.outline = HOVER_OUTLINE;
+      el.style.outlineOffset = "2px";
+      hoverEl = el;
+    }
+  }
+
+  // --- Edicion de texto ----------------------------------------------------
+
   function clearEditable() {
     if (currentEditable) {
       currentEditable.removeAttribute("contenteditable");
       currentEditable.style.outline = "";
+      currentEditable.style.outlineOffset = "";
       currentEditable = null;
     }
   }
@@ -99,15 +202,45 @@
     post({ type: "text-changed", selector: cssPath(el), value: el.textContent || "" });
   }
 
-  function findImage(el) {
-    while (el && el !== document.body) {
-      if (el.tagName === "IMG") {
-        return el;
+  // --- Bloqueo de navegacion ----------------------------------------------
+
+  function isInsideEditable(node) {
+    while (node) {
+      if (node.nodeType === 1 && node.isContentEditable) {
+        return true;
       }
-      el = el.parentElement;
+      node = node.parentNode;
     }
-    return null;
+    return false;
   }
+
+  // Bloquea eventos que disparan navegacion (routers SPA, <a>, botones que
+  // navegan en mousedown, submits...). No toca wheel/touch, asi el scroll vive.
+  function guardNavigation(event) {
+    if (mode === "navigate") {
+      return;
+    }
+
+    // En modo texto dejamos pasar todo lo que ocurre dentro del campo activo
+    // (posicionar cursor, seleccionar, escribir).
+    if (mode === "text" && isInsideEditable(event.target)) {
+      return;
+    }
+
+    // No matamos el scroll tactil: solo bloqueamos el puntero tipo mouse.
+    if (event.type === "pointerdown" && event.pointerType && event.pointerType !== "mouse") {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+
+  ["pointerdown", "mousedown", "auxclick", "submit"].forEach(function (type) {
+    document.addEventListener(type, guardNavigation, true);
+  });
+
+  // --- Click: selecciona el elemento a editar ------------------------------
 
   function onClickCapture(event) {
     if (mode === "navigate") {
@@ -118,40 +251,75 @@
 
     if (mode === "text") {
       // Permite mover el cursor / escribir dentro del campo ya activo.
-      if (target && target.isContentEditable) {
+      if (isInsideEditable(target)) {
         return;
       }
 
       event.preventDefault();
       event.stopImmediatePropagation();
-      clearEditable();
 
-      if (target && target.nodeType === 1) {
-        target.setAttribute("contenteditable", "true");
-        target.style.outline = "2px solid #589bf9";
-        currentEditable = target;
-        target.focus();
-        post({ type: "text-selected", selector: cssPath(target), value: target.textContent || "" });
+      var textEl = findTextEl(target);
+
+      // Sin texto propio => no se puede editar aqui (no creamos texto nuevo).
+      if (!textEl) {
+        clearEditable();
+        return;
       }
 
+      if (textEl === currentEditable) {
+        return;
+      }
+
+      clearEditable();
+      setHover(null);
+      textEl.setAttribute("contenteditable", "true");
+      textEl.style.outline = ACTIVE_OUTLINE;
+      textEl.style.outlineOffset = "2px";
+      currentEditable = textEl;
+      textEl.focus();
+      post({ type: "text-selected", selector: cssPath(textEl), value: textEl.textContent || "" });
       return;
     }
 
-    if (mode === "image") {
+    if (mode === "media") {
       event.preventDefault();
       event.stopImmediatePropagation();
 
-      var img = findImage(target);
-      if (img) {
-        post({ type: "image-selected", selector: cssPath(img) });
+      var media = findMedia(target);
+
+      // Sin medio reemplazable => no se puede agregar de mas.
+      if (!media) {
+        return;
       }
 
+      post({ type: "media-selected", selector: cssPath(media.el), kind: media.kind });
       return;
     }
   }
 
   // Captura en fase de captura para ganarle al router SPA y a los <a>.
   document.addEventListener("click", onClickCapture, true);
+
+  // Hover: muestra donde SI se puede editar y marca "no permitido" donde no.
+  document.addEventListener(
+    "mousemove",
+    function (event) {
+      if (mode === "navigate") {
+        setHover(null);
+        return;
+      }
+
+      var editable = editableUnder(event.target);
+      setHover(editable);
+
+      document.body.style.cursor = editable
+        ? mode === "media"
+          ? "copy"
+          : "text"
+        : "not-allowed";
+    },
+    true,
+  );
 
   document.addEventListener(
     "input",
@@ -183,6 +351,38 @@
     true,
   );
 
+  // --- Reemplazo de medios -------------------------------------------------
+
+  function applyMedia(selector, kind, src) {
+    var el = document.querySelector(selector);
+    if (!el) {
+      return;
+    }
+
+    if (kind === "image" && el.tagName === "IMG") {
+      el.removeAttribute("srcset");
+      el.src = src;
+      return;
+    }
+
+    if (kind === "background") {
+      // JSON.stringify envuelve en comillas y escapa el data URL de forma segura.
+      el.style.backgroundImage = "url(" + JSON.stringify(src) + ")";
+      return;
+    }
+
+    if (kind === "video" && el.tagName === "VIDEO") {
+      // Quita los <source> hijos para que no ganen sobre el nuevo src.
+      while (el.firstChild) {
+        el.removeChild(el.firstChild);
+      }
+      el.removeAttribute("srcset");
+      el.src = src;
+      el.load();
+      return;
+    }
+  }
+
   window.addEventListener("message", function (event) {
     if (!isAllowed(event.origin)) {
       return;
@@ -203,17 +403,14 @@
         clearEditable();
       }
 
+      setHover(null);
       document.body.style.cursor =
-        mode === "image" ? "copy" : mode === "text" ? "text" : "";
+        mode === "media" ? "copy" : mode === "text" ? "text" : "";
       return;
     }
 
-    if (data.type === "set-image" && data.selector && data.src) {
-      var el = document.querySelector(data.selector);
-      if (el && el.tagName === "IMG") {
-        el.removeAttribute("srcset");
-        el.src = data.src;
-      }
+    if (data.type === "set-media" && data.selector && data.kind && data.src) {
+      applyMedia(data.selector, data.kind, data.src);
       return;
     }
   });

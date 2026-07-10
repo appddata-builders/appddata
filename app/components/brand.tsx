@@ -55,7 +55,7 @@ export default function Brand({
       >
         {textContent ?? (
           <>
-            <span className="inline-block text-[#589bf9]">A</span>
+            <span className="inline-block text-[#589bf9]">a</span>
             <span className="inline-block text-[#589bf9]">p</span>
             <span className="inline-block text-[#589bf9]">p</span>
             <span className="inline-block text-[#8a8b8c]">d</span>
