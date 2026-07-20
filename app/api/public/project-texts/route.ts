@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-import { db } from "@/db";
-import { project, projectText } from "@/db/project-schema";
+import { getDb } from "@/db";
+import { project, projectText } from "@/db/schema";
 import { ensureDefaultProjects } from "@/lib/default-projects";
 import { getProjectReadSecret, isValidProjectReadToken } from "@/lib/project-read-secret";
 
@@ -29,11 +29,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "slug requerido" }, { status: 400 });
   }
   await ensureDefaultProjects();
-  const proj = await db.select().from(project).where(eq(project.slug, slug)).limit(1);
+  const proj = await getDb().select().from(project).where(eq(project.slug, slug)).limit(1);
   if (proj.length === 0) {
     return NextResponse.json({ error: "proyecto no encontrado" }, { status: 404 });
   }
-  const textsRows = await db.select().from(projectText).where(eq(projectText.projectId, proj[0].id));
+  const textsRows = await getDb().select().from(projectText).where(eq(projectText.projectId, proj[0].id));
   const texts: Record<string, string> = {};
   for (const row of textsRows) {
     texts[row.contentKey] = row.contentValue;

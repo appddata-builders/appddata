@@ -37,6 +37,37 @@ export const projectText = sqliteTable(
   ],
 );
 
+/**
+ * Tabla de hidratacion que consumen los sitios hijos (refautomex, etc.).
+ *
+ * Es plana a proposito: se identifica por `project_slug` en vez de por FK a
+ * `project.id` para que un sitio externo pueda leerla con drizzle sin replicar
+ * el resto del schema ni hacer join.
+ *
+ * `content_key` lleva el locale como primer segmento, p. ej. "es.navbar.home",
+ * y el sitio hijo lo expande al arbol de recursos de i18next.
+ */
+export const hydrate = sqliteTable(
+  "hydrate",
+  {
+    id: text("id").primaryKey(),
+    projectSlug: text("project_slug").notNull(),
+    contentKey: text("content_key").notNull(),
+    contentValue: text("content_value").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("hydrate_project_slug_idx").on(table.projectSlug),
+    uniqueIndex("hydrate_project_slug_content_key_uidx").on(table.projectSlug, table.contentKey),
+  ],
+);
+
 export const projectRelations = relations(project, ({ many }) => ({
   texts: many(projectText),
 }));

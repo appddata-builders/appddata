@@ -272,7 +272,7 @@ export default function IminTutorialWorkspace() {
         Demostración IMIN
       </p>
       <p className="mb-3 text-center text-sm text-slate-500 text-bold">
-        Tutorial de edición de refautomex.com. No se guardan cambios en el sitio real.
+        Tutorial de edición de refautomex.com. Demostrativo.
       </p>
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
         <div className="mb-3 flex items-center justify-between gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

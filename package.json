@@ -7,8 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:push:local": "drizzle-kit push --config drizzle.config.sqlite.ts",
+    "db:studio:local": "drizzle-kit studio --config drizzle.config.sqlite.ts",
+    "db:pg:push": "drizzle-kit push --config drizzle.config.pg.ts",
+    "db:pg:studio": "drizzle-kit studio --config drizzle.config.pg.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.5",
@@ -33,6 +35,7 @@
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
     "next": "^16.2.10",
+    "postgres": "^3.4.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.72.1",

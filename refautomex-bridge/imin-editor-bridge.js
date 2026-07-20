@@ -14,8 +14,14 @@
  *     clickear cualquier otro elemento avisa "color-selected" (el editor
  *     responde "set-color" para pintar texto o fondo).
  *
- * El scroll nunca se bloquea (no interceptamos wheel/touch). Solo se activa
- * cuando la pagina esta dentro de un iframe, asi que no afecta a visitantes.
+ * En todos los modos menos "navigate" el sitio queda "congelado": ademas de
+ * bloquear los eventos que activan cosas, se anulan las APIs de navegacion
+ * programatica (history, location, window.open, form.submit) para que ningun
+ * router SPA ni script propio cambie el preview mientras se edita.
+ *
+ * El scroll nunca se bloquea (no interceptamos wheel/touch, y las teclas de
+ * scroll siguen pasando). Solo se activa cuando la pagina esta dentro de un
+ * iframe, asi que no afecta a visitantes.
  *
  * Seguridad: solo acepta mensajes de los origenes en ALLOWED_PARENT_ORIGINS.
  * Agrega ahi el origen donde despliegues el editor IMIN.
@@ -259,10 +265,49 @@
     return false;
   }
 
-  // Bloquea eventos que disparan navegacion (routers SPA, <a>, botones que
-  // navegan en mousedown, submits...). No toca wheel/touch, asi el scroll vive.
+  // "Congelado" = cualquier modo de edicion. Ahi el sitio no debe navegar ni
+  // reaccionar a su propio scripting: solo se edita.
+  function isFrozen() {
+    return mode !== "navigate";
+  }
+
+  // Eventos que disparan navegacion o logica de la pagina (routers SPA, <a>,
+  // botones que navegan en mouseup/keydown, submits, drags...).
+  // Deliberadamente NO tocamos wheel/touchmove/scroll: el scroll vive siempre.
+  var GUARDED_EVENTS = [
+    "pointerdown",
+    "pointerup",
+    "mousedown",
+    "mouseup",
+    "auxclick",
+    "dblclick",
+    "contextmenu",
+    "submit",
+    "reset",
+    "change",
+    "dragstart",
+    "drop",
+    "keydown",
+    "keypress",
+    "keyup",
+  ];
+
+  // Teclas que no bloqueamos aunque estemos congelados: son las que mueven el
+  // scroll o la seleccion, y no activan nada.
+  var SCROLL_KEYS = {
+    ArrowUp: true,
+    ArrowDown: true,
+    ArrowLeft: true,
+    ArrowRight: true,
+    PageUp: true,
+    PageDown: true,
+    Home: true,
+    End: true,
+    Tab: true,
+  };
+
   function guardNavigation(event) {
-    if (mode === "navigate") {
+    if (!isFrozen()) {
       return;
     }
 
@@ -273,7 +318,17 @@
     }
 
     // No matamos el scroll tactil: solo bloqueamos el puntero tipo mouse.
-    if (event.type === "pointerdown" && event.pointerType && event.pointerType !== "mouse") {
+    if (
+      (event.type === "pointerdown" || event.type === "pointerup") &&
+      event.pointerType &&
+      event.pointerType !== "mouse"
+    ) {
+      return;
+    }
+
+    // Fuera de un campo editable, el teclado no debe activar nada, pero si debe
+    // poder mover el scroll.
+    if (event.type.indexOf("key") === 0 && SCROLL_KEYS[event.key]) {
       return;
     }
 
@@ -281,9 +336,60 @@
     event.stopImmediatePropagation();
   }
 
-  ["pointerdown", "mousedown", "auxclick", "submit"].forEach(function (type) {
+  // Los registramos en window ademas de document para ganarle en fase de
+  // captura a cualquier listener global que el sitio instale en document.
+  GUARDED_EVENTS.forEach(function (type) {
+    window.addEventListener(type, guardNavigation, true);
     document.addEventListener(type, guardNavigation, true);
   });
+
+  // --- Congelado del scripting: navegacion programatica --------------------
+  //
+  // Bloquear eventos no basta: el sitio puede navegar desde un setTimeout, un
+  // router.push, un location.href o un window.open. Envolvemos esas APIs para
+  // que sean no-ops mientras estamos en un modo de edicion.
+
+  function freezeMethod(owner, name) {
+    if (!owner || typeof owner[name] !== "function") {
+      return;
+    }
+
+    var original = owner[name];
+
+    try {
+      owner[name] = function () {
+        if (isFrozen()) {
+          return undefined;
+        }
+        return original.apply(this, arguments);
+      };
+    } catch (error) {
+      /* propiedad no escribible en este navegador, se ignora */
+    }
+  }
+
+  freezeMethod(window.history, "pushState");
+  freezeMethod(window.history, "replaceState");
+  freezeMethod(window.history, "back");
+  freezeMethod(window.history, "forward");
+  freezeMethod(window.history, "go");
+  freezeMethod(window, "open");
+  freezeMethod(window.Location && window.Location.prototype, "assign");
+  freezeMethod(window.Location && window.Location.prototype, "replace");
+  freezeMethod(window.Location && window.Location.prototype, "reload");
+  freezeMethod(window.HTMLFormElement && window.HTMLFormElement.prototype, "submit");
+  freezeMethod(window.HTMLFormElement && window.HTMLFormElement.prototype, "requestSubmit");
+
+  // Red de seguridad final: la Navigation API intercepta TODA navegacion del
+  // documento (incluido `location.href = ...`, que no se puede envolver).
+  // Solo existe en Chromium; en el resto quedan las capas de arriba.
+  if (window.navigation && typeof window.navigation.addEventListener === "function") {
+    window.navigation.addEventListener("navigate", function (event) {
+      if (isFrozen() && event.cancelable) {
+        event.preventDefault();
+      }
+    });
+  }
 
   // --- Click: selecciona el elemento a editar ------------------------------
 
