@@ -26,7 +26,7 @@ export function ProjectTextsClient({ slug }: ProjectTextsClientProps) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/admin/projects/${encodeURIComponent(slug)}/texts`)
+    fetch(`/api/dashboard/projects/${encodeURIComponent(slug)}/texts`)
       .then(async (res) => {
         if (!res.ok) {
           throw new Error("no se pudieron cargar los textos");
@@ -50,11 +50,15 @@ export function ProjectTextsClient({ slug }: ProjectTextsClientProps) {
     };
   }, [slug, setDrafts]);
 
-  const rows = Object.keys(drafts).map((key) => ({ key, value: drafts[key] ?? "" }));
+  // Las ediciones del workspace IMIN viven en la misma tabla pero son un JSON
+  // de ordenes para el bridge, no texto editable a mano.
+  const rows = Object.keys(drafts)
+    .filter((key) => !key.startsWith("imin.editor."))
+    .map((key) => ({ key, value: drafts[key] ?? "" }));
 
   async function onSave() {
     setSaveState("saving");
-    const res = await fetch(`/api/admin/projects/${encodeURIComponent(slug)}/texts`, {
+    const res = await fetch(`/api/dashboard/projects/${encodeURIComponent(slug)}/texts`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ entries: drafts }),

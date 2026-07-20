@@ -35,7 +35,7 @@ export default function AccountRegisterPage() {
     }
     setLoading(true);
     const params = new URLSearchParams(window.location.search);
-    const siguiente = params.get("siguiente") ?? "/admin";
+    const siguiente = params.get("siguiente") ?? "/dashboard";
     const name = `${firstName.trim()} ${lastName.trim()}`.trim();
     const res = await authClient.signUp.email({
       email,

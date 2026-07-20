@@ -10,6 +10,8 @@ const tailLetters = [
   { letter: "d", className: "text-[#8a8b8c]" },
   { letter: "d", className: "text-[#8a8b8c]" },
   { letter: "a", className: "text-[#8a8b8c]" },
+  { letter: "t", className: "text-[#8a8b8c]" },
+  { letter: "a", className: "text-[#8a8b8c]" },
 ];
 
 const containerVariants: Variants = {

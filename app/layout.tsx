@@ -20,10 +20,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "appdda",
+  title: "appddata",
   description: "Desarrollamos páginas web para ti",
   keywords: [
-    "appdda",
+    "appddata",
     "Dev",
     "Tech",
     "Desarrollo",

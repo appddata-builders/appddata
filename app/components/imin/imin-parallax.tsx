@@ -10,9 +10,9 @@ const imageCards = [
     description:
       "Cambia imagenes que se ajustan al momento que estas viviendo.",
     imageSrc: "/IMIN.png",
-    imageAlt: "Vista base del sitio appdda",
+    imageAlt: "Vista base del sitio appddata",
     altImageSrc: "/brand-plane.png",
-    altImageAlt: "Vista editable del branding appdda",
+    altImageAlt: "Vista editable del branding appddata",
     accent: "from-[#589bf9]/28 via-transparent to-cyan-300/10",
   },
   {

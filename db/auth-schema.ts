@@ -9,6 +9,16 @@ export const user = sqliteTable("user", {
     .default(false)
     .notNull(),
   image: text("image"),
+  /** "admin" ve todo el panel; "cliente" solo su propio proyecto. */
+  role: text("role").notNull().default("cliente"),
+  phone: text("phone"),
+  /** ID legible para iniciar sesion sin correo, p. ej. "AP0001". */
+  displayId: text("display_id").unique(),
+  idPrefix: text("id_prefix").notNull().default("AP"),
+  /** Slug de `project` al que pertenece el usuario; null para admins. */
+  projectSlug: text("project_slug"),
+  /** Un usuario inhabilitado existe pero no puede iniciar sesion. */
+  enabled: integer("enabled", { mode: "boolean" }).default(true).notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),

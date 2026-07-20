@@ -1,5 +1,5 @@
 {
-  "name": "appdda",
+  "name": "appddata",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,7 +10,9 @@
     "db:push:local": "drizzle-kit push --config drizzle.config.sqlite.ts",
     "db:studio:local": "drizzle-kit studio --config drizzle.config.sqlite.ts",
     "db:pg:push": "drizzle-kit push --config drizzle.config.pg.ts",
-    "db:pg:studio": "drizzle-kit studio --config drizzle.config.pg.ts"
+    "db:pg:studio": "drizzle-kit studio --config drizzle.config.pg.ts",
+    "make-admin": "node scripts/make-admin.mjs",
+    "set-plan": "node scripts/set-plan.mjs"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.5",

@@ -15,6 +15,16 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  /** "admin" ve todo el panel; "cliente" solo su propio proyecto. */
+  role: text("role").notNull().default("cliente"),
+  phone: text("phone"),
+  /** ID legible para iniciar sesion sin correo, p. ej. "AP0001". */
+  displayId: text("display_id").unique(),
+  idPrefix: text("id_prefix").notNull().default("AP"),
+  /** Slug de `project` al que pertenece el usuario; null para admins. */
+  projectSlug: text("project_slug"),
+  /** Un usuario inhabilitado existe pero no puede iniciar sesion. */
+  enabled: boolean("enabled").notNull().default(true),
   createdAt: timestamp("created_at", { precision: 3, mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { precision: 3, mode: "date" })
     .notNull()
@@ -87,6 +97,8 @@ export const project = pgTable("project", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
+  /** Paquete contratado: "free" o "imin". Ver lib/plans.ts. */
+  plan: text("plan").notNull().default("free"),
   createdAt: timestamp("created_at", { precision: 3, mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { precision: 3, mode: "date" })
     .notNull()

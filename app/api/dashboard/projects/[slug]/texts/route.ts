@@ -4,19 +4,40 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { project, projectText } from "@/db/schema";
 import { ensureDefaultProjects } from "@/lib/default-projects";
-import { requireAdminSession } from "@/lib/require-admin-session";
+import { getProjectPlan } from "@/lib/plans-server";
+import {
+  canEditProject,
+  isAdmin,
+  requirePanelSession,
+  type PanelSession,
+} from "@/lib/require-panel-session";
 
 type RouteParams = {
   params: Promise<{ slug: string }>;
 };
 
+/**
+ * El candado del menu es cosmetico; el que manda es este. Un cliente solo
+ * llega a los textos de su propio proyecto y solo si contrato el paquete.
+ */
+async function denyReason(session: PanelSession, slug: string): Promise<string | null> {
+  if (isAdmin(session)) return null;
+  if (!canEditProject(session, slug)) return "no autorizado";
+  if ((await getProjectPlan(slug)) !== "imin") return "paquete IMIN no contratado";
+  return null;
+}
+
 export async function GET(_request: Request, ctx: RouteParams) {
-  const session = await requireAdminSession();
+  const session = await requirePanelSession();
   if (!session) {
     return NextResponse.json({ error: "no autorizado" }, { status: 401 });
   }
   await ensureDefaultProjects();
   const { slug } = await ctx.params;
+  const denied = await denyReason(session, slug);
+  if (denied) {
+    return NextResponse.json({ error: denied }, { status: 403 });
+  }
   const proj = await getDb().select().from(project).where(eq(project.slug, slug)).limit(1);
   if (proj.length === 0) {
     return NextResponse.json({ error: "proyecto no encontrado" }, { status: 404 });
@@ -33,12 +54,16 @@ export async function GET(_request: Request, ctx: RouteParams) {
 }
 
 export async function PUT(request: Request, ctx: RouteParams) {
-  const session = await requireAdminSession();
+  const session = await requirePanelSession();
   if (!session) {
     return NextResponse.json({ error: "no autorizado" }, { status: 401 });
   }
   await ensureDefaultProjects();
   const { slug } = await ctx.params;
+  const denied = await denyReason(session, slug);
+  if (denied) {
+    return NextResponse.json({ error: denied }, { status: 403 });
+  }
   const proj = await getDb().select().from(project).where(eq(project.slug, slug)).limit(1);
   if (proj.length === 0) {
     return NextResponse.json({ error: "proyecto no encontrado" }, { status: 404 });

@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { project } from "@/db/schema";
 import { ensureDefaultProjects } from "@/lib/default-projects";
-import { requireAdminSession } from "@/lib/require-admin-session";
+import { requirePanelSession } from "@/lib/require-panel-session";
 
 export async function GET() {
-  const session = await requireAdminSession();
+  const session = await requirePanelSession();
   if (!session) {
     return NextResponse.json({ error: "no autorizado" }, { status: 401 });
   }

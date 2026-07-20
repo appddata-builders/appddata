@@ -1,8 +1,19 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { requirePanelSession } from "@/lib/require-panel-session";
 
 import Brand from "../components/brand";
 
-export default function AccountPage() {
+export default async function AccountPage() {
+  // Con sesion viva esta pantalla no aporta nada: se entra directo al panel.
+  const session = await requirePanelSession();
+  if (session) redirect("/dashboard");
+
+  return <AccountLanding />;
+}
+
+function AccountLanding() {
   return (
     <main className="app-min-h-screen bg-white px-4 pb-10 text-[#111827] sm:px-6 sm:pb-14">
       <div className="app-min-h-screen-nav-offset mx-auto flex w-full max-w-5xl items-center justify-center pt-24 sm:pt-28">

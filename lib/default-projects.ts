@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { project } from "@/db/schema";
 
 export const DEFAULT_SEED_PROJECTS = [
+  { slug: "imin", name: "IMIN" },
   { slug: "lake-sport-club", name: "Lake Sport Club" },
   { slug: "pilates-studio", name: "Pilates Studio" },
   { slug: "pulsety", name: "Pulsety" },

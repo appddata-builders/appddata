@@ -53,13 +53,13 @@ const titles: Record<string, { title: string; subtitle: string }> = {
   },
 };
 
-type AdminCatchAllPageProps = {
+type DashboardCatchAllPageProps = {
   params: Promise<{
     segments?: string[];
   }>;
 };
 
-export default async function AdminCatchAllPage({ params }: AdminCatchAllPageProps) {
+export default async function DashboardCatchAllPage({ params }: DashboardCatchAllPageProps) {
   const resolved = await params;
   const key = (resolved.segments ?? []).join("/");
   const entry = titles[key] ?? {

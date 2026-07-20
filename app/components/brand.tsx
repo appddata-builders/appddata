@@ -42,7 +42,7 @@ export default function Brand({
       <div className={`relative shrink-0 ${styles.plane} ${planeClassName}`.trim()}>
         <motion.img
           src="/brand-plane.png"
-          alt="appdda"
+          alt="appddata"
           className="h-full w-full object-contain backface-hidden transform-[translateZ(0)]"
           loading="eager"
           decoding="async"
@@ -60,6 +60,8 @@ export default function Brand({
             <span className="inline-block text-[#589bf9]">p</span>
             <span className="inline-block text-[#8a8b8c]">d</span>
             <span className="inline-block text-[#8a8b8c]">d</span>
+            <span className="inline-block text-[#8a8b8c]">a</span>
+            <span className="inline-block text-[#8a8b8c]">t</span>
             <span className="inline-block text-[#8a8b8c]">a</span>
           </>
         )}

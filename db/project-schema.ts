@@ -5,6 +5,8 @@ export const project = sqliteTable("project", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
+  /** Paquete contratado: "free" o "imin". Ver lib/plans.ts. */
+  plan: text("plan").notNull().default("free"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),

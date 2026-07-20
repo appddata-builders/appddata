@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { IoClose } from "react-icons/io5";
 
 const WHATSAPP_PHONE = "5512879683";
-const WHATSAPP_MESSAGE = "Buenas tardes, appdda, quisiera conocer mas sobre sus productos.";
+const WHATSAPP_MESSAGE = "Buenas tardes, appddata, quisiera conocer mas sobre sus productos.";
 const WHATSAPP_URL = `https://api.whatsapp.com/send?phone=${WHATSAPP_PHONE}&text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
 const HOME_LOADER_DURATION_MS = 4400;
 
@@ -15,7 +15,7 @@ export default function WhatsAppFloat() {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (pathname.startsWith("/admin")) {
+    if (pathname.startsWith("/dashboard")) {
       return;
     }
 
@@ -47,7 +47,7 @@ export default function WhatsAppFloat() {
     };
   }, [pathname]);
 
-  if (pathname.startsWith("/admin")) {
+  if (pathname.startsWith("/dashboard")) {
     return null;
   }
 

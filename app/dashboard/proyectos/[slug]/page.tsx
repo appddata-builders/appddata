@@ -4,7 +4,7 @@ type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export default async function AdminProjectTextsPage({ params }: PageProps) {
+export default async function DashboardProjectTextsPage({ params }: PageProps) {
   const { slug } = await params;
   return <ProjectTextsClient slug={slug} />;
 }
