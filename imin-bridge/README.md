@@ -24,7 +24,7 @@ acepta.
    En HTML plano basta `<script src="/imin-editor-bridge.js" defer></script>`.
 
 3. Declara desde donde se le permite hablar. Si no configuras nada, acepta
-   `http://localhost:3000` y `https://appstracts.netlify.app`.
+   `http://localhost:3000`, `https://appddata.netlify.app` y `https://appstract.netlify.app`.
 
    ```html
    <script src="/imin-editor-bridge.js" data-imin-origins="https://editor.midominio.com"></script>

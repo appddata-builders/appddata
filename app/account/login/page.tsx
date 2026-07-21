@@ -190,6 +190,16 @@ export default function AccountLoginPage() {
                 </Button>
               </form>
 
+              <p className="text-center text-sm text-muted-foreground">
+                No tienes una cuenta?{" "}
+                <Link
+                  href="/account/register"
+                  className="font-medium underline-offset-4 hover:underline text-[#1877F2]"
+                >
+                  Crear cuenta
+                </Link>
+              </p>
+
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <Separator />
@@ -214,21 +224,11 @@ export default function AccountLoginPage() {
                 </Button>
               </div>
 
-              <p className="text-center text-sm text-muted-foreground">
-                No tienes una cuenta?{" "}
-                <Link
-                  href="/account/register"
-                  className="font-medium text-foreground underline-offset-4 hover:underline"
-                >
-                  Crear cuenta
-                </Link>
-              </p>
-
               <Link
                 href="/account"
                 className="block text-center text-[0.72rem] uppercase tracking-[0.3em] text-slate-600 transition hover:text-slate-700"
               >
-                Volver a cuenta
+                Opciones de Cuenta
               </Link>
             </CardContent>
           </Card>

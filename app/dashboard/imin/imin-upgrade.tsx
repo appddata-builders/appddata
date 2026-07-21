@@ -1,6 +1,8 @@
 import { Check, Lock } from "lucide-react";
 import Link from "next/link";
 
+import IminMark from "@/app/components/imin/imin-mark";
+
 const FEATURES = [
   "Editor de textos del sitio, sin tocar codigo ni esperar despliegues",
   "Tutorial interactivo IMIN configurable desde el panel",
@@ -13,22 +15,28 @@ const FEATURES = [
  * El bloqueo real esta en el server component que la renderiza: esto es solo
  * la parte de venta.
  */
-export function IminUpgrade({ projectName }: { projectName: string | null }) {
+export function IminUpgrade({ isFree }: { isFree: boolean }) {
   return (
     <div className="mx-auto w-full max-w-3xl">
       <div className="rounded-lg border border-slate-200 bg-white">
-        <div className="flex items-start gap-4 border-b border-slate-100 p-6">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
-            <Lock className="h-5 w-5 text-slate-500" />
+        <div className="grid gap-5 border-b border-slate-100 p-6 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-center">
+          <div className="flex min-w-0 items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+              <Lock className="h-5 w-5 text-slate-500" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-lg font-semibold text-slate-900">IMIN no esta incluido en tu plan</h1>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Contrata el paquete IMIN para administrar el contenido de tu sitio desde aqui.
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h1 className="text-lg font-semibold text-slate-900">IMIN no esta incluido en tu plan</h1>
-            <p className="mt-1 text-sm leading-6 text-slate-600">
-              {projectName
-                ? `El proyecto ${projectName} esta en plan Free.`
-                : "Tu cuenta esta en plan Free."}{" "}
-              Contrata el paquete IMIN para administrar el contenido de tu sitio desde aqui.
-            </p>
+          <div className="relative mx-auto flex h-32 w-full max-w-40 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white sm:h-36">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(66,111,235,0.18),transparent_58%)]" />
+            <IminMark
+              className="relative h-20 w-20 sm:h-24 sm:w-24"
+              imageClassName="drop-shadow-[0_12px_24px_rgba(66,111,235,0.2)]"
+            />
           </div>
         </div>
 
@@ -43,10 +51,10 @@ export function IminUpgrade({ projectName }: { projectName: string | null }) {
 
         <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 bg-slate-50 p-6">
           <Link
-            href="/imin"
-            className="inline-flex h-9 items-center rounded-md bg-[#0C6CC6] px-4 text-sm font-medium text-white transition hover:bg-[#0a5aa6]"
+            href={isFree ? "/dashboard" : "/imin"}
+            className="inline-flex h-9 items-center rounded-md bg-amber-400 px-4 text-sm font-medium text-amber-950 transition hover:bg-amber-300"
           >
-            Contratar IMIN
+            {isFree ? "Ver Planes" : "Contratar IMIN"}
           </Link>
           <Link
             href="/imin"

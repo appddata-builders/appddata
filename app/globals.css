@@ -56,6 +56,20 @@ body {
   color: var(--foreground);
 }
 
+.imin-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.imin-color-input::-webkit-color-swatch {
+  border: 0;
+  border-radius: 9999px;
+}
+
+.imin-color-input::-moz-color-swatch {
+  border: 0;
+  border-radius: 9999px;
+}
+
 .app-min-h-screen {
   min-height: 100vh;
   min-height: 100svh;

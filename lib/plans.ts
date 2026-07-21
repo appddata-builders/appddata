@@ -6,10 +6,15 @@
  * lib/plans-server.ts.
  */
 
-export type ProjectPlan = "free" | "imin";
+import type { SitePlan } from "@/lib/site-packages";
+
+export type ProjectPlan = "free" | "beginner" | "super" | "premium" | "imin";
 
 export const PLAN_LABELS: Record<ProjectPlan, string> = {
   free: "Free",
+  beginner: "Beginner",
+  super: "Super",
+  premium: "Premium",
   imin: "IMIN",
 };
 
@@ -17,11 +22,20 @@ export type PanelPlan = {
   projectSlug: string | null;
   projectName: string | null;
   plan: ProjectPlan;
+  /** Paquete del sitio; IMIN se maneja como complemento independiente. */
+  sitePlan: SitePlan;
   /** Si es false, /dashboard/imin muestra la pantalla de venta en vez del editor. */
   hasImin: boolean;
   isInternal: boolean;
 };
 
 export function normalizePlan(raw: string | null | undefined): ProjectPlan {
-  return raw === "imin" ? "imin" : "free";
+  return raw === "imin" || raw === "beginner" || raw === "super" || raw === "premium"
+    ? raw
+    : "free";
+}
+
+export function sitePlanFromProjectPlan(plan: ProjectPlan): SitePlan {
+  // Compatibilidad con cuentas anteriores: `imin` representaba todo el plan.
+  return plan === "imin" ? "premium" : plan;
 }

@@ -27,6 +27,15 @@ export function getTrustedOrigins(): string[] {
     "http://localhost:3001",
   ]);
 
+  // Next cambia de puerto automaticamente cuando el puerto habitual esta
+  // ocupado. Better Auth admite wildcards; limitamos estos patrones a
+  // loopback y solo al entorno de desarrollo.
+  if (process.env.NODE_ENV !== "production") {
+    origins.add("http://localhost:*");
+    origins.add("http://127.0.0.1:*");
+    origins.add("http://[::1]:*");
+  }
+
   addOrigin(origins, process.env.BETTER_AUTH_URL);
   addOrigin(origins, process.env.NEXT_PUBLIC_APP_URL);
   addOrigin(origins, process.env.SITE_URL);

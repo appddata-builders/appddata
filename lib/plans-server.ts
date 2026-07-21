@@ -9,7 +9,12 @@ import { eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { project } from "@/db/schema";
-import { normalizePlan, type PanelPlan, type ProjectPlan } from "@/lib/plans";
+import {
+  normalizePlan,
+  sitePlanFromProjectPlan,
+  type PanelPlan,
+  type ProjectPlan,
+} from "@/lib/plans";
 import { isAdmin, type PanelSession } from "@/lib/require-panel-session";
 
 export async function getProjectPlan(slug: string): Promise<ProjectPlan> {
@@ -27,6 +32,7 @@ export async function getPanelPlan(session: PanelSession): Promise<PanelPlan> {
       projectSlug: null,
       projectName: null,
       plan: "imin",
+      sitePlan: "premium",
       hasImin: true,
       isInternal: true,
     };
@@ -38,6 +44,7 @@ export async function getPanelPlan(session: PanelSession): Promise<PanelPlan> {
       projectSlug: null,
       projectName: null,
       plan: "free",
+      sitePlan: "free",
       hasImin: false,
       isInternal: false,
     };
@@ -54,6 +61,7 @@ export async function getPanelPlan(session: PanelSession): Promise<PanelPlan> {
     projectSlug: slug,
     projectName: row?.name ?? slug,
     plan,
+    sitePlan: sitePlanFromProjectPlan(plan),
     hasImin: plan === "imin",
     isInternal: false,
   };

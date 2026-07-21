@@ -1,90 +1,17 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
+
+import { SitePackageIcon, SitePackageName } from "@/app/components/packages/site-package-identity";
+import { SHARED_SITE_FEATURES, SITE_PACKAGES } from "@/lib/site-packages";
 
 import Brand from "../brand";
 
-const sharedIncludes = [
-  "Introduccion - Home",
-  "Informacion relevante - About",
-  "Formulario de contacto - Contact",
-  "Productos relevantes - Products",
-  "Redes sociales - Footer",
-];
-
-const tiers = [
-  {
-    id: "beginner",
-    name: "Beginner",
-    price: "$10,000 MXN",
-    accent:
-      "border-[#589bf9]/18 bg-stone-50",
-    extras: null,
-  },
-  {
-    id: "super",
-    name: "Super",
-    price: "$28,000 MXN",
-    accent:
-      "border-[#589bf9]/18 bg-stone-50",
-    extras: ["1 Servicio *"],
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    price: "$35,000 MXN",
-    accent:
-      "border-[#589bf9]/18 bg-stone-50",
-    extras: [
-      "3 Servicios *",
-      "3 Meses de IMIN gratuitos",
-      "3 Consultas personalizadas gratuitas",
-    ],
-  },
-] as const;
-
-function PremiumTierName({ text }: { text: string }) {
-  const shouldReduceMotion = useReducedMotion() ?? false;
-  const letters = Array.from(text);
-  const goldStyle = {
-    backgroundImage:
-      "linear-gradient(120deg, #f7e314 0%,#e8e5df 22%,#e6b40e 38%,#e3cca8 54%,#f0eeeb 72%,#fab305 100%)",
-    backgroundSize: "220% 220%",
-    WebkitBackgroundClip: "text" as const,
-    backgroundClip: "text" as const,
-    WebkitTextFillColor: "transparent",
-    color: "transparent",
-  };
-
-  return (
-    <span className="inline-flex whitespace-nowrap filter-[drop-shadow(0_0_10px_rgba(255,190,84,0.2))]">
-      {letters.map((letter, index) => (
-        <motion.span
-          key={`${letter}-${index}`}
-          className="inline-block"
-          style={goldStyle}
-          animate={
-            shouldReduceMotion
-              ? undefined
-              : {
-                  opacity: [0.94, 1, 0.96, 1, 0.94],
-                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                }
-          }
-          transition={{
-            duration: 3.8,
-            delay: index * 0.08,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          {letter === " " ? "\u00A0" : letter}
-        </motion.span>
-      ))}
-    </span>
-  );
-}
+const sharedIncludes = SHARED_SITE_FEATURES;
+const tiers = SITE_PACKAGES.map((sitePackage) => ({
+  ...sitePackage,
+  accent: "border-[#589bf9]/18 bg-stone-50",
+}));
 
 export default function HomeDevelop() {
   const [selectedTierId, setSelectedTierId] = useState<(typeof tiers)[number]["id"]>("beginner");
@@ -133,8 +60,9 @@ export default function HomeDevelop() {
                     <p className="text-xs uppercase tracking-[0.42em] text-[#0C6CC6] font-extrabold">
                       Paquete
                     </p>
-                    <h3 className={`mt-3 whitespace-nowrap text-2xl font-bold tracking-[0.08em] ${tier.id === "super" ? "text-amber-400" : "text-slate-700"}`}>
-                      {tier.id === "premium" ? <PremiumTierName text={tier.name} /> : tier.name}
+                    <h3 className="mt-3 flex items-center gap-2 whitespace-nowrap text-2xl font-bold tracking-[0.08em]">
+                      <SitePackageIcon plan={tier.id} className="h-5 w-5 shrink-0" />
+                      <SitePackageName plan={tier.id}>{tier.name}</SitePackageName>
                     </h3>
                   </div>
 
@@ -168,7 +96,7 @@ export default function HomeDevelop() {
                   </div>
                 </div>
 
-                {tier.extras ? (
+                {tier.extras.length > 0 ? (
                   <div className="mt-5 rounded-3xl border border-dashed border-[#589bf9]/20 bg-[#589bf9]/5 px-4 py-4">
                     <p className="text-[0.65rem] uppercase tracking-[0.36em] text-slate-600">
                       Además el paquete incluye:

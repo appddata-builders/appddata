@@ -1,16 +1,15 @@
 "use client";
 
 import {
-  Bot,
   ChartColumn,
-  Code,
+  CreditCard,
   Globe,
   KeyRound,
   LayoutDashboard,
   Lock,
-  Palette,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plug,
-  ScrollText,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
@@ -22,10 +21,15 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import Brand from "@/app/components/brand";
+import {
+  SitePackageIcon,
+  SitePackageName,
+} from "@/app/components/packages/site-package-identity";
 import { authClient } from "@/lib/auth-client";
 import type { PanelPlan } from "@/lib/plans";
 import { PLAN_LABELS } from "@/lib/plans";
 import { cn } from "@/lib/utils";
+import { getUserInitials } from "@/lib/user-initials";
 
 type DashboardChromeProps = {
   email: string;
@@ -40,39 +44,36 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
   /** Requiere el paquete IMIN; sin el se muestra con candado. */
   requiresImin?: boolean;
+  /** Seccion bloqueada hasta que el proyecto tenga IMIN. */
+  disabled?: boolean;
 };
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Resumen", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Planes", icon: LayoutDashboard },
   { href: "/dashboard/imin", label: "IMIN", icon: Sparkles, requiresImin: true },
-  { href: "/dashboard/usuarios", label: "Usuarios", icon: Users },
-  { href: "/dashboard/analiticas", label: "Analiticas", icon: ChartColumn },
-  { href: "/dashboard/dominios", label: "Dominios", icon: Globe },
-  { href: "/dashboard/integraciones", label: "Integraciones", icon: Plug },
-  { href: "/dashboard/seguridad", label: "Seguridad", icon: ShieldCheck },
-  { href: "/dashboard/agentes", label: "Agentes", icon: Bot },
+  { href: "/dashboard/analiticas", label: "Analiticas", icon: ChartColumn, disabled: true },
+  { href: "/dashboard/dominios", label: "Dominios", icon: Globe, disabled: true },
+  { href: "/dashboard/integraciones", label: "Integraciones", icon: Plug, disabled: true },
+  { href: "/dashboard/seguridad", label: "Seguridad", icon: ShieldCheck, disabled: true },
   { href: "/dashboard/automatizaciones", label: "Automatizaciones", icon: Workflow },
-  { href: "/dashboard/registros", label: "Registros", icon: ScrollText },
-  { href: "/dashboard/api", label: "API", icon: Code },
+  { href: "/dashboard/usuarios", label: "Usuarios", icon: Users },
 ];
 
 const configItems: NavItem[] = [
-  { href: "/dashboard/configuracion/plantilla", label: "Plantilla", icon: Palette },
+  { href: "/dashboard/configuracion/pagos", label: "Pagos", icon: CreditCard },
   { href: "/dashboard/configuracion/autenticacion", label: "Autenticacion", icon: KeyRound },
   { href: "/dashboard/configuracion/app", label: "Aplicacion", icon: SlidersHorizontal },
 ];
 
-function initialsOf(name: string | null, email: string): string {
-  const source = name?.trim() || email;
-  const parts = source.split(/[\s@._-]+/).filter(Boolean);
-  return (parts[0]?.[0] ?? "?").concat(parts[1]?.[0] ?? "").toUpperCase();
-}
+const SIDEBAR_STORAGE_KEY = "appddata:dashboard-sidebar-collapsed";
 
 export function DashboardChrome({ email, name, plan, children }: DashboardChromeProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const canUpgradeToImin = plan.sitePlan !== "free" && !plan.hasImin;
 
   // Cerrar el menu de usuario al hacer clic fuera, como cualquier popover.
   useEffect(() => {
@@ -87,6 +88,22 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
     };
   }, [userMenuOpen]);
 
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const saved = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
+      if (saved !== null) setSidebarCollapsed(saved === "true");
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  function toggleSidebar() {
+    setSidebarCollapsed((collapsed) => {
+      const next = !collapsed;
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
+      return next;
+    });
+  }
+
   async function onSignOut() {
     await authClient.signOut({
       fetchOptions: {
@@ -100,34 +117,66 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
   }
 
   function renderNavLink(item: NavItem) {
+    const isPackageLink = item.href === "/dashboard/automatizaciones";
+    const displayLabel =
+      isPackageLink
+        ? PLAN_LABELS[plan.sitePlan]
+        : item.label;
     const active =
       item.href === "/dashboard"
         ? pathname === "/dashboard"
         : pathname === item.href || pathname.startsWith(`${item.href}/`);
-    const locked = item.requiresImin === true && !plan.hasImin;
+    const sectionDisabled = item.disabled === true && !plan.hasImin;
+    const locked = sectionDisabled || (item.requiresImin === true && !plan.hasImin);
     const Icon = item.icon;
     return (
       <Link
         key={item.href}
         href={item.href}
-        onClick={() => setMenuOpen(false)}
+        title={sidebarCollapsed ? displayLabel : undefined}
+        aria-label={sidebarCollapsed ? displayLabel : undefined}
+        aria-disabled={sectionDisabled || undefined}
+        onClick={(event) => {
+          if (sectionDisabled) {
+            event.preventDefault();
+            return;
+          }
+          setMenuOpen(false);
+        }}
         className={cn(
-          "flex h-8 items-center gap-2.5 rounded-md px-2 text-[0.8125rem] transition-colors",
+          "relative flex h-9 items-center gap-1 rounded-md px-1.5 text-[0.8125rem] transition-colors",
+          sidebarCollapsed && "lg:justify-center lg:px-0",
+          sectionDisabled && "cursor-not-allowed opacity-55",
           active
-            ? "bg-slate-100 font-medium text-slate-900"
+            ? item.href === "/dashboard/imin"
+              ? "bg-[#eaf4ff] font-medium text-[#0C6CC6]"
+              : "bg-slate-100 font-medium text-slate-900"
             : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
         )}
       >
-        <Icon className="h-4 w-4 shrink-0" />
-        <span className="truncate">{item.label}</span>
-        {locked ? <Lock className="ml-auto h-3.5 w-3.5 shrink-0 text-slate-400" /> : null}
+        {isPackageLink ? (
+          <SitePackageIcon plan={plan.sitePlan} className="h-4 w-4 shrink-0" />
+        ) : (
+          <Icon className="h-4 w-4 shrink-0" />
+        )}
+        <span className={cn("truncate", sidebarCollapsed && "lg:hidden")}>
+          {isPackageLink ? (
+            <SitePackageName plan={plan.sitePlan}>{displayLabel}</SitePackageName>
+          ) : (
+            displayLabel
+          )}
+        </span>
+        {locked ? (
+          <Lock
+            className={cn(
+              "ml-auto h-3.5 w-3.5 shrink-0 text-slate-400",
+              sidebarCollapsed && "lg:absolute lg:right-0.5 lg:top-0.5 lg:h-2.5 lg:w-2.5",
+            )}
+          />
+        ) : null}
       </Link>
     );
   }
-
-  // Solo se muestra el separador cuando hay algo que separar: un admin interno
-  // o un cliente todavia sin proyecto ven unicamente la marca.
-  const scopeLabel = plan.isInternal ? null : plan.projectName;
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -144,30 +193,38 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
         <Link href="/dashboard" aria-label="Ir al resumen">
           <Brand size="sm" textClassName="text-[1.05rem] tracking-[0.1em] sm:text-[1.05rem]" />
         </Link>
-        {scopeLabel ? (
-          <>
-            <span className="text-slate-300">/</span>
-            <span className="truncate text-sm text-slate-600">{scopeLabel}</span>
-          </>
-        ) : null}
         <span
           className={cn(
-            "hidden rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium sm:inline",
-            plan.hasImin
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-slate-200 bg-slate-50 text-slate-600",
+            "hidden items-center gap-1.5 rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium sm:inline-flex",
+            plan.sitePlan === "beginner"
+              ? "border-emerald-200 bg-emerald-50"
+              : "border-[#589bf9]/25 bg-[#589bf9]/10",
           )}
         >
-          {plan.isInternal ? "Interno" : PLAN_LABELS[plan.plan]}
+          <SitePackageIcon plan={plan.sitePlan} className="h-3.5 w-3.5" />
+          <SitePackageName plan={plan.sitePlan}>
+            {PLAN_LABELS[plan.sitePlan]}
+          </SitePackageName>
         </span>
+        {plan.hasImin ? (
+          <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[0.6875rem] font-semibold text-amber-700 sm:inline-flex">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            IMIN
+          </span>
+        ) : null}
 
         <div className="ml-auto flex items-center gap-2">
           {!plan.hasImin ? (
             <Link
               href="/dashboard/imin"
-              className="hidden h-8 items-center rounded-md bg-[#0C6CC6] px-3 text-[0.8125rem] font-medium text-white transition hover:bg-[#0a5aa6] sm:inline-flex"
+              className={cn(
+                "hidden h-8 items-center rounded-md px-3 text-[0.8125rem] font-medium transition sm:inline-flex",
+                canUpgradeToImin
+                  ? "bg-amber-400 text-amber-950 hover:bg-amber-300"
+                  : "bg-[#0C6CC6] text-white hover:bg-[#0a5aa6]",
+              )}
             >
-              Mejorar plan
+              {canUpgradeToImin ? "Obtener IMIN" : "Contratar"}
             </Link>
           ) : null}
           <Link
@@ -183,9 +240,11 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
               onClick={() => setUserMenuOpen((open) => !open)}
               aria-haspopup="menu"
               aria-expanded={userMenuOpen}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-[0.6875rem] font-semibold text-white"
+              className="grid h-8 w-8 place-items-center rounded-full bg-slate-900 text-[0.625rem] font-semibold leading-none tracking-[0.08em] text-white"
             >
-              {initialsOf(name, email)}
+              <span className="translate-y-[0.06em] leading-none">
+                {getUserInitials(name, email)}
+              </span>
             </button>
             {userMenuOpen ? (
               <div className="absolute right-0 top-10 w-60 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
@@ -209,7 +268,8 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
       <div className="flex">
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-slate-200 bg-white px-3 py-3 transition-transform lg:sticky lg:top-14 lg:z-0 lg:h-[calc(100vh-3.5rem)] lg:translate-x-0",
+            "fixed inset-y-0 left-0 z-40 flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white px-3 py-3 transition-[transform,width] duration-200 ease-out lg:sticky lg:top-14 lg:z-0 lg:h-[calc(100vh-3.5rem)] lg:translate-x-0",
+            sidebarCollapsed ? "lg:w-16" : "lg:w-56",
             menuOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
@@ -224,28 +284,96 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
             </button>
           </div>
 
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            aria-label={sidebarCollapsed ? "Extender barra lateral" : "Colapsar barra lateral"}
+            title={sidebarCollapsed ? "Extender barra lateral" : "Colapsar barra lateral"}
+            className={cn(
+              "mb-2 hidden h-9 items-center rounded-md text-[#589bf9] transition hover:bg-blue-50 hover:text-[#8a8b8c] lg:flex",
+              sidebarCollapsed ? "justify-center" : "gap-2.5 px-2",
+            )}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
+            )}
+            <span className={cn("text-xs", sidebarCollapsed && "hidden")}>Colapsar</span>
+          </button>
+
           <nav className="grid gap-0.5 overflow-y-auto">{navItems.map(renderNavLink)}</nav>
           <nav className="mt-2 grid gap-0.5 border-t border-slate-200 pt-2">
             {configItems.map(renderNavLink)}
           </nav>
 
           {!plan.hasImin ? (
-            <div className="mt-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <p className="text-[0.8125rem] font-medium text-slate-900">
-                Plan {PLAN_LABELS[plan.plan]}
+            <div
+              className={cn(
+                "mt-auto rounded-lg border p-2.5",
+                canUpgradeToImin
+                  ? "border-amber-200 bg-amber-50"
+                  : "border-[#589bf9]/18 bg-[#589bf9]/6",
+                sidebarCollapsed && "lg:hidden",
+              )}
+            >
+              <p
+                className={cn(
+                  "flex items-center gap-1.5 text-xs font-semibold",
+                  canUpgradeToImin ? "text-amber-800" : "text-[#0C6CC6]",
+                )}
+              >
+                {canUpgradeToImin ? (
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <SitePackageIcon plan="free" className="h-3.5 w-3.5" />
+                )}
+                {canUpgradeToImin ? (
+                  "Obtener IMIN"
+                ) : (
+                  <SitePackageName plan="free">{PLAN_LABELS.free}</SitePackageName>
+                )}
               </p>
-              <p className="mt-1 text-xs leading-5 text-slate-600">
-                Contrata IMIN para editar los textos y el tutorial de tu sitio.
+              <p className="mt-1 text-[0.68rem] leading-4 text-slate-600">
+                {canUpgradeToImin
+                  ? "Personaliza y actualiza tu sitio cuando quieras con IMIN."
+                  : "Contrata un paquete con nosotros y da el salto a una nueva plataforma."}
               </p>
               <Link
                 href="/dashboard/imin"
                 onClick={() => setMenuOpen(false)}
-                className="mt-3 flex h-8 items-center justify-center rounded-md bg-[#0C6CC6] px-3 text-[0.8125rem] font-medium text-white transition hover:bg-[#0a5aa6]"
+                className={cn(
+                  "mt-2 flex h-7 items-center justify-center rounded-md px-2.5 text-xs font-medium transition",
+                  canUpgradeToImin
+                    ? "bg-amber-400 text-amber-950 hover:bg-amber-300"
+                    : "bg-[#0C6CC6] text-white hover:bg-[#0a5aa6]",
+                )}
               >
-                Mejorar plan
+                {canUpgradeToImin ? "Obtener IMIN" : "Contratar"}
               </Link>
             </div>
           ) : null}
+
+          {!plan.hasImin && sidebarCollapsed ? (
+            <Link
+              href="/dashboard/imin"
+              title={canUpgradeToImin ? "Obtener IMIN" : "Contratar"}
+              aria-label={canUpgradeToImin ? "Obtener IMIN" : "Contratar"}
+              className={cn(
+                "mt-auto hidden h-9 items-center justify-center rounded-md transition lg:flex",
+                canUpgradeToImin
+                  ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                  : "bg-[#eaf4ff] text-[#0C6CC6] hover:bg-[#dceeff]",
+              )}
+            >
+              {canUpgradeToImin ? (
+                <Sparkles className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <SitePackageIcon plan="free" className="h-4 w-4" />
+              )}
+            </Link>
+          ) : null}
+
         </aside>
 
         {menuOpen ? (

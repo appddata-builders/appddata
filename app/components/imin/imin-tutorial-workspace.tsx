@@ -111,10 +111,8 @@ import { TbEngine, TbManualGearbox } from "react-icons/tb";
 import { Badge } from "@/app/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const LIVE_SITE_URL = "https://refautomex.com";
-const EDITS_ENDPOINT = "/api/dashboard/imin/edits";
-// Origen exacto del sitio incrustado. Se usa para validar y dirigir los postMessage.
-const TARGET_ORIGIN = "https://refautomex.com";
+const DEFAULT_SITE_URL = "https://refautomex.com";
+const DEFAULT_EDITS_ENDPOINT = "/api/dashboard/imin/edits";
 
 type EditorMode = "navigate" | "text" | "media" | "style";
 // El bridge distingue imagen de primer plano, fondo y video.
@@ -122,7 +120,39 @@ type MediaKind = "image" | "background" | "video";
 // Relleno solido o degradado de dos colores.
 type ColorFill = "solid" | "gradient";
 // Hacia donde avanza el degradado.
-type GradientDirection = "left" | "right";
+type GradientDirection =
+  | "left"
+  | "right"
+  | "top"
+  | "bottom"
+  | "top-left"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-right";
+
+const GRADIENT_DIRECTIONS: { value: GradientDirection; label: string }[] = [
+  { value: "left", label: "← Izquierda" },
+  { value: "right", label: "Derecha →" },
+  { value: "top", label: "↑ Arriba" },
+  { value: "bottom", label: "Abajo ↓" },
+  { value: "top-left", label: "↖ Esq. sup. izq." },
+  { value: "top-right", label: "Esq. sup. der. ↗" },
+  { value: "bottom-left", label: "↙ Esq. inf. izq." },
+  { value: "bottom-right", label: "Esq. inf. der. ↘" },
+];
+
+function gradientCssDirection(direction: GradientDirection): string {
+  return direction.replace("-", " ");
+}
+
+function colorWithOpacity(color: string, opacity: number): string {
+  const hex = color.replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(hex)) return color;
+  const red = Number.parseInt(hex.slice(0, 2), 16);
+  const green = Number.parseInt(hex.slice(2, 4), 16);
+  const blue = Number.parseInt(hex.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${opacity / 100})`;
+}
 
 type BridgeMessage =
   | { source: "imin-bridge"; type: "ready" }
@@ -392,7 +422,7 @@ function isValidFileForKind(file: File, kind: MediaKind): boolean {
   return file.type.startsWith("image/");
 }
 
-type WorkspaceProps = {
+export type IminWorkspaceProps = {
   /**
    * "demo" es la copia publica de /imin: se anuncia como demostracion y no
    * puede guardar. "panel" es la del dashboard: ocupa toda la pantalla y
@@ -400,6 +430,14 @@ type WorkspaceProps = {
    */
   variant?: "demo" | "panel";
   projectSlug?: string;
+  /** URL publica del sitio que tiene instalado el bridge IMIN. */
+  siteUrl?: string;
+  /** Nombre corto mostrado en la barra y en el titulo del iframe. */
+  siteName?: string;
+  /** Permite conectar el workspace a otro backend sin reescribir el editor. */
+  editsEndpoint?: string;
+  demoTitle?: string;
+  demoDescription?: string;
 };
 
 /** Una edicion aplicada al sitio, tal cual se le manda al bridge. */
@@ -409,10 +447,16 @@ function editKey(edit: StoredEdit): string {
   return `${edit.type}|${edit.selector}`;
 }
 
-export default function IminTutorialWorkspace({
+export function IminWorkspace({
   variant = "demo",
   projectSlug,
-}: WorkspaceProps = {}) {
+  siteUrl = DEFAULT_SITE_URL,
+  siteName = "refautomex.com",
+  editsEndpoint = DEFAULT_EDITS_ENDPOINT,
+  demoTitle = "Demostración IMIN",
+  demoDescription = "Tutorial de edición de refautomex.com. Demostrativo.",
+}: IminWorkspaceProps = {}) {
+  const targetOrigin = new URL(siteUrl).origin;
   const canSave = variant === "panel" && typeof projectSlug === "string" && projectSlug !== "";
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -435,6 +479,7 @@ export default function IminTutorialWorkspace({
   const [colorEndValue, setColorEndValue] = useState("#7c3aed");
   const [colorFill, setColorFill] = useState<ColorFill>("solid");
   const [gradientDirection, setGradientDirection] = useState<GradientDirection>("right");
+  const [backgroundOpacity, setBackgroundOpacity] = useState(100);
   const [iconQuery, setIconQuery] = useState("");
   // "curated" = la seleccion por tema; cualquier otro id = libreria completa.
   const [iconLib, setIconLib] = useState("curated");
@@ -465,9 +510,9 @@ export default function IminTutorialWorkspace({
 
     iframeRef.current?.contentWindow?.postMessage(
       { source: "imin-editor", ...message },
-      TARGET_ORIGIN,
+      targetOrigin,
     );
-  }, []);
+  }, [targetOrigin]);
 
   // Cambia de modo, pero al volver a "Navegar" con cambios pendientes primero
   // pregunta si se desean guardar.
@@ -492,7 +537,7 @@ export default function IminTutorialWorkspace({
   useEffect(() => {
     if (!canSave) return;
     let cancelled = false;
-    fetch(`${EDITS_ENDPOINT}?slug=${encodeURIComponent(projectSlug ?? "")}`)
+    fetch(`${editsEndpoint}?slug=${encodeURIComponent(projectSlug ?? "")}`)
       .then((res) => (res.ok ? res.json() : { edits: [] }))
       .then((data: { edits?: StoredEdit[] }) => {
         if (!cancelled) savedEditsRef.current = data.edits ?? [];
@@ -503,7 +548,7 @@ export default function IminTutorialWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [canSave, projectSlug]);
+  }, [canSave, editsEndpoint, projectSlug]);
 
   useEffect(() => {
     if (!bridgeReady) return;
@@ -511,17 +556,17 @@ export default function IminTutorialWorkspace({
       // postMessage directo: reaplicar lo ya guardado no es una edicion nueva.
       iframeRef.current?.contentWindow?.postMessage(
         { source: "imin-editor", ...edit },
-        TARGET_ORIGIN,
+        targetOrigin,
       );
     }
-  }, [bridgeReady]);
+  }, [bridgeReady, targetOrigin]);
 
   const handleSave = async () => {
     if (!canSave) return;
     setSaveState("saving");
     const edits = [...editsRef.current.values()];
     try {
-      const res = await fetch(EDITS_ENDPOINT, {
+      const res = await fetch(editsEndpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slug: projectSlug, edits }),
@@ -548,7 +593,7 @@ export default function IminTutorialWorkspace({
   const handleDiscard = () => {
     // Revierte los cambios recargando el sitio incrustado.
     if (iframeRef.current) {
-      iframeRef.current.src = LIVE_SITE_URL;
+      iframeRef.current.src = siteUrl;
     }
     editsRef.current.clear();
     setHasChanges(false);
@@ -565,7 +610,7 @@ export default function IminTutorialWorkspace({
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== TARGET_ORIGIN) {
+      if (event.origin !== targetOrigin) {
         return;
       }
 
@@ -625,7 +670,7 @@ export default function IminTutorialWorkspace({
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, [targetOrigin]);
 
   const handleMediaFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -674,6 +719,7 @@ export default function IminTutorialWorkspace({
       color: colorValue,
       colorEnd: colorEndValue,
       direction: gradientDirection,
+      opacity: backgroundOpacity,
     });
     setHasChanges(true);
     setStyleEditor(null);
@@ -685,8 +731,8 @@ export default function IminTutorialWorkspace({
       return;
     }
     post({ type: "set-text", selector: textEditor.selector, value: textDraft });
-    setTextEditor({ ...textEditor, value: textDraft });
     setHasChanges(true);
+    setTextEditor(null);
   };
 
   // Modo textos, pestaña "Color". No cierra el panel, para poder ajustar el
@@ -705,6 +751,7 @@ export default function IminTutorialWorkspace({
       direction: textGradientDirection,
     });
     setHasChanges(true);
+    setTextEditor(null);
   };
 
   // Pide los iconos al servidor cuando cambia la libreria o la busqueda.
@@ -782,11 +829,29 @@ export default function IminTutorialWorkspace({
     setStyleEditor(null);
   };
 
+  const modeHelpText =
+    mode === "text"
+      ? "Modo edición de textos: la navegación esta pausada. Haz clic sobre un texto existente para editarlo."
+      : mode === "media"
+        ? "Modo edición de medios: la navegación esta pausada. Haz clic en una imagen o video para reemplazarlo (los videos solo aceptan mp4)."
+        : mode === "style"
+          ? "Modo colores e iconos: la navegación esta pausada. Haz clic en un icono para cambiarlo o en cualquier elemento para pintar su color."
+          : "Navegación activa: haz clic en cualquier parte del sitio para interactuar con el.";
+
+  const workspaceSectionDescription =
+    mode === "text"
+      ? "Edita textos, tipografía y color."
+      : mode === "media"
+        ? "Reemplaza imágenes, fondos y videos."
+        : mode === "style"
+          ? "Personaliza colores, degradados e iconos."
+          : "Explora e interactúa con el sitio.";
+
   return (
     <div
       className={cn(
         "min-h-0 flex-1 px-4 py-4 sm:px-6 sm:py-5",
-        variant === "panel" ? "flex flex-col overflow-hidden" : "overflow-y-auto",
+        variant === "panel" ? "flex flex-col overflow-hidden p-0 sm:p-0" : "overflow-y-auto",
       )}
     >
       <input
@@ -800,21 +865,34 @@ export default function IminTutorialWorkspace({
       {variant === "demo" ? (
         <>
           <p className="text-center text-3xl my-3 font-semibold text-amber-400">
-            Demostración IMIN
+            {demoTitle}
           </p>
           <p className="mb-3 text-center text-sm text-slate-500 text-bold">
-            Tutorial de edición de refautomex.com. Demostrativo.
+            {demoDescription}
           </p>
         </>
       ) : null}
       <div
         className={cn(
           "rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4",
-          variant === "panel" && "flex min-h-0 flex-1 flex-col",
+          variant === "panel" &&
+            "flex min-h-0 flex-1 flex-col rounded-none border-0 bg-white p-2 sm:p-2",
         )}
       >
-        <div className="mb-3 flex items-center justify-between gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white p-1">
+        <div
+          className={cn(
+            "mb-3 flex gap-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            variant === "panel"
+              ? "mb-2 flex-col items-stretch gap-2"
+              : "items-center justify-between overflow-x-auto",
+          )}
+        >
+          <div
+            className={cn(
+              "inline-flex w-fit shrink-0 items-center gap-1 overflow-x-auto rounded-full border border-slate-200 bg-white p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              variant === "panel" && "p-0.5",
+            )}
+          >
             {modeOptions.map((option) => {
               const Icon = option.icon;
               const active = mode === option.id;
@@ -826,6 +904,7 @@ export default function IminTutorialWorkspace({
                   onClick={() => requestMode(option.id)}
                   className={cn(
                     "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-[0.7rem] uppercase tracking-[0.18em] transition",
+                    variant === "panel" && "px-2.5 py-1 text-[0.62rem] tracking-[0.14em]",
                     active
                       ? "bg-[#0455a2] text-white"
                       : "text-slate-500 hover:bg-slate-100",
@@ -837,14 +916,29 @@ export default function IminTutorialWorkspace({
               );
             })}
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div
+            className={cn(
+              "flex shrink-0 items-center gap-1",
+              variant === "panel" &&
+                "order-first w-full justify-end border-b border-slate-200 pb-2",
+            )}
+          >
+            {variant === "panel" ? (
+              <p
+                title={workspaceSectionDescription}
+                className="mr-auto min-w-0 flex-1 truncate pr-3 text-[0.68rem] uppercase tracking-[0.16em] text-slate-500"
+              >
+                {workspaceSectionDescription}
+              </p>
+            ) : null}
             <button
               type="button"
-              disabled={!canSave || saveState === "saving" || !hasChanges}
+              disabled={!canSave || saveState === "saving"}
               title={canSave ? undefined : "Disponible con el paquete IMIN"}
               onClick={() => void handleSave()}
               className={cn(
                 "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-[0.7rem] uppercase tracking-[0.18em] transition",
+                variant === "panel" && "px-2.5 py-0.5 text-[0.62rem] tracking-[0.14em]",
                 canSave
                   ? "border-[#0455a2] bg-[#0455a2] text-white hover:bg-[#03407a] disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                   : "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400",
@@ -858,19 +952,28 @@ export default function IminTutorialWorkspace({
                     ? "Error al guardar"
                     : "Guardar cambios"}
             </button>
-            <Badge variant="outline" className="shrink-0 whitespace-nowrap bg-slate-100 text-blue-400">
+            <Badge
+              variant="outline"
+              className={cn(
+                "shrink-0 whitespace-nowrap bg-slate-100 text-blue-400",
+                variant === "panel" && "px-2 py-0.5 tracking-[0.18em]",
+              )}
+            >
               <button
                 type="button"
-                onClick={() => window.open("https://refautomex.com", "_blank")}
+                onClick={() => window.open(siteUrl, "_blank", "noopener,noreferrer")}
                 className="flex items-center gap-1 text-blue-400 hover:text-blue-500 cursor-pointer"
               >
-                <Monitor className="mr-2 h-3.5 w-3.5" />
-                refautomex.com
+                <Monitor className={cn("mr-2 h-3.5 w-3.5", variant === "panel" && "mr-1 h-3 w-3")} />
+                {siteName}
               </button>
             </Badge>
             <Badge
               variant="outline"
-              className="shrink-0 whitespace-nowrap bg-amber-50 font-bold tracking-[0.18em] text-yellow-600"
+              className={cn(
+                "shrink-0 whitespace-nowrap bg-amber-50 font-bold tracking-[0.18em] text-yellow-600",
+                variant === "panel" && "px-2 py-0.5 tracking-[0.14em]",
+              )}
             >
               <FaCircle className="mr-2 h-2 w-2 animate-pulse text-yellow-600" />
               IMIN
@@ -878,25 +981,22 @@ export default function IminTutorialWorkspace({
           </div>
         </div>
 
-        <p className="my-3 text-center text-[0.68rem] uppercase tracking-[0.2em] text-slate-500">
-          {mode === "text"
-            ? "Modo edición de textos: la navegación esta pausada. Haz clic sobre un texto existente para editarlo."
-            : mode === "media"
-              ? "Modo edición de medios: la navegación esta pausada. Haz clic en una imagen o video para reemplazarlo (los videos solo aceptan mp4)."
-              : mode === "style"
-                ? "Modo colores e iconos: la navegación esta pausada. Haz clic en un icono para cambiarlo o en cualquier elemento para pintar su color."
-                : "Navegación activa: haz clic en cualquier parte del sitio para interactuar con el."}
-        </p>
+        {variant === "demo" ? (
+          <p className="my-3 text-center text-[0.68rem] uppercase tracking-[0.2em] text-slate-500">
+            {modeHelpText}
+          </p>
+        ) : null}
         <div
           className={cn(
             "mx-auto w-full max-w-336 overflow-hidden rounded-2xl shadow-[0_30px_120px_rgba(0,0,0,0.3)]",
-            variant === "panel" && "min-h-0 flex-1",
+            variant === "panel" &&
+              "min-h-0 max-w-none flex-1 rounded-lg border border-slate-200 shadow-none",
           )}
         >
           <iframe
             ref={iframeRef}
-            src={LIVE_SITE_URL}
-            title="refautomex.com"
+            src={siteUrl}
+            title={siteName}
             className={cn(
               "block w-full border-0 bg-white",
               variant === "panel" ? "h-full" : "h-[90vh]",
@@ -909,8 +1009,12 @@ export default function IminTutorialWorkspace({
       </div>
 
       {pendingMode ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-md">
+          <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-sm overflow-y-auto rounded-[2rem] border border-white/80 bg-white/95 p-6 shadow-[0_32px_100px_rgba(15,23,42,0.28)] ring-1 ring-slate-900/5 sm:p-7">
+            <div aria-hidden="true" className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent" />
+            <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 ring-1 ring-amber-100">
+              <span className="text-lg font-semibold">!</span>
+            </div>
             <h3 className="text-base font-semibold text-slate-900">
               Cambios sin guardar
             </h3>
@@ -954,21 +1058,25 @@ export default function IminTutorialWorkspace({
 
       {/* Panel de textos: escribir y pintar viven en pestañas separadas. */}
       {mode === "text" && textEditor ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-md">
+          <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-[2rem] border border-white/80 bg-white/95 p-6 shadow-[0_32px_100px_rgba(15,23,42,0.28)] ring-1 ring-slate-900/5 sm:p-7">
+            <div aria-hidden="true" className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent" />
+            <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-[#0455a2] ring-1 ring-blue-100">
+              <Type className="h-5 w-5" aria-hidden="true" />
+            </div>
             <h3 className="text-base font-semibold text-slate-900">Cambiar texto</h3>
             <p className="mt-2 text-sm text-slate-500">
               Edita el contenido o el color del texto seleccionado.
             </p>
 
-            <div className="mt-4 inline-flex w-full rounded-full border border-slate-200 p-1">
+            <div className="mt-5 inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 p-1">
               {(["description", "color"] as TextTab[]).map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setTextTab(tab)}
                   className={cn(
-                    "flex-1 rounded-full px-4 py-1.5 text-sm font-medium transition",
+                    "rounded-full px-3 py-1 text-xs font-medium transition",
                     textTab === tab ? "bg-[#0455a2] text-white" : "text-slate-500 hover:bg-slate-100",
                   )}
                 >
@@ -983,27 +1091,26 @@ export default function IminTutorialWorkspace({
                   value={textDraft}
                   onChange={(event) => setTextDraft(event.target.value)}
                   rows={4}
-                  className="mt-4 w-full resize-y rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#0455a2]"
+                  className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm outline-none transition focus:border-[#0455a2] focus:bg-white focus:ring-4 focus:ring-blue-100"
                 />
                 <button
                   type="button"
                   onClick={applyTextValue}
-                  disabled={textDraft === textEditor.value}
-                  className="mt-4 w-full rounded-full bg-[#0455a2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#03407a] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                  className="mt-4 w-full rounded-full bg-[#0455a2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#03407a]"
                 >
-                  Guardar texto
+                  Aplicar
                 </button>
               </>
             ) : (
               <>
-                <div className="mt-4 inline-flex w-full rounded-full border border-slate-200 p-1">
+                <div className="mt-4 inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 p-1">
                   {(["solid", "gradient"] as ColorFill[]).map((fill) => (
                     <button
                       key={fill}
                       type="button"
                       onClick={() => setTextColorFill(fill)}
                       className={cn(
-                        "flex-1 rounded-full px-4 py-1.5 text-sm font-medium transition",
+                        "rounded-full px-3 py-1 text-xs font-medium transition",
                         textColorFill === fill
                           ? "bg-[#0455a2] text-white"
                           : "text-slate-500 hover:bg-slate-100",
@@ -1022,7 +1129,7 @@ export default function IminTutorialWorkspace({
                     type="color"
                     value={textColorValue}
                     onChange={(event) => setTextColorValue(event.target.value)}
-                    className="h-9 w-16 cursor-pointer rounded border border-slate-200 bg-white"
+                    className="imin-color-input h-10 w-10 cursor-pointer rounded-full border border-slate-200 bg-white p-0.5"
                   />
                 </label>
 
@@ -1034,23 +1141,23 @@ export default function IminTutorialWorkspace({
                         type="color"
                         value={textColorEndValue}
                         onChange={(event) => setTextColorEndValue(event.target.value)}
-                        className="h-9 w-16 cursor-pointer rounded border border-slate-200 bg-white"
+                        className="imin-color-input h-10 w-10 cursor-pointer rounded-full border border-slate-200 bg-white p-0.5"
                       />
                     </label>
-                    <div className="mt-3 inline-flex w-full rounded-full border border-slate-200 p-1">
-                      {(["left", "right"] as GradientDirection[]).map((direction) => (
+                    <div className="mt-3 grid grid-cols-2 gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1 sm:grid-cols-4">
+                      {GRADIENT_DIRECTIONS.map(({ value, label }) => (
                         <button
-                          key={direction}
+                          key={value}
                           type="button"
-                          onClick={() => setTextGradientDirection(direction)}
+                          onClick={() => setTextGradientDirection(value)}
                           className={cn(
-                            "flex-1 rounded-full px-4 py-1.5 text-sm font-medium transition",
-                            textGradientDirection === direction
+                            "rounded-xl px-2 py-1.5 text-[0.65rem] font-medium transition",
+                            textGradientDirection === value
                               ? "bg-[#0455a2] text-white"
                               : "text-slate-500 hover:bg-slate-100",
                           )}
                         >
-                          {direction === "left" ? "← Izquierda" : "Derecha →"}
+                          {label}
                         </button>
                       ))}
                     </div>
@@ -1059,12 +1166,12 @@ export default function IminTutorialWorkspace({
 
                 <div className="mt-4 rounded-2xl border border-slate-200 p-3">
                   <p className="text-xs uppercase tracking-wide text-slate-400">Vista previa</p>
-                  <p
-                    className="mt-1 truncate text-2xl font-bold"
+                  <span
+                    className="mt-2 inline-block max-w-full break-words text-2xl font-bold"
                     style={
                       textColorFill === "gradient"
                         ? {
-                            backgroundImage: `linear-gradient(to ${textGradientDirection}, ${textColorValue}, ${textColorEndValue})`,
+                            backgroundImage: `linear-gradient(to ${gradientCssDirection(textGradientDirection)}, ${textColorValue}, ${textColorEndValue})`,
                             WebkitBackgroundClip: "text",
                             backgroundClip: "text",
                             WebkitTextFillColor: "transparent",
@@ -1072,8 +1179,8 @@ export default function IminTutorialWorkspace({
                         : { color: textColorValue }
                     }
                   >
-                    {textEditor.value || "Texto de ejemplo"}
-                  </p>
+                    {textDraft || "Texto de ejemplo"}
+                  </span>
                 </div>
 
                 <button
@@ -1081,40 +1188,36 @@ export default function IminTutorialWorkspace({
                   onClick={applyTextColor}
                   className="mt-4 w-full rounded-full bg-[#0455a2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#03407a]"
                 >
-                  Aplicar color
+                  Aplicar
                 </button>
               </>
             )}
-
-            <button
-              type="button"
-              onClick={() => setTextEditor(null)}
-              className="mt-2 w-full px-4 py-2 text-sm text-slate-400 transition hover:text-slate-600"
-            >
-              Cerrar
-            </button>
           </div>
         </div>
       ) : null}
 
 
       {styleEditor?.kind === "color" ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-md">
+          <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-sm overflow-y-auto rounded-[2rem] border border-white/80 bg-white/95 p-6 shadow-[0_32px_100px_rgba(15,23,42,0.28)] ring-1 ring-slate-900/5 sm:p-7">
+            <div aria-hidden="true" className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-violet-400 to-transparent" />
+            <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 ring-1 ring-violet-100">
+              <Palette className="h-5 w-5" aria-hidden="true" />
+            </div>
             <h3 className="text-base font-semibold text-slate-900">Cambiar fondo</h3>
             <p className="mt-2 text-sm text-slate-500">
               Elige el fondo del contenedor seleccionado. Para cambiar el color de un texto usa el
               modo “Editar textos”.
             </p>
 
-            <div className="mt-4 inline-flex w-full rounded-full border border-slate-200 p-1">
+            <div className="mt-4 inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 p-1">
               {(["solid", "gradient"] as ColorFill[]).map((fill) => (
                 <button
                   key={fill}
                   type="button"
                   onClick={() => setColorFill(fill)}
                   className={cn(
-                    "flex-1 rounded-full px-4 py-1.5 text-sm font-medium transition",
+                    "rounded-full px-3 py-1 text-xs font-medium transition",
                     colorFill === fill
                       ? "bg-[#0455a2] text-white"
                       : "text-slate-500 hover:bg-slate-100",
@@ -1133,7 +1236,7 @@ export default function IminTutorialWorkspace({
                 type="color"
                 value={colorValue}
                 onChange={(event) => setColorValue(event.target.value)}
-                className="h-9 w-16 cursor-pointer rounded border border-slate-200 bg-white"
+                className="imin-color-input h-10 w-10 cursor-pointer rounded-full border border-slate-200 bg-white p-0.5"
               />
             </label>
 
@@ -1145,29 +1248,45 @@ export default function IminTutorialWorkspace({
                     type="color"
                     value={colorEndValue}
                     onChange={(event) => setColorEndValue(event.target.value)}
-                    className="h-9 w-16 cursor-pointer rounded border border-slate-200 bg-white"
+                    className="imin-color-input h-10 w-10 cursor-pointer rounded-full border border-slate-200 bg-white p-0.5"
                   />
                 </label>
 
-                <div className="mt-3 inline-flex w-full rounded-full border border-slate-200 p-1">
-                  {(["left", "right"] as GradientDirection[]).map((direction) => (
+                <div className="mt-3 grid grid-cols-2 gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1 sm:grid-cols-4">
+                  {GRADIENT_DIRECTIONS.map(({ value, label }) => (
                     <button
-                      key={direction}
+                      key={value}
                       type="button"
-                      onClick={() => setGradientDirection(direction)}
+                      onClick={() => setGradientDirection(value)}
                       className={cn(
-                        "flex-1 rounded-full px-4 py-1.5 text-sm font-medium transition",
-                        gradientDirection === direction
+                        "rounded-xl px-2 py-1.5 text-[0.65rem] font-medium transition",
+                        gradientDirection === value
                           ? "bg-[#0455a2] text-white"
                           : "text-slate-500 hover:bg-slate-100",
                       )}
                     >
-                      {direction === "left" ? "← Izquierda" : "Derecha →"}
+                      {label}
                     </button>
                   ))}
                 </div>
               </>
             ) : null}
+
+            <label className="mt-3 block rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+              <span className="flex items-center justify-between gap-3 text-sm text-slate-600">
+                <span>Opacidad</span>
+                <span className="font-medium tabular-nums text-slate-900">{backgroundOpacity}%</span>
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={backgroundOpacity}
+                onChange={(event) => setBackgroundOpacity(Number(event.target.value))}
+                className="mt-3 h-2 w-full cursor-pointer accent-[#0455a2]"
+              />
+            </label>
 
             {/* Vista previa: refleja exactamente lo que aplicara el bridge. */}
             <div className="mt-4 rounded-2xl border border-slate-200 p-3">
@@ -1177,9 +1296,9 @@ export default function IminTutorialWorkspace({
                 style={
                   colorFill === "gradient"
                     ? {
-                        backgroundImage: `linear-gradient(to ${gradientDirection}, ${colorValue}, ${colorEndValue})`,
+                        backgroundImage: `linear-gradient(to ${gradientCssDirection(gradientDirection)}, ${colorWithOpacity(colorValue, backgroundOpacity)}, ${colorWithOpacity(colorEndValue, backgroundOpacity)})`,
                       }
-                    : { backgroundColor: colorValue }
+                    : { backgroundColor: colorWithOpacity(colorValue, backgroundOpacity) }
                 }
               />
             </div>
@@ -1205,8 +1324,12 @@ export default function IminTutorialWorkspace({
       ) : null}
 
       {styleEditor?.kind === "icon" ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-md">
+          <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-[2rem] border border-white/80 bg-white/95 p-6 shadow-[0_32px_100px_rgba(15,23,42,0.28)] ring-1 ring-slate-900/5 sm:p-7">
+            <div aria-hidden="true" className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+            <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
+              <Palette className="h-5 w-5" aria-hidden="true" />
+            </div>
             <h3 className="text-base font-semibold text-slate-900">Elegir icono</h3>
             <p className="mt-2 text-sm text-slate-500">
               Selecciona el icono con el que quieres reemplazar el actual.
@@ -1316,4 +1439,9 @@ export default function IminTutorialWorkspace({
       ) : null}
     </div>
   );
+}
+
+/** Configuracion estable de la demostracion publica de /imin. */
+export default function IminTutorialWorkspace() {
+  return <IminWorkspace variant="demo" />;
 }

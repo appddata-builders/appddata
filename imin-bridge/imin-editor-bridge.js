@@ -57,7 +57,7 @@
     // 1) Pruebas: el editor IMIN corriendo en tu localhost.
     "http://localhost:3000",
     // 2) Produccion: donde este desplegado el editor IMIN.
-    "https://appstracts.netlify.app",
+    "https://appddata.netlify.app",
   ];
 
   // Cada sitio puede declarar los suyos sin tocar este archivo, de dos formas:
@@ -966,9 +966,36 @@
 
   // --- Estilo: color e iconos ---------------------------------------------
 
-  // El editor solo ofrece izquierda y derecha.
-  function gradientCss(direction, from, to) {
-    return "linear-gradient(" + (direction === "left" ? "to left" : "to right") + ", " + from + ", " + to + ")";
+  // Direcciones cardinales y diagonales que ofrece el editor.
+  function colorWithOpacity(color, opacity) {
+    if (typeof opacity !== "number" || opacity >= 100) {
+      return color;
+    }
+    var hex = String(color || "").replace("#", "");
+    if (!/^[0-9a-f]{6}$/i.test(hex)) {
+      return color;
+    }
+    return (
+      "rgba(" +
+      parseInt(hex.slice(0, 2), 16) + ", " +
+      parseInt(hex.slice(2, 4), 16) + ", " +
+      parseInt(hex.slice(4, 6), 16) + ", " +
+      Math.max(0, Math.min(100, opacity)) / 100 + ")"
+    );
+  }
+
+  function gradientCss(direction, from, to, opacity) {
+    var directions = {
+      left: "to left",
+      right: "to right",
+      top: "to top",
+      bottom: "to bottom",
+      "top-left": "to top left",
+      "top-right": "to top right",
+      "bottom-left": "to bottom left",
+      "bottom-right": "to bottom right",
+    };
+    return "linear-gradient(" + (directions[direction] || directions.right) + ", " + colorWithOpacity(from, opacity) + ", " + colorWithOpacity(to, opacity) + ")";
   }
 
   // Quita los restos de un degradado de texto para poder volver a color solido.
@@ -979,7 +1006,7 @@
     el.style.removeProperty("-webkit-text-fill-color");
   }
 
-  // options: { colorTarget, fill, color, colorEnd, direction }
+  // options: { colorTarget, fill, color, colorEnd, direction, opacity }
   //   colorTarget: "text" | "background"
   //   fill:        "solid" | "gradient"  (ausente = solido, por compatibilidad)
   function applyColor(selector, options) {
@@ -994,10 +1021,10 @@
       if (isGradient) {
         // backgroundColor se limpia para que no asome bajo el degradado.
         el.style.backgroundColor = "";
-        el.style.backgroundImage = gradientCss(options.direction, options.color, options.colorEnd);
+        el.style.backgroundImage = gradientCss(options.direction, options.color, options.colorEnd, options.opacity);
       } else {
         el.style.backgroundImage = "";
-        el.style.backgroundColor = options.color;
+        el.style.backgroundColor = colorWithOpacity(options.color, options.opacity);
       }
       return;
     }
@@ -1091,6 +1118,7 @@
         color: data.color,
         colorEnd: data.colorEnd,
         direction: data.direction,
+        opacity: data.opacity,
       });
       return;
     }

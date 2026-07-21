@@ -1,6 +1,6 @@
 const titles: Record<string, { title: string; subtitle: string }> = {
   "": {
-    title: "Resumen",
+    title: "Planes",
     subtitle: "Vista general del panel interno. Aqui conectaras metricas y alertas.",
   },
   usuarios: {
@@ -39,9 +39,9 @@ const titles: Record<string, { title: string; subtitle: string }> = {
     title: "API",
     subtitle: "Documentacion interna y tokens.",
   },
-  "configuracion/plantilla": {
-    title: "Configuracion: plantilla",
-    subtitle: "Apariencia del panel y componentes base.",
+  "configuracion/pagos": {
+    title: "Configuracion: pagos",
+    subtitle: "Metodos de pago, facturacion y movimientos de la cuenta.",
   },
   "configuracion/autenticacion": {
     title: "Configuracion: autenticacion",
@@ -62,6 +62,10 @@ type DashboardCatchAllPageProps = {
 export default async function DashboardCatchAllPage({ params }: DashboardCatchAllPageProps) {
   const resolved = await params;
   const key = (resolved.segments ?? []).join("/");
+  if (key === "") {
+    const session = await requirePanelSession();
+    if (session) return <DashboardSummary plan={await getPanelPlan(session)} />;
+  }
   const entry = titles[key] ?? {
     title: "Seccion",
     subtitle: "Contenido pendiente. La navegacion ya esta tropicalizada.",
@@ -79,3 +83,6 @@ export default async function DashboardCatchAllPage({ params }: DashboardCatchAl
     </section>
   );
 }
+import DashboardSummary from "@/app/dashboard/dashboard-summary";
+import { getPanelPlan } from "@/lib/plans-server";
+import { requirePanelSession } from "@/lib/require-panel-session";

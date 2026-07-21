@@ -9,6 +9,9 @@ import { FaUserCircle, FaRegEdit } from "react-icons/fa";
 import { AiFillProduct } from "react-icons/ai";
 import { TfiWrite } from "react-icons/tfi";
 
+import { authClient } from "@/lib/auth-client";
+import { getUserInitials } from "@/lib/user-initials";
+
 import Brand from "./brand";
 
 const navItems = [
@@ -19,12 +22,16 @@ const navItems = [
 
 type NavbarContentProps = {
   pathname: string;
+  accountName: string | null;
+  accountEmail: string | null;
 };
 
-function NavbarContent({ pathname }: NavbarContentProps) {
+function NavbarContent({ pathname, accountName, accountEmail }: NavbarContentProps) {
   const [openPathname, setOpenPathname] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const isOpen = openPathname === pathname;
+  const hasAccount = Boolean(accountName || accountEmail);
+  const initials = hasAccount ? getUserInitials(accountName, accountEmail) : null;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -82,16 +89,29 @@ function NavbarContent({ pathname }: NavbarContentProps) {
             </span>
           </button>
 
-          <Link
+          <a
             href="/account"
-            aria-label="Crear cuenta o iniciar sesion"
-            className="flex h-9 items-center gap-2 rounded-full border border-[#589bf9]/20 bg-[#589bf9]/8 px-3 text-[#0C6CC6] transition hover:border-[#589bf9]/38 hover:bg-[#589bf9]/16 sm:h-11 sm:px-4"
+            aria-label={initials ? `Abrir cuenta de ${accountName ?? accountEmail}` : "Crear cuenta o iniciar sesion"}
+            title={initials ? accountName ?? accountEmail ?? "Mi cuenta" : undefined}
+            className={`flex h-9 items-center justify-center gap-2 rounded-full border transition sm:h-11 ${
+              initials
+                ? "grid w-9 place-items-center border-slate-900 bg-slate-900 px-0 text-[0.68rem] font-semibold leading-none tracking-[0.08em] text-white hover:bg-slate-700 sm:w-11 sm:text-[0.72rem]"
+                : "border-[#589bf9]/20 bg-[#589bf9]/8 px-3 text-[#0C6CC6] hover:border-[#589bf9]/38 hover:bg-[#589bf9]/16 sm:px-4"
+            }`}
           >
-            <FaUserCircle className="h-4 w-4 shrink-0 sm:h-[1.05rem] sm:w-[1.05rem]" />
-            <span className="hidden text-[0.68rem] uppercase tracking-[0.24em] sm:inline-block">
-              Cuenta
-            </span>
-          </Link>
+            {initials ? (
+              <span aria-hidden="true" className="translate-y-[0.06em] leading-none">
+                {initials}
+              </span>
+            ) : (
+              <>
+                <FaUserCircle className="h-4 w-4 shrink-0 sm:h-[1.05rem] sm:w-[1.05rem]" />
+                <span className="hidden text-[0.68rem] uppercase tracking-[0.24em] sm:inline-block">
+                  Cuenta
+                </span>
+              </>
+            )}
+          </a>
         </div>
       </div>
 
@@ -122,19 +142,24 @@ function NavbarContent({ pathname }: NavbarContentProps) {
                 </Link>
               ))}
 
-              <Link
+              <a
                 href="/account"
-                onClick={() => setOpenPathname(null)}
                 className="flex min-h-11 items-center justify-between rounded-2xl border border-[#589bf9]/18 bg-[#589bf9]/10 px-4 py-3 text-left text-sm uppercase tracking-[0.24em] text-[#0C6CC6] transition-colors hover:bg-[#589bf9]/16"
               >
                 <span className="flex items-center gap-3">
-                  <FaUserCircle className="h-[1.05rem] w-[1.05rem] shrink-0" />
-                  <span>Cuenta</span>
+                  {initials ? (
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-900 text-[0.56rem] font-semibold leading-none tracking-[0.08em] text-white">
+                      <span className="translate-y-[0.06em] leading-none">{initials}</span>
+                    </span>
+                  ) : (
+                    <FaUserCircle className="h-[1.05rem] w-[1.05rem] shrink-0" />
+                  )}
+                  <span>{initials ? accountName ?? "Mi cuenta" : "Cuenta"}</span>
                 </span>
                 <span className="text-violet-700">
                   <CiLogin className="h-4 w-4" />
                 </span>
-              </Link>
+              </a>
             </div>
           </motion.nav>
         ) : null}
@@ -145,10 +170,17 @@ function NavbarContent({ pathname }: NavbarContentProps) {
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { data: session } = authClient.useSession();
 
   if (pathname.startsWith("/dashboard")) {
     return null;
   }
 
-  return <NavbarContent pathname={pathname} />;
+  return (
+    <NavbarContent
+      pathname={pathname}
+      accountName={session?.user.name ?? null}
+      accountEmail={session?.user.email ?? null}
+    />
+  );
 }
