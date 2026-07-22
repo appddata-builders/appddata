@@ -46,11 +46,12 @@ No hace falta editar el archivo para instalarlo en un proyecto nuevo.
 | `text` | Clic directo sobre un texto: se edita en linea. Al pasar el cursor aparece un lapiz que abre el panel del editor (descripcion y color). |
 | `media` | Clic sobre una imagen, un video o un fondo con imagen para reemplazarlo. Los videos solo aceptan mp4. |
 | `style` | Clic sobre un icono para cambiarlo, o sobre un contenedor **que ya tenga fondo propio** para repintarlo. |
+| `widgets` | Agrega, ordena o elimina hasta 4 secciones en la zona administrada. |
 
 Reglas que el bridge respeta a proposito:
 
-- **Nunca crea contenido**: solo edita texto que ya existe y solo pinta fondos ya
-  definidos por el diseño. No se pueden agregar fondos donde no los habia.
+- Los modos de contenido solo modifican elementos existentes. La creación de
+  secciones se limita al modo `widgets` y a su zona administrada.
 - En modo `media` atraviesa capas: alcanza imagenes tapadas por overlays
   transparentes o con `pointer-events: none`.
 - El **scroll nunca se bloquea**; los demas modos si congelan la navegacion
@@ -64,11 +65,12 @@ Editor (padre) → bridge (hijo), con `source: "imin-editor"`:
 
 | Mensaje | Campos |
 |---|---|
-| `set-mode` | `mode`: `navigate` \| `text` \| `media` \| `style` |
+| `set-mode` | `mode`: `navigate` \| `text` \| `media` \| `style` \| `widgets` |
 | `set-text` | `selector`, `value` |
 | `set-media` | `selector`, `kind`: `image` \| `background` \| `video`, `src` |
 | `set-color` | `selector`, `colorTarget`: `text` \| `background`, `fill`: `solid` \| `gradient`, `color`, `colorEnd`, `direction`: `left` \| `right` |
 | `set-icon` | `selector`, `svg` |
+| `set-widgets` | `selector`: `__imin_widgets__`, `widgets`: máximo 4 `{ id, type }` |
 
 Bridge (hijo) → editor (padre), con `source: "imin-bridge"`:
 
@@ -89,7 +91,6 @@ solido, que es como se comportaban las versiones anteriores.
 
 ## Persistencia
 
-Los cambios son en vivo y viven en el DOM del iframe hasta recargar. Guardarlos
-es responsabilidad del editor: hoy los textos del sitio se hidratan desde la
-tabla `hydrate`, pero IMIN todavia no escribe en ella desde el bridge. Falta
-mapear el `selector` CSS que reporta el bridge a la key de contenido.
+Los cambios son en vivo y viven en el DOM del iframe hasta recargar. El panel
+los persiste en `imin.editor.edits`; al volver a cargar reaplica primero el
+documento de widgets y después textos, medios, colores e iconos.

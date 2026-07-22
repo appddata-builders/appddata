@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlay, Monitor, MousePointer2, Palette, Type } from "lucide-react";
+import { ChevronDown, ChevronUp, ImagePlay, LayoutGrid, Monitor, MousePointer2, Palette, Plus, Trash2, Type } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -109,12 +109,13 @@ import {
 import { TbEngine, TbManualGearbox } from "react-icons/tb";
 
 import { Badge } from "@/app/components/ui/badge";
+import { WIDGETS, type WidgetId } from "@/app/components/build/build-model";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_SITE_URL = "https://refautomex.com";
 const DEFAULT_EDITS_ENDPOINT = "/api/dashboard/imin/edits";
 
-type EditorMode = "navigate" | "text" | "media" | "style";
+type EditorMode = "navigate" | "text" | "media" | "style" | "widgets";
 // El bridge distingue imagen de primer plano, fondo y video.
 type MediaKind = "image" | "background" | "video";
 // Relleno solido o degradado de dos colores.
@@ -187,7 +188,10 @@ const modeOptions: { id: EditorMode; label: string; icon: typeof Type }[] = [
   { id: "text", label: "Editar textos", icon: Type },
   { id: "media", label: "Editar medios", icon: ImagePlay },
   { id: "style", label: "Colores e iconos", icon: Palette },
+  { id: "widgets", label: "Widgets", icon: LayoutGrid },
 ];
+
+type IminWidget = { id: string; type: WidgetId };
 
 // Catalogo de iconos para reemplazar en el sitio. Todo sale de react-icons
 // para que el trazo sea consistente con lo que ya usa el proyecto.
@@ -487,6 +491,7 @@ export function IminWorkspace({
   const [libTotal, setLibTotal] = useState(0);
   const [libLimit, setLibLimit] = useState(0);
   const [libLoading, setLibLoading] = useState(false);
+  const [widgets, setWidgets] = useState<IminWidget[]>([]);
 
   // Acumulador de cambios de la sesion. Es un ref y no estado porque solo se
   // lee al guardar y al reaplicar: no debe redibujar el editor.
@@ -540,7 +545,11 @@ export function IminWorkspace({
     fetch(`${editsEndpoint}?slug=${encodeURIComponent(projectSlug ?? "")}`)
       .then((res) => (res.ok ? res.json() : { edits: [] }))
       .then((data: { edits?: StoredEdit[] }) => {
-        if (!cancelled) savedEditsRef.current = data.edits ?? [];
+        if (!cancelled) {
+          savedEditsRef.current = data.edits ?? [];
+          const widgetEdit = savedEditsRef.current.find((edit) => edit.type === "set-widgets");
+          if (widgetEdit && Array.isArray(widgetEdit.widgets)) setWidgets((widgetEdit.widgets as IminWidget[]).slice(0, 4));
+        }
       })
       .catch(() => {
         savedEditsRef.current = [];
@@ -552,7 +561,12 @@ export function IminWorkspace({
 
   useEffect(() => {
     if (!bridgeReady) return;
-    for (const edit of savedEditsRef.current) {
+    // La estructura debe existir antes de reaplicar textos, medios y estilos
+    // cuyos selectores pueden apuntar a los widgets administrados.
+    const orderedEdits = [...savedEditsRef.current].sort((a, b) =>
+      a.type === "set-widgets" ? -1 : b.type === "set-widgets" ? 1 : 0,
+    );
+    for (const edit of orderedEdits) {
       // postMessage directo: reaplicar lo ya guardado no es una edicion nueva.
       iframeRef.current?.contentWindow?.postMessage(
         { source: "imin-editor", ...edit },
@@ -560,6 +574,13 @@ export function IminWorkspace({
       );
     }
   }, [bridgeReady, targetOrigin]);
+
+  const applyWidgets = (next: IminWidget[]) => {
+    const valid = next.slice(0, 4);
+    setWidgets(valid);
+    post({ type: "set-widgets", selector: "__imin_widgets__", widgets: valid });
+    setHasChanges(true);
+  };
 
   const handleSave = async () => {
     if (!canSave) return;
@@ -836,6 +857,8 @@ export function IminWorkspace({
         ? "Modo edición de medios: la navegación esta pausada. Haz clic en una imagen o video para reemplazarlo (los videos solo aceptan mp4)."
         : mode === "style"
           ? "Modo colores e iconos: la navegación esta pausada. Haz clic en un icono para cambiarlo o en cualquier elemento para pintar su color."
+          : mode === "widgets"
+            ? "Agrega, ordena o elimina secciones administradas dentro del sitio real."
           : "Navegación activa: haz clic en cualquier parte del sitio para interactuar con el.";
 
   const workspaceSectionDescription =
@@ -843,8 +866,10 @@ export function IminWorkspace({
       ? "Edita textos, tipografía y color."
       : mode === "media"
         ? "Reemplaza imágenes, fondos y videos."
-        : mode === "style"
+      : mode === "style"
           ? "Personaliza colores, degradados e iconos."
+          : mode === "widgets"
+            ? "Agrega y organiza secciones del sitio."
           : "Explora e interactúa con el sitio.";
 
   return (
@@ -985,6 +1010,26 @@ export function IminWorkspace({
           <p className="my-3 text-center text-[0.68rem] uppercase tracking-[0.2em] text-slate-500">
             {modeHelpText}
           </p>
+        ) : null}
+        {mode === "widgets" ? (
+          <div className="mb-2 grid max-h-56 shrink-0 gap-3 overflow-hidden rounded-xl border border-slate-200 bg-white p-3 lg:grid-cols-[1fr_1fr]">
+            <div className="min-h-0 overflow-y-auto">
+              <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-slate-500">Agregar widget</p>
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-4">
+                {WIDGETS.map((widget) => {
+                  const Icon = widget.icon;
+                  return <button key={widget.id} type="button" disabled={widgets.length >= 4} onClick={() => applyWidgets([...widgets, { id: `${widget.id}-${Date.now().toString(36)}`, type: widget.id }].slice(0, 4))} className="flex min-w-0 items-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1.5 text-left text-[0.65rem] text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-35"><Icon className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{widget.name}</span><Plus className="ml-auto h-3 w-3 shrink-0" /></button>;
+                })}
+              </div>
+            </div>
+            <div className="min-h-0 overflow-y-auto border-t border-slate-100 pt-2 lg:border-l lg:border-t-0 lg:pl-3 lg:pt-0">
+              <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-slate-500">Secciones agregadas · {widgets.length}/4</p>
+              {widgets.length === 0 ? <p className="rounded-lg border border-dashed border-slate-200 p-3 text-center text-xs text-slate-400">Todavia no hay widgets administrados.</p> : <div className="space-y-1">{widgets.map((widget, index) => {
+                const definition = WIDGETS.find((item) => item.id === widget.type);
+                return <div key={widget.id} className="flex items-center gap-2 rounded-lg bg-slate-50 px-2 py-1.5 text-xs text-slate-600"><span className="min-w-0 flex-1 truncate">{definition?.name ?? widget.type}</span><button type="button" disabled={index === 0} onClick={() => { const next = [...widgets]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; applyWidgets(next); }} className="disabled:opacity-25" aria-label="Subir"><ChevronUp className="h-3.5 w-3.5" /></button><button type="button" disabled={index === widgets.length - 1} onClick={() => { const next = [...widgets]; [next[index], next[index + 1]] = [next[index + 1], next[index]]; applyWidgets(next); }} className="disabled:opacity-25" aria-label="Bajar"><ChevronDown className="h-3.5 w-3.5" /></button><button type="button" onClick={() => applyWidgets(widgets.filter((item) => item.id !== widget.id))} className="text-rose-500" aria-label="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button></div>;
+              })}</div>}
+            </div>
+          </div>
         ) : null}
         <div
           className={cn(

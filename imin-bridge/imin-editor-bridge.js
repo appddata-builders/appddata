@@ -1067,6 +1067,78 @@
     oldEl.parentNode.replaceChild(newEl, oldEl);
   }
 
+  // --- Widgets estructurales administrados por IMIN -----------------------
+
+  var WIDGET_TYPES = {
+    hero: 1, features: 1, "image-text": 1, "text-block": 1, "product-tiers": 1,
+    services: 1, stats: 1, "cta-banner": 1, carousel: 1, gallery: 1,
+    "bg-image": 1, "bg-video": 1, blog: 1, promos: 1, testimonials: 1, faq: 1, contact: 1,
+  };
+
+  function widgetIcon() {
+    return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18"/></svg>';
+  }
+
+  function widgetImage(seed) {
+    return "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=80&sig=" + encodeURIComponent(seed);
+  }
+
+  function widgetMarkup(widget) {
+    var id = String(widget.id || "widget").replace(/[^a-zA-Z0-9_-]/g, "");
+    var type = String(widget.type || "text-block");
+    var icon = widgetIcon();
+    var image = widgetImage(id);
+    var cards = '<div class="imin-w-grid"><article>' + icon + '<h3>Calidad garantizada</h3><p>Edita este contenido directamente con IMIN.</p></article><article>' + icon + '<h3>Atencion personalizada</h3><p>Una seccion flexible para comunicar tu valor.</p></article><article>' + icon + '<h3>Servicio confiable</h3><p>Adapta textos, iconos, colores e imagenes.</p></article></div>';
+    var body = "";
+    if (type === "hero") body = '<p class="imin-w-kicker">NUEVA SECCION</p><h2>Impulsa tu marca con una experiencia real</h2><p>Este widget vive dentro del template publicado y puede editarse con las herramientas de IMIN.</p><a href="#">Conocer mas</a>';
+    else if (type === "features" || type === "services") body = '<h2>' + (type === "services" ? "Nuestros servicios" : "Lo que nos distingue") + '</h2>' + cards;
+    else if (type === "image-text") body = '<div class="imin-w-split"><img src="' + image + '" alt="Seccion editable"><div><h2>Imagen y contenido</h2><p>Combina un medio visual con un mensaje claro para tus visitantes.</p></div></div>';
+    else if (type === "text-block") body = '<h2>Una historia que vale la pena contar</h2><p>Utiliza este bloque para explicar tu empresa, una idea o cualquier informacion relevante.</p>';
+    else if (type === "product-tiers") body = '<h2>Planes y productos</h2><div class="imin-w-grid"><article><h3>Basico</h3><strong>$9</strong><p>Una opcion para comenzar.</p></article><article><h3>Pro</h3><strong>$19</strong><p>La alternativa mas popular.</p></article><article><h3>Premium</h3><strong>$29</strong><p>Todo lo que necesitas.</p></article></div>';
+    else if (type === "stats") body = '<div class="imin-w-stats"><div><strong>+120</strong><span>Clientes</span></div><div><strong>8</strong><span>Años</span></div><div><strong>24/7</strong><span>Soporte</span></div></div>';
+    else if (type === "cta-banner") body = '<div class="imin-w-cta"><h2>¿Listo para comenzar?</h2><a href="#">Contactanos</a></div>';
+    else if (type === "carousel") body = '<div class="imin-w-carousel"><img src="' + image + '" alt="Carrusel editable"><button data-imin-carousel="prev">‹</button><button data-imin-carousel="next">›</button><h2>Experiencias que se mueven contigo</h2></div>';
+    else if (type === "gallery") body = '<h2>Galeria</h2><div class="imin-w-gallery">' + [1,2,3,4,5,6].map(function (n) { return '<img src="' + widgetImage(id + n) + '" alt="Galeria editable">'; }).join("") + '</div>';
+    else if (type === "bg-image") body = '<div class="imin-w-cover" style="background-image:url(' + JSON.stringify(image) + ')"><h2>Una imagen que habla por tu marca</h2></div>';
+    else if (type === "bg-video") body = '<div class="imin-w-video">' + icon + '<h2>Video destacado</h2><p>Selecciona el fondo o reemplaza el contenido visual.</p></div>';
+    else if (type === "blog") body = '<h2>Ultimas entradas</h2>' + cards;
+    else if (type === "promos") body = '<h2>Promociones</h2><div class="imin-w-grid"><article><strong>-20%</strong><h3>Oferta especial</h3></article><article><strong>2x1</strong><h3>Solo esta semana</h3></article><article><strong>-50%</strong><h3>Ultimas piezas</h3></article></div>';
+    else if (type === "testimonials") body = '<h2>Lo que dicen nuestros clientes</h2><div class="imin-w-grid"><article>' + icon + '<p>Una experiencia excelente y un equipo muy profesional.</p><strong>Ana G.</strong></article><article>' + icon + '<p>El resultado supero todas nuestras expectativas.</p><strong>Luis M.</strong></article><article>' + icon + '<p>Servicio rapido, claro y confiable.</p><strong>Sofia R.</strong></article></div>';
+    else if (type === "faq") body = '<h2>Preguntas frecuentes</h2><div class="imin-w-faq"><button>¿Como funciona?<span>+</span></button><p>Selecciona el texto para personalizar esta respuesta.</p><button>¿Puedo editarlo despues?<span>+</span></button><p>Si, todos los elementos permanecen editables.</p></div>';
+    else if (type === "contact") body = '<div class="imin-w-split"><div><h2>Contactanos</h2><p>hola@tumarca.com</p><p>+52 55 1234 5678</p></div><form><input placeholder="Nombre"><input placeholder="Correo"><textarea placeholder="Mensaje"></textarea><button type="button">Enviar</button></form></div>';
+    return '<section class="imin-managed-widget imin-widget-' + type + '" data-imin-widget-id="' + id + '" data-imin-widget-type="' + type + '"><div class="imin-w-inner">' + body + '</div></section>';
+  }
+
+  function ensureWidgetStyles() {
+    if (document.getElementById("imin-widget-styles")) return;
+    var style = document.createElement("style");
+    style.id = "imin-widget-styles";
+    style.textContent = '.imin-managed-zone{font-family:inherit}.imin-managed-widget{padding:64px 24px;background:#fff;color:#172033}.imin-managed-widget:nth-child(even){background:#f4f7fa}.imin-w-inner{max-width:1120px;margin:auto}.imin-managed-widget h2{font-size:clamp(1.6rem,4vw,2.7rem);margin:0 0 18px}.imin-managed-widget h3{margin:10px 0 6px}.imin-managed-widget p{line-height:1.7}.imin-managed-widget a,.imin-managed-widget form button{display:inline-block;margin-top:16px;padding:10px 18px;border-radius:999px;background:#0455a2;color:#fff;text-decoration:none}.imin-w-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.imin-w-grid article{padding:22px;border:1px solid rgba(15,23,42,.12);border-radius:18px;background:rgba(255,255,255,.75)}.imin-w-split{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:34px}.imin-w-split img{width:100%;height:300px;object-fit:cover;border-radius:22px}.imin-w-stats{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;gap:20px}.imin-w-stats div{display:flex;flex-direction:column}.imin-w-stats strong{font-size:2.4rem;color:#0455a2}.imin-w-cta{display:flex;align-items:center;gap:20px}.imin-w-cta a{margin-left:auto}.imin-w-carousel,.imin-w-cover,.imin-w-video{position:relative;min-height:360px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow:hidden;border-radius:24px}.imin-w-carousel img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.imin-w-carousel:after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.45)}.imin-w-carousel h2,.imin-w-carousel button{position:relative;z-index:1;color:#fff}.imin-w-carousel button{position:absolute;top:50%;font-size:2rem;background:rgba(0,0,0,.4);border:0;border-radius:50%;width:44px;height:44px}.imin-w-carousel button:first-of-type{left:14px}.imin-w-carousel button:nth-of-type(2){right:14px}.imin-w-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.imin-w-gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:14px}.imin-w-cover{background-size:cover;background-position:center;color:#fff}.imin-w-video{background:#07111f;color:#fff}.imin-w-faq button{width:100%;display:flex;justify-content:space-between;padding:14px;border:0;border-bottom:1px solid #ddd;background:transparent;text-align:left;font:inherit;font-weight:600}.imin-w-faq p{display:none;padding:10px 14px}.imin-w-faq button[aria-expanded="true"]+p{display:block}.imin-managed-widget input,.imin-managed-widget textarea{display:block;width:100%;box-sizing:border-box;margin:8px 0;padding:11px;border:1px solid #ccd3dd;border-radius:10px}@media(max-width:700px){.imin-w-grid,.imin-w-split,.imin-w-stats,.imin-w-gallery{grid-template-columns:1fr}.imin-w-cta{flex-direction:column;text-align:center}.imin-w-cta a{margin-left:0}}';
+    document.head.appendChild(style);
+  }
+
+  function applyWidgets(widgets) {
+    ensureWidgetStyles();
+    var zone = document.getElementById("imin-managed-widgets");
+    if (!zone) {
+      zone = document.createElement("div");
+      zone.id = "imin-managed-widgets";
+      zone.className = "imin-managed-zone";
+      var footer = document.querySelector("footer");
+      if (footer && footer.parentNode) footer.parentNode.insertBefore(zone, footer);
+      else document.body.appendChild(zone);
+    }
+    // Misma regla de Appddata Build: una zona de pagina admite maximo 4 widgets.
+    // Se valida tambien aqui porque el iframe no debe confiar solo en el panel.
+    var safe = Object.prototype.toString.call(widgets) === "[object Array]" ? widgets.filter(function (widget) { return widget && WIDGET_TYPES[widget.type]; }).slice(0, 4) : [];
+    zone.innerHTML = safe.map(widgetMarkup).join("");
+  }
+
+  document.addEventListener("click", function (event) {
+    var faq = event.target.closest && event.target.closest(".imin-w-faq button");
+    if (faq && mode === "navigate") faq.setAttribute("aria-expanded", faq.getAttribute("aria-expanded") === "true" ? "false" : "true");
+  });
+
   window.addEventListener("message", function (event) {
     if (!isAllowed(event.origin)) {
       return;
@@ -1125,6 +1197,11 @@
 
     if (data.type === "set-icon" && data.selector && data.svg) {
       applyIcon(data.selector, data.svg);
+      return;
+    }
+
+    if (data.type === "set-widgets" && Object.prototype.toString.call(data.widgets) === "[object Array]") {
+      applyWidgets(data.widgets);
       return;
     }
   });
