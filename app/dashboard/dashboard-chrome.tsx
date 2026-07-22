@@ -6,6 +6,7 @@ import {
   Globe,
   KeyRound,
   LayoutDashboard,
+  LayoutTemplate,
   Lock,
   PanelLeftClose,
   PanelLeftOpen,
@@ -50,6 +51,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Planes", icon: LayoutDashboard },
+  { href: "/dashboard/build", label: "Appddata Build", icon: LayoutTemplate },
   { href: "/dashboard/imin", label: "IMIN", icon: Sparkles, requiresImin: true },
   { href: "/dashboard/analiticas", label: "Analiticas", icon: ChartColumn, disabled: true },
   { href: "/dashboard/dominios", label: "Dominios", icon: Globe, disabled: true },
