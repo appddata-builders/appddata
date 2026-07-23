@@ -171,13 +171,13 @@ export const WIDGETS_BY_ID: Record<WidgetId, WidgetDef> = WIDGETS.reduce(
   {} as Record<WidgetId, WidgetDef>,
 );
 
-/** Contact usa exclusivamente su formulario; los demás widgets viven en el body general. */
-export const CONTACT_WIDGET_IDS: WidgetId[] = ["contact"];
+/** Contenidos exclusivos de la página Contact; no aparecen en el body general. */
+export const CONTACT_WIDGET_IDS: WidgetId[] = ["contact", "faq", "blog", "testimonials", "promos"];
 
 /** Widgets ofrecidos en la paleta segun la pagina activa. */
 export function widgetsForPage(page: PageId): WidgetDef[] {
   if (page === "contact") return CONTACT_WIDGET_IDS.map((id) => WIDGETS_BY_ID[id]);
-  return WIDGETS.filter((w) => w.id !== "contact");
+  return WIDGETS.filter((widget) => !CONTACT_WIDGET_IDS.includes(widget.id));
 }
 
 /** Maximo de widgets de una pagina (Contact solo permite 1). */

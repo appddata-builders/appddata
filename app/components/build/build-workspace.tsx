@@ -563,7 +563,7 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
               </PanelHeading>
               {activePage === "contact" ? (
                 <p className="mb-1.5 rounded-lg bg-slate-50 px-2 py-1.5 text-[0.66rem] leading-4 text-slate-500">
-                  Contact usa un solo formulario especializado. FAQ, blog, testimonios y promociones están disponibles en el body general.
+                  Contact admite un contenido especializado: formulario, FAQ, blog, testimonios o promociones.
                 </p>
               ) : null}
               {activeFull && activePage !== "contact" ? (
