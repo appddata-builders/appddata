@@ -985,7 +985,7 @@ export function IminWorkspace({
                     ? "Error al guardar"
                     : "Guardar cambios"}
             </button>
-            {variant === "panel" && siteOptions.length > 1 ? (
+            {variant === "panel" && siteOptions.length > 0 ? (
               <label className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2 text-blue-600">
                 <Monitor className="h-3.5 w-3.5" aria-hidden="true" />
                 <span className="sr-only">Cambiar sitio</span>
