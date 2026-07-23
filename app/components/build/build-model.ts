@@ -171,8 +171,8 @@ export const WIDGETS_BY_ID: Record<WidgetId, WidgetDef> = WIDGETS.reduce(
   {} as Record<WidgetId, WidgetDef>,
 );
 
-/** Set curado de widgets que puede llevar la pagina Contact (solo uno). */
-export const CONTACT_WIDGET_IDS: WidgetId[] = ["contact", "faq", "blog", "testimonials", "promos"];
+/** Contact usa exclusivamente su formulario; los demás widgets viven en el body general. */
+export const CONTACT_WIDGET_IDS: WidgetId[] = ["contact"];
 
 /** Widgets ofrecidos en la paleta segun la pagina activa. */
 export function widgetsForPage(page: PageId): WidgetDef[] {

@@ -136,6 +136,7 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
   const [activeDrag, setActiveDrag] = useState<ActiveDrag>(null);
   const [hydrated, setHydrated] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [panelStep, setPanelStep] = useState<1 | 2 | 3>(1);
   const [projectName, setProjectName] = useState("");
   const [createState, setCreateState] = useState<{ step: "input" | "valid" | "creating" | "done"; message?: string; slug?: string; url?: string; repoUrl?: string }>({ step: "input" });
   const previewRef = useRef<HTMLDivElement>(null);
@@ -408,37 +409,28 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
           <aside className="hidden w-72 shrink-0 flex-col gap-5 overflow-y-auto border-r border-slate-200 bg-white px-3 py-3 md:flex">
             <PackageCard plan={accent} />
 
-            {/* Servicios extra */}
-            <section>
-              <PanelHeading>Servicios extra</PanelHeading>
-              {accent.extras.length > 0 ? (
-                <div className="space-y-1">
-                  {accent.extras.map((extra) => (
-                    <div
-                      key={extra}
-                      className="flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[0.74rem] font-medium"
-                      style={{ borderColor: `${accent.accent}33`, color: accent.accentText, backgroundColor: accent.accentSoft }}
-                    >
-                      <Check className="h-3.5 w-3.5 shrink-0" style={{ color: accent.accent }} />
-                      {extra}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => addWidget(WIDGETS_BY_ID.services, activePage)}
-                    className="mt-1 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 py-1.5 text-[0.72rem] font-medium text-slate-600 transition hover:bg-slate-50"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Mostrar servicios en el sitio
-                  </button>
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-slate-200 px-2 py-2 text-[0.68rem] leading-4 text-slate-400">
-                  El paquete {accent.name} no incluye servicios extra. Mejora a Super o Premium para sumarlos.
-                </p>
-              )}
-            </section>
+            <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+              {([
+                [1, "Diseño"],
+                [2, "Contenido"],
+                [3, "Servicios"],
+              ] as const).map(([step, label]) => (
+                <button
+                  key={step}
+                  type="button"
+                  onClick={() => setPanelStep(step)}
+                  className={cn(
+                    "rounded-lg px-1 py-2 text-[0.64rem] font-semibold transition",
+                    panelStep === step ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-white",
+                  )}
+                >
+                  <span className="mr-1 opacity-60">{step}.</span>{label}
+                </button>
+              ))}
+            </div>
 
+            {panelStep === 1 ? (
+              <>
             {/* Plantillas */}
             <section>
               <PanelHeading>Plantilla</PanelHeading>
@@ -474,41 +466,6 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
             </section>
 
             {/* Navegacion */}
-            <section>
-              <PanelHeading>Navegacion</PanelHeading>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-1">
-                <div className="grid grid-cols-2 gap-1" role="group" aria-label="Tipo de navegacion">
-                  <button
-                    type="button"
-                    onClick={() => setNavMode("single")}
-                    aria-pressed={navMode === "single"}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[0.72rem] font-semibold transition",
-                      navMode === "single" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-700",
-                    )}
-                  >
-                    <PanelTop className="h-3.5 w-3.5" />
-                    Una pagina
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNavMode("multi")}
-                    aria-pressed={navMode === "multi"}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[0.72rem] font-semibold transition",
-                      navMode === "multi" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-700",
-                    )}
-                  >
-                    <LayoutTemplate className="h-3.5 w-3.5" />
-                    Paginas
-                  </button>
-                </div>
-              </div>
-              <p className="mt-1.5 px-1 text-[0.62rem] leading-4 text-slate-400">
-                {navMode === "single" ? "Todo el sitio se recorre con anclas." : "Cada seccion funciona como una pagina independiente."}
-              </p>
-            </section>
-
             {/* Navbar */}
             <section>
               <PanelHeading>Navbar</PanelHeading>
@@ -525,6 +482,40 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
                   />
                 ))}
               </div>
+            </section>
+
+            <section>
+              <PanelHeading>Footer</PanelHeading>
+              <div className="grid grid-cols-2 gap-1.5">
+                {FOOTER_VARIANTS.map((variant) => (
+                  <ThumbCard
+                    key={variant.id}
+                    active={doc.footerVariant === variant.id}
+                    onClick={() => setDoc((prev) => ({ ...prev, footerVariant: variant.id }))}
+                    name={variant.name}
+                    thumb={<FooterThumb variant={variant.id} />}
+                  />
+                ))}
+              </div>
+            </section>
+              </>
+            ) : null}
+
+            {panelStep === 2 ? (
+              <>
+            <section>
+              <PanelHeading>Navegacion</PanelHeading>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-1">
+                <div className="grid grid-cols-2 gap-1" role="group" aria-label="Tipo de navegacion">
+                  <button type="button" onClick={() => setNavMode("single")} aria-pressed={navMode === "single"} className={cn("flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[0.72rem] font-semibold transition", navMode === "single" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-700")}>
+                    <PanelTop className="h-3.5 w-3.5" />Una pagina
+                  </button>
+                  <button type="button" onClick={() => setNavMode("multi")} aria-pressed={navMode === "multi"} className={cn("flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[0.72rem] font-semibold transition", navMode === "multi" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-700")}>
+                    <LayoutTemplate className="h-3.5 w-3.5" />Paginas
+                  </button>
+                </div>
+              </div>
+              <p className="mt-1.5 px-1 text-[0.62rem] leading-4 text-slate-400">{navMode === "single" ? "Todo el sitio se recorre con anclas." : "Cada seccion funciona como una pagina independiente."}</p>
             </section>
 
             {/* Paginas */}
@@ -572,7 +563,7 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
               </PanelHeading>
               {activePage === "contact" ? (
                 <p className="mb-1.5 rounded-lg bg-slate-50 px-2 py-1.5 text-[0.66rem] leading-4 text-slate-500">
-                  Contact lleva un solo widget. Elige el tipo: contacto, FAQ, blog, testimonios o promociones.
+                  Contact usa un solo formulario especializado. FAQ, blog, testimonios y promociones están disponibles en el body general.
                 </p>
               ) : null}
               {activeFull && activePage !== "contact" ? (
@@ -592,22 +583,27 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
                 ))}
               </div>
             </section>
+              </>
+            ) : null}
 
-            {/* Footer: despues de la configuracion del body. */}
+            {panelStep === 3 ? (
             <section>
-              <PanelHeading>Footer</PanelHeading>
-              <div className="grid grid-cols-2 gap-1.5">
-                {FOOTER_VARIANTS.map((variant) => (
-                  <ThumbCard
-                    key={variant.id}
-                    active={doc.footerVariant === variant.id}
-                    onClick={() => setDoc((prev) => ({ ...prev, footerVariant: variant.id }))}
-                    name={variant.name}
-                    thumb={<FooterThumb variant={variant.id} />}
-                  />
-                ))}
-              </div>
+              <PanelHeading>Servicios necesarios</PanelHeading>
+              <p className="mb-2 px-1 text-[0.68rem] leading-4 text-slate-500">
+                Describe integraciones, automatizaciones, formularios especiales o cualquier servicio adicional que necesite el sitio.
+              </p>
+              <textarea
+                value={content["build:requested-services"] ?? ""}
+                onChange={(event) => commitContent("build:requested-services", event.target.value)}
+                placeholder="Ej. Integrar reservaciones, pagos con Stripe, CRM, WhatsApp y correos automáticos..."
+                rows={9}
+                className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm leading-5 text-slate-700 outline-none transition placeholder:text-slate-300 focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              />
+              <p className="mt-2 text-[0.62rem] leading-4 text-slate-400">
+                Esta solicitud se guarda con el proyecto para revisarla antes del desarrollo.
+              </p>
             </section>
+            ) : null}
           </aside>
 
           {/* ---------------------------- Lienzo --------------------------- */}
