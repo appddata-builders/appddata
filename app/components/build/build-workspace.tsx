@@ -135,6 +135,9 @@ export default function BuildWorkspace({ siteName }: { siteName: string }) {
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [activeDrag, setActiveDrag] = useState<ActiveDrag>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [createState, setCreateState] = useState<{ step: "input" | "valid" | "creating" | "done"; message?: string; slug?: string; url?: string; repoUrl?: string }>({ step: "input" });
   const previewRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
@@ -176,6 +179,23 @@ export default function BuildWorkspace({ siteName }: { siteName: string }) {
   const accent = BUILD_PLANS[plan];
   const tokens = TEMPLATES[template];
   const activeFull = doc.pages[activePage].length >= maxWidgetsFor(activePage);
+
+  const validateNewProject = async () => {
+    setCreateState({ step: "creating", message: "Validando nombre..." });
+    const response = await fetch("/api/dashboard/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: projectName, validateOnly: true }) });
+    const data = await response.json() as { error?: string; slug?: string };
+    setCreateState(response.ok ? { step: "valid", slug: data.slug, message: "Nombre disponible." } : { step: "input", message: data.error ?? "No se pudo validar." });
+  };
+
+  const createNewProject = async () => {
+    setCreateState((current) => ({ ...current, step: "creating", message: "Creando proyecto..." }));
+    const response = await fetch("/api/dashboard/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: projectName, document: { version: 1, plan, template, navMode, doc, content } }) });
+    const data = await response.json() as { error?: string; project?: { slug: string }; deployment?: { status: string; url?: string; message?: string }; repository?: { status: string; url?: string } };
+    if (!response.ok) { setCreateState({ step: "input", message: data.error ?? "No se pudo crear." }); return; }
+    const deploymentMessage = data.deployment?.status === "deployed" ? "publicado en Netlify" : data.deployment?.status === "configuration_required" ? "pendiente de NETLIFY_AUTH_TOKEN" : data.deployment?.message ?? "deploy pendiente";
+    const repositoryMessage = data.repository?.status === "created" ? "repositorio creado en GitHub" : "repositorio pendiente de GITHUB_TOKEN";
+    setCreateState({ step: "done", slug: data.project?.slug, url: data.deployment?.url, repoUrl: data.repository?.url, message: `Proyecto ${deploymentMessage} y ${repositoryMessage}.` });
+  };
 
   const commitContent = useCallback((key: string, value: string) => {
     setContent((current) => ({ ...current, [key]: value }));
@@ -367,6 +387,7 @@ export default function BuildWorkspace({ siteName }: { siteName: string }) {
                 <Smartphone className="h-3.5 w-3.5" />
               </button>
             </div>
+            <button type="button" onClick={() => { setCreateOpen(true); setCreateState({ step: "input" }); }} className="inline-flex h-8 items-center gap-1.5 rounded-md bg-sky-600 px-2.5 text-[0.76rem] font-medium text-white transition hover:bg-sky-700"><Plus className="h-3.5 w-3.5" /><span className="hidden sm:inline">Crear sitio</span></button>
             <button
               type="button"
               onClick={restoreDefault}
@@ -636,6 +657,20 @@ export default function BuildWorkspace({ siteName }: { siteName: string }) {
           </main>
         </div>
       </div>
+
+      {createOpen ? createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <button type="button" aria-label="Cerrar" className="absolute inset-0 bg-slate-950/50" onClick={() => setCreateOpen(false)} />
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 text-slate-800 shadow-2xl">
+            <p className="text-base font-semibold">Crear proyecto</p><p className="mt-1 text-xs leading-5 text-slate-500">Primero validamos el nombre. Después generamos el código fuente, creamos su repositorio en GitHub y publicamos el sitio en Netlify.</p>
+            <label className="mt-4 block text-xs font-medium text-slate-600">Nombre del proyecto<input autoFocus value={projectName} disabled={createState.step === "creating" || createState.step === "done"} onChange={(event) => { setProjectName(event.target.value); setCreateState({ step: "input" }); }} placeholder="Mi nuevo sitio" className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-400" /></label>
+            {createState.slug ? <p className="mt-2 text-xs text-slate-400">Slug: <span className="font-medium text-slate-700">{createState.slug}</span></p> : null}
+            {createState.message ? <p className={cn("mt-3 rounded-lg px-3 py-2 text-xs", createState.step === "valid" || createState.step === "done" ? "bg-emerald-50 text-emerald-700" : "bg-slate-50 text-slate-500")}>{createState.message}</p> : null}
+            {createState.url ? <a href={createState.url} target="_blank" rel="noreferrer" className="mt-2 block truncate text-xs font-medium text-sky-600 underline">{createState.url}</a> : null}
+            {createState.repoUrl ? <a href={createState.repoUrl} target="_blank" rel="noreferrer" className="mt-2 block truncate text-xs font-medium text-slate-700 underline">Repositorio: {createState.repoUrl}</a> : null}
+            <div className="mt-4 flex gap-2"><button type="button" onClick={() => setCreateOpen(false)} className="flex-1 rounded-lg border border-slate-200 py-2 text-xs font-medium text-slate-500">Cerrar</button>{createState.step === "input" ? <button type="button" onClick={() => void validateNewProject()} className="flex-1 rounded-lg bg-slate-900 py-2 text-xs font-medium text-white">Validar nombre</button> : null}{createState.step === "valid" ? <button type="button" onClick={() => void createNewProject()} className="flex-1 rounded-lg bg-sky-600 py-2 text-xs font-medium text-white">Crear y desplegar</button> : null}{createState.step === "creating" ? <button type="button" disabled className="flex-1 rounded-lg bg-slate-200 py-2 text-xs font-medium text-slate-500">Procesando...</button> : null}</div>
+          </div>
+        </div>, document.body) : null}
 
       <DragOverlay dropAnimation={null}>
         {activeDrag?.kind === "new" ? (
@@ -1618,8 +1653,24 @@ function EditableIcon({ value, fallback, onCommit, className }: { value: string;
   const [remoteIcons, setRemoteIcons] = useState<RemoteIcon[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [selectedSvg, setSelectedSvg] = useState("");
   const iconId = (value in EDITABLE_ICON_OPTIONS ? value : fallback) as EditableIconId;
   const SelectedIcon = EDITABLE_ICON_OPTIONS[iconId].icon;
+  const selectedRef = /^([a-z0-9]+):([A-Z][A-Za-z0-9]*)$/.exec(value);
+
+  useEffect(() => {
+    const ref = /^([a-z0-9]+):([A-Z][A-Za-z0-9]*)$/.exec(value);
+    if (!ref) return;
+    let cancelled = false;
+    const params = new URLSearchParams({ lib: ref[1], q: ref[2] });
+    fetch(`/api/imin/icons?${params.toString()}`)
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("icon")))
+      .then((data: { icons: RemoteIcon[] }) => {
+        if (!cancelled) setSelectedSvg(data.icons.find((icon) => icon.name === ref[2])?.svg ?? "");
+      })
+      .catch(() => { if (!cancelled) setSelectedSvg(""); });
+    return () => { cancelled = true; };
+  }, [value]);
 
   useEffect(() => {
     if (!open) return;
@@ -1650,14 +1701,14 @@ function EditableIcon({ value, fallback, onCommit, className }: { value: string;
         <div className="mt-2 grid grid-cols-5 gap-2 border-b border-slate-100 pb-3 sm:grid-cols-8">
           {(Object.entries(EDITABLE_ICON_OPTIONS) as [EditableIconId, (typeof EDITABLE_ICON_OPTIONS)[EditableIconId]][]).map(([id, option]) => {
             const OptionIcon = option.icon;
-            return <button key={id} type="button" title={option.label} onClick={() => { onCommit(id); setOpen(false); }} className={cn("flex h-12 flex-col items-center justify-center gap-1 rounded-lg border text-slate-500 transition hover:border-sky-400 hover:text-sky-600", id === iconId && !value.startsWith("<svg") ? "border-sky-500 bg-sky-50 text-sky-700" : "border-slate-200")}><OptionIcon className="h-4 w-4" /><span className="max-w-full truncate px-1 text-[0.48rem]">{option.label}</span></button>;
+            return <button key={id} type="button" title={option.label} onClick={() => { onCommit(id); setOpen(false); }} className={cn("flex h-12 flex-col items-center justify-center gap-1 rounded-lg border text-slate-500 transition hover:border-sky-400 hover:text-sky-600", id === iconId && !selectedRef ? "border-sky-500 bg-sky-50 text-sky-700" : "border-slate-200")}><OptionIcon className="h-4 w-4" /><span className="max-w-full truncate px-1 text-[0.48rem]">{option.label}</span></button>;
           })}
         </div>
-        <div className="mt-3 grid min-h-0 flex-1 grid-cols-5 gap-2 overflow-y-auto pr-1 sm:grid-cols-8">{remoteIcons.map((icon) => <button key={icon.name} type="button" title={icon.name} onClick={() => { onCommit(icon.svg); setOpen(false); }} className="flex h-14 flex-col items-center justify-center gap-1 rounded-lg border border-slate-200 text-slate-500 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700"><span className="text-lg" dangerouslySetInnerHTML={{ __html: icon.svg }} /><span className="w-full truncate px-1 text-[0.48rem]">{icon.name}</span></button>)}</div>
+        <div className="mt-3 grid min-h-0 flex-1 grid-cols-5 gap-2 overflow-y-auto pr-1 sm:grid-cols-8">{remoteIcons.map((icon) => <button key={icon.name} type="button" title={icon.name} onClick={() => { setSelectedSvg(icon.svg); onCommit(`${library}:${icon.name}`); setOpen(false); }} className={cn("flex h-14 flex-col items-center justify-center gap-1 rounded-lg border text-slate-500 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700", value === `${library}:${icon.name}` ? "border-sky-500 bg-sky-50 text-sky-700" : "border-slate-200")}><span className="text-lg" dangerouslySetInnerHTML={{ __html: icon.svg }} /><span className="w-full truncate px-1 text-[0.48rem]">{icon.name}</span></button>)}</div>
       </div>
     </div>
   ) : null;
-  return <><button type="button" onClick={() => setOpen(true)} title="Cambiar icono" aria-label="Cambiar icono" className="pointer-events-auto inline-grid place-items-center rounded transition hover:scale-110 hover:ring-2 hover:ring-sky-400/60">{value.startsWith("<svg") ? <span className={className} dangerouslySetInnerHTML={{ __html: value }} /> : <SelectedIcon className={className} />}</button>{modal ? createPortal(modal, document.body) : null}</>;
+  return <><button type="button" onClick={() => setOpen(true)} title="Cambiar icono" aria-label="Cambiar icono" className="pointer-events-auto inline-grid place-items-center rounded transition hover:scale-110 hover:ring-2 hover:ring-sky-400/60">{selectedRef && selectedSvg ? <span className={className} dangerouslySetInnerHTML={{ __html: selectedSvg }} /> : <SelectedIcon className={className} />}</button>{modal ? createPortal(modal, document.body) : null}</>;
 }
 
 /** Lapiz (esquina) + modal para editar el color de UN componente. */

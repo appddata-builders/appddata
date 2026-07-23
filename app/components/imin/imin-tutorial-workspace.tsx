@@ -157,15 +157,16 @@ function colorWithOpacity(color: string, opacity: number): string {
 
 type BridgeMessage =
   | { source: "imin-bridge"; type: "ready" }
-  | { source: "imin-bridge"; type: "text-changed"; selector: string; value: string }
+  | { source: "imin-bridge"; type: "text-changed"; selector: string; key?: string; value: string }
   | {
       source: "imin-bridge";
       type: "text-selected";
       selector: string;
+      key?: string;
       value: string;
       color: string;
     }
-  | { source: "imin-bridge"; type: "media-selected"; selector: string; kind: MediaKind }
+  | { source: "imin-bridge"; type: "media-selected"; selector: string; key?: string; kind: MediaKind }
   | { source: "imin-bridge"; type: "color-selected"; selector: string }
   | { source: "imin-bridge"; type: "icon-selected"; selector: string };
 
@@ -181,7 +182,7 @@ type StyleEditor =
 // Texto seleccionado en el modo de textos. La escritura y el color viven en
 // pestañas separadas del mismo panel para que no se estorben.
 type TextTab = "description" | "color";
-type TextEditor = { selector: string; value: string } | null;
+type TextEditor = { selector: string; value: string; key?: string } | null;
 
 const modeOptions: { id: EditorMode; label: string; icon: typeof Type }[] = [
   { id: "navigate", label: "Navegar", icon: MousePointer2 },
@@ -464,7 +465,7 @@ export function IminWorkspace({
   const canSave = variant === "panel" && typeof projectSlug === "string" && projectSlug !== "";
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const pendingMediaRef = useRef<{ selector: string; kind: MediaKind } | null>(null);
+  const pendingMediaRef = useRef<{ selector: string; kind: MediaKind; key?: string } | null>(null);
   const [mode, setMode] = useState<EditorMode>("navigate");
   const [bridgeReady, setBridgeReady] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -647,7 +648,7 @@ export function IminWorkspace({
       }
 
       if (data.type === "media-selected") {
-        pendingMediaRef.current = { selector: data.selector, kind: data.kind };
+        pendingMediaRef.current = { selector: data.selector, kind: data.kind, key: data.key };
         if (fileInputRef.current) {
           fileInputRef.current.accept = acceptForKind(data.kind);
           fileInputRef.current.click();
@@ -661,6 +662,7 @@ export function IminWorkspace({
         const edit: StoredEdit = {
           type: "set-text",
           selector: data.selector,
+          key: data.key,
           value: data.value,
         };
         editsRef.current.set(editKey(edit), edit);
@@ -669,7 +671,7 @@ export function IminWorkspace({
       }
 
       if (data.type === "text-selected") {
-        setTextEditor({ selector: data.selector, value: data.value });
+        setTextEditor({ selector: data.selector, value: data.value, key: data.key });
         setTextDraft(data.value);
         setTextTab("description");
         // Arranca el control con el color que el texto ya tiene en el sitio.
@@ -718,6 +720,7 @@ export function IminWorkspace({
         post({
           type: "set-media",
           selector: pending.selector,
+          key: pending.key,
           kind: pending.kind,
           src: reader.result,
         });
@@ -751,7 +754,7 @@ export function IminWorkspace({
     if (!textEditor) {
       return;
     }
-    post({ type: "set-text", selector: textEditor.selector, value: textDraft });
+    post({ type: "set-text", selector: textEditor.selector, key: textEditor.key, value: textDraft });
     setHasChanges(true);
     setTextEditor(null);
   };

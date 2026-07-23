@@ -487,7 +487,7 @@
   }
 
   function sendTextChange(el) {
-    post({ type: "text-changed", selector: cssPath(el), value: el.textContent || "" });
+    post({ type: "text-changed", selector: cssPath(el), key: el.getAttribute("data-imin-key") || undefined, value: el.textContent || "" });
   }
 
   // Reemplaza el contenido conservando el elemento (y por tanto su selector).
@@ -590,6 +590,7 @@
     post({
       type: "text-selected",
       selector: cssPath(el),
+      key: el.getAttribute("data-imin-key") || undefined,
       value: el.textContent || "",
       color: window.getComputedStyle(el).color,
     });
@@ -807,7 +808,7 @@
         return;
       }
 
-      post({ type: "media-selected", selector: cssPath(media.el), kind: media.kind });
+      post({ type: "media-selected", selector: cssPath(media.el), key: media.el.getAttribute("data-imin-key") || undefined, kind: media.kind });
       return;
     }
 

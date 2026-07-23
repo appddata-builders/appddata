@@ -116,6 +116,29 @@ export async function PUT(request: Request) {
     merged.set(`${edit.type}|${edit.selector}`, edit);
   }
 
+  // Las ediciones con `key` (elementos con data-imin-key: textos e imagenes) se
+  // persisten ademas como contenido por clave en project_text; el endpoint
+  // publico lo superpone sobre hydrate y el sitio lo refleja en runtime.
+  const keyed: Record<string, string> = {};
+  for (const edit of merged.values()) {
+    const key = typeof edit.key === "string" ? edit.key : "";
+    if (!key) continue;
+    if (edit.type === "set-text" && typeof edit.value === "string") keyed[key] = edit.value;
+    else if (edit.type === "set-media" && typeof edit.src === "string") keyed[key] = edit.src;
+  }
+  for (const [contentKey, contentValue] of Object.entries(keyed)) {
+    const [row] = await getDb()
+      .select({ id: projectText.id })
+      .from(projectText)
+      .where(and(eq(projectText.projectId, proj.id), eq(projectText.contentKey, contentKey)))
+      .limit(1);
+    if (row) {
+      await getDb().update(projectText).set({ contentValue }).where(eq(projectText.id, row.id));
+    } else {
+      await getDb().insert(projectText).values({ id: crypto.randomUUID(), projectId: proj.id, contentKey, contentValue });
+    }
+  }
+
   const value = JSON.stringify([...merged.values()]);
 
   if (existing) {
