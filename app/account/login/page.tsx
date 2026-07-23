@@ -72,6 +72,9 @@ export default function AccountLoginPage() {
         setMessage(DISABLED_ERROR);
         return;
       }
+      if (params.get("motivo") === "comprar-paquete") {
+        setMessage("Para adquirir un paquete primero debes ingresar a una cuenta.");
+      }
       if (params.get("sesionCerrada") === "1") return;
 
       const user = session.data?.user as { enabled?: boolean } | undefined;

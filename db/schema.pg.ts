@@ -93,6 +93,38 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+export const siteEntitlement = pgTable(
+  "site_entitlement",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    plan: text("plan").notNull(),
+    stripeSessionId: text("stripe_session_id").notNull(),
+    projectSlug: text("project_slug"),
+    createdAt: timestamp("created_at", { precision: 3, mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 3, mode: "date" }).notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("site_entitlement_user_id_idx").on(table.userId),
+    uniqueIndex("site_entitlement_stripe_session_uidx").on(table.stripeSessionId),
+  ],
+);
+
+export const userProject = pgTable(
+  "user_project",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    projectSlug: text("project_slug").notNull(),
+    siteUrl: text("site_url").notNull(),
+    createdAt: timestamp("created_at", { precision: 3, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("user_project_user_id_idx").on(table.userId),
+    uniqueIndex("user_project_user_slug_uidx").on(table.userId, table.projectSlug),
+  ],
+);
+
 export const project = pgTable("project", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),

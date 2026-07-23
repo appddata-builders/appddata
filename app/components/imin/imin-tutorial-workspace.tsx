@@ -439,6 +439,9 @@ export type IminWorkspaceProps = {
   siteUrl?: string;
   /** Nombre corto mostrado en la barra y en el titulo del iframe. */
   siteName?: string;
+  /** Sitios autorizados que pueden seleccionarse desde la barra del panel. */
+  siteOptions?: { slug: string; name: string; url: string }[];
+  onSiteChange?: (slug: string) => void;
   /** Permite conectar el workspace a otro backend sin reescribir el editor. */
   editsEndpoint?: string;
   demoTitle?: string;
@@ -457,6 +460,8 @@ export function IminWorkspace({
   projectSlug,
   siteUrl = DEFAULT_SITE_URL,
   siteName = "refautomex.com",
+  siteOptions = [],
+  onSiteChange,
   editsEndpoint = DEFAULT_EDITS_ENDPOINT,
   demoTitle = "Demostración IMIN",
   demoDescription = "Tutorial de edición de refautomex.com. Demostrativo.",
@@ -980,22 +985,41 @@ export function IminWorkspace({
                     ? "Error al guardar"
                     : "Guardar cambios"}
             </button>
-            <Badge
-              variant="outline"
-              className={cn(
-                "shrink-0 whitespace-nowrap bg-slate-100 text-blue-400",
-                variant === "panel" && "px-2 py-0.5 tracking-[0.18em]",
-              )}
-            >
-              <button
-                type="button"
-                onClick={() => window.open(siteUrl, "_blank", "noopener,noreferrer")}
-                className="flex items-center gap-1 text-blue-400 hover:text-blue-500 cursor-pointer"
+            {variant === "panel" && siteOptions.length > 1 ? (
+              <label className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2 text-blue-600">
+                <Monitor className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="sr-only">Cambiar sitio</span>
+                <select
+                  value={projectSlug}
+                  onChange={(event) => onSiteChange?.(event.target.value)}
+                  className="max-w-56 cursor-pointer bg-transparent text-xs font-semibold outline-none"
+                  aria-label="Cambiar proyecto de IMIN"
+                >
+                  {siteOptions.map((site) => (
+                    <option key={site.slug} value={site.slug}>
+                      {site.name} · {new URL(site.url).hostname}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "shrink-0 whitespace-nowrap bg-slate-100 text-blue-400",
+                  variant === "panel" && "px-2 py-0.5 tracking-[0.18em]",
+                )}
               >
-                <Monitor className={cn("mr-2 h-3.5 w-3.5", variant === "panel" && "mr-1 h-3 w-3")} />
-                {siteName}
-              </button>
-            </Badge>
+                <button
+                  type="button"
+                  onClick={() => window.open(siteUrl, "_blank", "noopener,noreferrer")}
+                  className="flex cursor-pointer items-center gap-1 text-blue-400 hover:text-blue-500"
+                >
+                  <Monitor className={cn("mr-2 h-3.5 w-3.5", variant === "panel" && "mr-1 h-3 w-3")} />
+                  {siteName}
+                </button>
+              </Badge>
+            )}
             <Badge
               variant="outline"
               className={cn(

@@ -125,8 +125,8 @@ function readPersisted(): PersistedState | null {
 
 /* ============================ Componente raiz =========================== */
 
-export default function BuildWorkspace({ siteName }: { siteName: string }) {
-  const [plan, setPlan] = useState<BuildPlanId>("super");
+export default function BuildWorkspace({ siteName, initialPlan }: { siteName: string; initialPlan: BuildPlanId }) {
+  const [plan, setPlan] = useState<BuildPlanId>(initialPlan);
   const [template, setTemplate] = useState<TemplateId>("aurora");
   const [navMode, setNavMode] = useState<NavMode>("single");
   const [activePage, setActivePage] = useState<PageId>("home");
@@ -148,11 +148,11 @@ export default function BuildWorkspace({ siteName }: { siteName: string }) {
     const frame = window.requestAnimationFrame(() => {
       const saved = readPersisted();
       if (saved) {
-        setPlan(saved.plan);
+        setPlan(initialPlan);
         setTemplate(saved.template);
         setNavMode(saved.navMode);
         setDoc(
-          saved.plan !== "premium" && saved.doc.navbarVariant === "cta"
+          initialPlan !== "premium" && saved.doc.navbarVariant === "cta"
             ? { ...saved.doc, navbarVariant: "standard" }
             : saved.doc,
         );
@@ -166,7 +166,7 @@ export default function BuildWorkspace({ siteName }: { siteName: string }) {
       setHydrated(true);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, []);
+  }, [initialPlan]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -336,7 +336,7 @@ export default function BuildWorkspace({ siteName }: { siteName: string }) {
           <div className="flex items-center gap-2">
             <span className="text-[0.62rem] uppercase tracking-[0.28em] text-slate-400">Plan</span>
             <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-0.5">
-              {PLAN_ORDER.map((id) => {
+              {PLAN_ORDER.filter((id) => id === initialPlan).map((id) => {
                 const meta = BUILD_PLANS[id];
                 const active = id === plan;
                 return (

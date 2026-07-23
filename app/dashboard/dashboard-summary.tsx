@@ -1,6 +1,5 @@
-"use client";
-
 import { Check, CreditCard, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 import { SitePackageIcon, SitePackageName } from "@/app/components/packages/site-package-identity";
 import type { PanelPlan } from "@/lib/plans";
@@ -9,12 +8,6 @@ import {
   SHARED_SITE_FEATURES,
   SITE_PACKAGES,
 } from "@/lib/site-packages";
-
-const checkoutUrls: Record<(typeof SITE_PACKAGES)[number]["id"], string | undefined> = {
-  beginner: process.env.NEXT_PUBLIC_CHECKOUT_BEGINNER_URL,
-  super: process.env.NEXT_PUBLIC_CHECKOUT_SUPER_URL,
-  premium: process.env.NEXT_PUBLIC_CHECKOUT_PREMIUM_URL,
-};
 
 export default function DashboardSummary({ plan }: { plan: PanelPlan }) {
   const activePackage = getSitePackage(plan.sitePlan);
@@ -45,7 +38,9 @@ export default function DashboardSummary({ plan }: { plan: PanelPlan }) {
           ) : null}
         </div>
         <h1 className="mt-5 text-2xl font-semibold tracking-[-0.03em] text-slate-900 sm:text-3xl">
-          {activePackage ? (
+          {plan.hasUnassignedSitePackage ? (
+            "Tu paquete está listo para construir"
+          ) : activePackage ? (
             <>
               Tu sitio está en el paquete{" "}
               <SitePackageName plan={activePackage.id}>{activePackage.name}</SitePackageName>
@@ -55,16 +50,25 @@ export default function DashboardSummary({ plan }: { plan: PanelPlan }) {
           )}
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-          {activePackage
+          {plan.hasUnassignedSitePackage
+            ? "El pago fue confirmado. Abre Appddata Build para crear y vincular el sitio incluido en tu compra."
+            : activePackage
             ? activePackage.description
             : "Compara los tres paquetes y continúa al checkout cuando estés listo para construir tu sitio."}
         </p>
+        {plan.hasUnassignedSitePackage ? (
+          <Link
+            href="/dashboard/build"
+            className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#0C6CC6] px-4 text-sm font-medium text-white transition hover:bg-[#0a5aa6]"
+          >
+            Abrir Appddata Build
+          </Link>
+        ) : null}
       </div>
 
       {!activePackage ? (
         <div className="grid gap-4 lg:grid-cols-3">
           {SITE_PACKAGES.map((sitePackage) => {
-            const checkoutUrl = checkoutUrls[sitePackage.id];
             return (
               <article
                 key={sitePackage.id}
@@ -95,13 +99,16 @@ export default function DashboardSummary({ plan }: { plan: PanelPlan }) {
                     </li>
                   ))}
                 </ul>
-                <a
-                  href={checkoutUrl ?? `/products?checkout=${sitePackage.id}`}
-                  className="mt-auto inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#0C6CC6] px-4 pt-0 text-sm font-medium text-white transition hover:bg-[#0a5aa6]"
-                >
-                  <CreditCard className="h-4 w-4" aria-hidden="true" />
-                  Ir a checkout
-                </a>
+                <form action="/api/stripe/checkout" method="post" className="mt-auto">
+                  <input type="hidden" name="plan" value={sitePackage.id} />
+                  <button
+                    type="submit"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#0C6CC6] px-4 text-sm font-medium text-white transition hover:bg-[#0a5aa6]"
+                  >
+                    <CreditCard className="h-4 w-4" aria-hidden="true" />
+                    Ir a checkout
+                  </button>
+                </form>
               </article>
             );
           })}

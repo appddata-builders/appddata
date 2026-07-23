@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
@@ -95,6 +95,42 @@ export const verification = sqliteTable(
       .notNull(),
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+export const siteEntitlement = sqliteTable(
+  "site_entitlement",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    plan: text("plan").notNull(),
+    stripeSessionId: text("stripe_session_id").notNull(),
+    projectSlug: text("project_slug"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => new Date()).notNull(),
+  },
+  (table) => [
+    index("site_entitlement_user_id_idx").on(table.userId),
+    uniqueIndex("site_entitlement_stripe_session_uidx").on(table.stripeSessionId),
+  ],
+);
+
+export const userProject = sqliteTable(
+  "user_project",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    projectSlug: text("project_slug").notNull(),
+    siteUrl: text("site_url").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`).notNull(),
+  },
+  (table) => [
+    index("user_project_user_id_idx").on(table.userId),
+    uniqueIndex("user_project_user_slug_uidx").on(table.userId, table.projectSlug),
+  ],
 );
 
 export const userRelations = relations(user, ({ many }) => ({

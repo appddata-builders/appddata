@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { hydrate, project, projectText } from "@/db/schema";
+import { hydrate, project, projectText, siteEntitlement, user } from "@/db/schema";
 import { ensureDefaultProjects } from "@/lib/default-projects";
 import { requirePanelSession } from "@/lib/require-panel-session";
 import { generateReactSiteFiles } from "@/lib/react-site/generate-react-site";
@@ -10,6 +10,7 @@ import { buildContentSeed } from "@/lib/react-site/content-keys";
 import { createGitHubRepository } from "@/lib/github-repository";
 import { deployNetlifySite } from "@/lib/netlify-site";
 import { validateProjectName } from "@/lib/project-name";
+import { ensureSiteEntitlementSchema } from "@/lib/site-entitlements-server";
 
 export async function GET() {
   const session = await requirePanelSession();
@@ -34,12 +35,29 @@ export async function POST(request: Request) {
   const validation = validateProjectName(body.name);
   if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 });
   const db = getDb();
+  await ensureSiteEntitlementSchema();
+  const [entitlement] = await db
+    .select({ id: siteEntitlement.id, plan: siteEntitlement.plan })
+    .from(siteEntitlement)
+    .where(and(eq(siteEntitlement.userId, session.user.id), isNull(siteEntitlement.projectSlug)))
+    .orderBy(asc(siteEntitlement.createdAt))
+    .limit(1);
+  if (!entitlement && session.user.role !== "admin") {
+    return NextResponse.json({ error: "Necesitas contratar un paquete antes de crear un sitio." }, { status: 403 });
+  }
   const existing = await db.select({ id: project.id }).from(project).where(eq(project.slug, validation.slug)).limit(1);
   if (existing.length > 0) return NextResponse.json({ error: "Ya existe un proyecto con ese nombre.", slug: validation.slug }, { status: 409 });
   if (body.validateOnly) return NextResponse.json({ ok: true, name: validation.name, slug: validation.slug, available: true });
 
   const projectId = crypto.randomUUID();
-  await db.insert(project).values({ id: projectId, slug: validation.slug, name: validation.name, plan: "free" });
+  const purchasedPlan = entitlement?.plan ?? "premium";
+  await db.insert(project).values({ id: projectId, slug: validation.slug, name: validation.name, plan: purchasedPlan });
+  if (entitlement) {
+    await db.update(siteEntitlement)
+      .set({ projectSlug: validation.slug })
+      .where(and(eq(siteEntitlement.id, entitlement.id), isNull(siteEntitlement.projectSlug)));
+    await db.update(user).set({ projectSlug: validation.slug }).where(eq(user.id, session.user.id));
+  }
   const entries = [
     { key: "site.document", value: JSON.stringify(body.document ?? {}) },
     { key: "site.generator.status", value: "created" },

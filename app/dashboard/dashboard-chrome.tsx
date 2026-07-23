@@ -119,6 +119,7 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
   }
 
   function renderNavLink(item: NavItem) {
+    if (item.href === "/dashboard/build" && !plan.isInternal && !plan.hasUnassignedSitePackage) return null;
     const isPackageLink = item.href === "/dashboard/automatizaciones";
     const displayLabel =
       isPackageLink
@@ -192,7 +193,7 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
           <span className="block h-px w-4 bg-current shadow-[0_4px_0_currentColor,0_-4px_0_currentColor]" />
         </button>
 
-        <Link href="/dashboard" aria-label="Ir al resumen">
+        <Link href="/" aria-label="Ir al inicio de Appddata">
           <Brand size="sm" textClassName="text-[1.05rem] tracking-[0.1em] sm:text-[1.05rem]" />
         </Link>
         <span
@@ -218,7 +219,7 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
         <div className="ml-auto flex items-center gap-2">
           {!plan.hasImin ? (
             <Link
-              href="/dashboard/imin"
+              href={canUpgradeToImin ? "/dashboard/imin" : "/dashboard"}
               className={cn(
                 "hidden h-8 items-center rounded-md px-3 text-[0.8125rem] font-medium transition sm:inline-flex",
                 canUpgradeToImin
@@ -342,7 +343,7 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
                   : "Contrata un paquete con nosotros y da el salto a una nueva plataforma."}
               </p>
               <Link
-                href="/dashboard/imin"
+                href={canUpgradeToImin ? "/dashboard/imin" : "/dashboard"}
                 onClick={() => setMenuOpen(false)}
                 className={cn(
                   "mt-2 flex h-7 items-center justify-center rounded-md px-2.5 text-xs font-medium transition",
@@ -358,7 +359,7 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
 
           {!plan.hasImin && sidebarCollapsed ? (
             <Link
-              href="/dashboard/imin"
+              href={canUpgradeToImin ? "/dashboard/imin" : "/dashboard"}
               title={canUpgradeToImin ? "Obtener IMIN" : "Contratar"}
               aria-label={canUpgradeToImin ? "Obtener IMIN" : "Contratar"}
               className={cn(

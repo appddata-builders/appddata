@@ -30,12 +30,15 @@ export default function HomeDevelop() {
         </div>
 
         <div className="mb-8 flex justify-center">
-          <button
-            type="button"
-            className="rounded-full border border-[#589bf9]/22 bg-slate-50 px-6 py-3 text-sm uppercase tracking-[0.28em] text-[#0C6CC6] transition hover:border-[#589bf9]/40 hover:bg-[#589bf9]/10 cursor-pointer"
-          >
-            Comprar paquete {selectedTier.name}
-          </button>
+          <form action="/api/stripe/checkout" method="post">
+            <input type="hidden" name="plan" value={selectedTier.id} />
+            <button
+              type="submit"
+              className="cursor-pointer rounded-full border border-[#589bf9]/22 bg-[#0C6CC6] px-6 py-3 text-sm uppercase tracking-[0.28em] text-[#dae8f5] transition hover:border-[#589bf9]/40 hover:animate-pulse"
+            >
+              Comprar paquete {selectedTier.name}
+            </button>
+          </form>
         </div>
 
         <div className="grid items-start gap-4 lg:grid-cols-3">

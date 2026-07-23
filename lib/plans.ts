@@ -26,6 +26,8 @@ export type PanelPlan = {
   sitePlan: SitePlan;
   /** Si es false, /dashboard/imin muestra la pantalla de venta en vez del editor. */
   hasImin: boolean;
+  /** Compra pagada que todavía no ha sido consumida por un proyecto. */
+  hasUnassignedSitePackage: boolean;
   isInternal: boolean;
 };
 

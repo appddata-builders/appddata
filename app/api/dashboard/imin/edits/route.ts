@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { project, projectText } from "@/db/schema";
 import { getProjectPlan } from "@/lib/plans-server";
-import { canEditProject, isAdmin, requirePanelSession } from "@/lib/require-panel-session";
+import { isAdmin, requirePanelSession } from "@/lib/require-panel-session";
+import { canAccessProject } from "@/lib/project-access-server";
 
 /**
  * Cambios del editor IMIN de un proyecto.
@@ -30,7 +31,7 @@ async function guard(slug: string) {
     return NextResponse.json({ error: "no autorizado" }, { status: 401 });
   }
   if (!isAdmin(session)) {
-    if (!canEditProject(session, slug)) {
+    if (!(await canAccessProject(session, slug))) {
       return NextResponse.json({ error: "no autorizado" }, { status: 403 });
     }
     if ((await getProjectPlan(slug)) !== "imin") {
