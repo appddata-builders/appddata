@@ -357,11 +357,6 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
             </div>
           </div>
 
-          <div className="hidden items-baseline gap-2 lg:flex">
-            <span className="text-sm font-medium text-slate-700">{accent.price}</span>
-            <span className="text-xs text-slate-400">{accent.description}</span>
-          </div>
-
           <div className="ml-auto flex items-center gap-2">
             <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5">
               <button
@@ -702,13 +697,9 @@ function PackageCard({ plan }: { plan: (typeof BUILD_PLANS)[BuildPlanId] }) {
       className="rounded-xl border p-3"
       style={{ borderColor: `${plan.accent}44`, backgroundColor: plan.accentSoft }}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold" style={{ color: plan.accentText }}>
-          Paquete {plan.name}
-        </span>
-        <span className="text-[0.8rem] font-semibold text-slate-700">{plan.price}</span>
-      </div>
-      <p className="mt-1 text-[0.68rem] leading-4 text-slate-500">{plan.description}</p>
+      <span className="text-sm font-semibold" style={{ color: plan.accentText }}>
+        Paquete {plan.name}
+      </span>
       <ul className="mt-2 space-y-1 text-[0.7rem] text-slate-600">
         <FeatureRow ok label="Home, About, Productos, Contact + Footer" />
         <FeatureRow ok={plan.imin} label={plan.iminLabel} />
