@@ -21,6 +21,7 @@ const IMIN_TIERS: {
   saving?: string;
   featured?: boolean;
 }[] = [
+  { id: "trial", name: "Prueba gratis", price: "$0", suffix: "3 días", description: "Conoce todas las herramientas de IMIN sin costo." },
   { id: "monthly", name: "Mensual", price: "$149", suffix: "MXN", description: "Flexibilidad mes a mes." },
   { id: "six-months", name: "6 meses", price: "$845", suffix: "MXN", description: "Un pago por seis meses.", saving: "Ahorras $49 MXN", featured: true },
   { id: "annual", name: "Anual", price: "$1,599", suffix: "MXN", description: "Un año completo de IMIN.", saving: "Ahorras $189 MXN" },
@@ -66,11 +67,11 @@ export function IminUpgrade({ isFree }: { isFree: boolean }) {
         </ul>
 
         <div className="border-t border-slate-100 bg-slate-50 p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">Suscripción IMIN</p>
-          <h2 className="mt-1 text-xl font-semibold text-slate-900">Elige la duración de tu acceso</h2>
-          <p className="mt-1 text-sm text-slate-500">Todos los periodos incluyen las mismas herramientas de edición y publicación.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">¡Suscríbete para desbloquear IMIN!</p>
+          <h2 className="mt-1 text-xl font-semibold text-slate-900">Elige IMIN</h2>
+          <p className="mt-1 text-sm text-slate-500">Cancela cuando quieras y edita tu sitio sin precupaciones.</p>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {IMIN_TIERS.map((tier) => (
               <article key={tier.id} className={`relative flex flex-col rounded-xl border bg-white p-4 ${tier.featured ? "border-amber-400 shadow-[0_12px_35px_rgba(245,158,11,0.12)]" : "border-slate-200"}`}>
                 {tier.featured ? <span className="absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-1 text-[0.6rem] font-bold uppercase tracking-wider text-amber-800">Recomendado</span> : null}
@@ -81,9 +82,9 @@ export function IminUpgrade({ isFree }: { isFree: boolean }) {
                   <span className="text-xs text-slate-500">{tier.suffix}</span>
                 </p>
                 <p className="mt-2 text-xs leading-5 text-slate-500">{tier.description}</p>
-                {tier.saving ? <p className="mt-1 text-xs font-semibold text-emerald-600">{tier.saving}</p> : null}
+                {tier.saving ? <p className="mt-1 text-xs font-semibold text-emerald-600 py-3">{tier.saving}</p> : null}
                 <button type="button" disabled title="El checkout de Stripe se conectará en el siguiente paso." className="mt-auto inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-70">
-                  Suscribirme
+                  {tier.id === "trial" ? "Probar gratis" : "Suscribirme"}
                 </button>
               </article>
             ))}
@@ -93,7 +94,7 @@ export function IminUpgrade({ isFree }: { isFree: boolean }) {
             <Link href={isFree ? "/dashboard" : "/imin"} className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-4 text-sm text-slate-700 transition hover:bg-slate-100">
               {isFree ? "Volver a Planes" : "Ver demostración IMIN"}
             </Link>
-            <p className="text-xs text-slate-500">Los botones quedarán disponibles al conectar Stripe.</p>
+            <p className="text-xs text-slate-500">Disfruta de los beneficios de Appddata.</p>
           </div>
         </div>
       </div>
