@@ -12,6 +12,21 @@ export function isPaidSitePlan(value: unknown): value is keyof typeof STRIPE_PAC
   return typeof value === "string" && value in STRIPE_PACKAGES;
 }
 
+/**
+ * Periodos de acceso a IMIN. `amount` en centavos MXN; `days` es la vigencia que
+ * se otorga al pagar (el acceso caduca en `now + days`). El id coincide con el
+ * de los tiers mostrados en la pantalla de venta (imin-upgrade).
+ */
+export const IMIN_TIERS: Record<string, { name: string; amount: number; days: number }> = {
+  monthly: { name: "IMIN · Mensual", amount: 14_900, days: 30 },
+  "six-months": { name: "IMIN · 6 meses", amount: 84_500, days: 182 },
+  annual: { name: "IMIN · Anual", amount: 159_900, days: 365 },
+};
+
+export function isIminTier(value: unknown): value is keyof typeof IMIN_TIERS {
+  return typeof value === "string" && value in IMIN_TIERS;
+}
+
 export async function stripeRequest(path: string, init?: RequestInit) {
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) throw new Error("STRIPE_SECRET_KEY no está configurada.");

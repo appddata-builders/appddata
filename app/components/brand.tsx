@@ -15,7 +15,7 @@ type BrandProps = {
 
 const sizeStyles: Record<BrandSize, { plane: string; text: string }> = {
   sm: {
-    plane: "h-[20px] w-[42px] sm:h-[25px] sm:w-[52px]",
+    plane: "h-[22px] w-[45px] sm:h-[25px] sm:w-[52px]",
     text: "text-[1.05rem] tracking-[0.12em] sm:text-[1.35rem]",
   },
   md: {

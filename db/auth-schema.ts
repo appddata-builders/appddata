@@ -117,6 +117,50 @@ export const siteEntitlement = sqliteTable(
   ],
 );
 
+/**
+ * Acceso a IMIN a nivel de cuenta (una vez, para todos los sitios del cliente).
+ * Se compra por periodo (`tier`) y caduca en `expiresAt`: pasado ese momento el
+ * acceso se remueve solo (no se renueva). Volver a comprar extiende la vigencia.
+ */
+export const iminEntitlement = sqliteTable(
+  "imin_entitlement",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    tier: text("tier").notNull(),
+    stripeSessionId: text("stripe_session_id").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`).notNull(),
+  },
+  (table) => [
+    index("imin_entitlement_user_id_idx").on(table.userId),
+    uniqueIndex("imin_entitlement_stripe_session_uidx").on(table.stripeSessionId),
+  ],
+);
+
+export const accountSubscription = sqliteTable(
+  "account_subscription",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    stripeCustomerId: text("stripe_customer_id"),
+    stripeSubscriptionId: text("stripe_subscription_id").notNull(),
+    status: text("status").notNull(),
+    currentPeriodEnd: integer("current_period_end", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => new Date()).notNull(),
+  },
+  (table) => [
+    index("account_subscription_user_id_idx").on(table.userId),
+    uniqueIndex("account_subscription_stripe_id_uidx").on(table.stripeSubscriptionId),
+  ],
+);
+
 export const userProject = sqliteTable(
   "user_project",
   {

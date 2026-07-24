@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { getDb } from "@/db";
 import { project, projectText } from "@/db/schema";
-import { getProjectPlan } from "@/lib/plans-server";
+import { getPanelPlan } from "@/lib/plans-server";
 import { isAdmin, requirePanelSession } from "@/lib/require-panel-session";
 import { canAccessProject } from "@/lib/project-access-server";
 
@@ -34,7 +34,9 @@ async function guard(slug: string) {
     if (!(await canAccessProject(session, slug))) {
       return NextResponse.json({ error: "no autorizado" }, { status: 403 });
     }
-    if ((await getProjectPlan(slug)) !== "imin") {
+    // IMIN es de la CUENTA (pago unico para todos sus sitios), no del plan del
+    // proyecto: un sitio super de una cuenta con IMIN tambien se puede editar.
+    if (!(await getPanelPlan(session)).hasImin) {
       return NextResponse.json({ error: "paquete IMIN no contratado" }, { status: 403 });
     }
   }

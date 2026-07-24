@@ -1,6 +1,6 @@
 "use client";
 
-import { LuCheck, LuLock, LuSparkles } from "react-icons/lu";
+import { LuCheck, LuLock } from "react-icons/lu";
 import Link from "next/link";
 
 import IminMark from "@/app/components/imin/imin-mark";
@@ -32,7 +32,9 @@ const IMIN_TIERS: {
  * El bloqueo real esta en el server component que la renderiza: esto es solo
  * la parte de venta.
  */
-export function IminUpgrade({ isFree }: { isFree: boolean }) {
+export function IminUpgrade({ isFree, hasUsedTrial }: { isFree: boolean; hasUsedTrial: boolean }) {
+  const availableTiers = hasUsedTrial ? IMIN_TIERS.filter((tier) => tier.id !== "trial") : IMIN_TIERS;
+
   return (
     <div className="mx-auto w-full max-w-5xl">
       <div className="rounded-lg border border-slate-200 bg-white">
@@ -72,10 +74,10 @@ export function IminUpgrade({ isFree }: { isFree: boolean }) {
           <p className="mt-1 text-sm text-slate-500">Cancela cuando quieras y edita tu sitio sin precupaciones.</p>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {IMIN_TIERS.map((tier) => (
+            {availableTiers.map((tier) => (
               <article key={tier.id} className={`relative flex flex-col rounded-xl border bg-white p-4 ${tier.featured ? "border-amber-400 shadow-[0_12px_35px_rgba(245,158,11,0.12)]" : "border-slate-200"}`}>
                 {tier.featured ? <span className="absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-1 text-[0.6rem] font-bold uppercase tracking-wider text-amber-800">Recomendado</span> : null}
-                <LuSparkles className="h-5 w-5 text-amber-500" aria-hidden="true" />
+                <IminMark className="h-5 w-5" />
                 <h3 className="mt-3 text-sm font-semibold text-slate-900">{tier.name}</h3>
                 <p className="mt-2">
                   <span className="text-2xl font-bold tracking-tight text-slate-950">{tier.price}</span>{" "}
@@ -83,9 +85,16 @@ export function IminUpgrade({ isFree }: { isFree: boolean }) {
                 </p>
                 <p className="mt-2 text-xs leading-5 text-slate-500">{tier.description}</p>
                 {tier.saving ? <p className="mt-1 text-xs font-semibold text-emerald-600 py-3">{tier.saving}</p> : null}
-                <button type="button" disabled title="El checkout de Stripe se conectará en el siguiente paso." className="mt-auto inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-70">
-                  {tier.id === "trial" ? "Probar gratis" : "Suscribirme"}
-                </button>
+                <form
+                  action={tier.id === "trial" ? "/api/dashboard/imin/trial" : "/api/stripe/imin-checkout"}
+                  method="post"
+                  className="mt-auto"
+                >
+                  {tier.id === "trial" ? null : <input type="hidden" name="tier" value={tier.id} />}
+                  <button type="submit" className="inline-flex h-9 w-full items-center justify-center rounded-lg bg-slate-900 px-3 text-sm font-medium text-white transition hover:bg-slate-800">
+                    {tier.id === "trial" ? "Probar gratis" : "Suscribirme"}
+                  </button>
+                </form>
               </article>
             ))}
           </div>

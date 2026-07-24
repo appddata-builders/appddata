@@ -13,6 +13,15 @@ export type IminProjectOption = {
   url: string;
 };
 
+/** Hostname legible sin reventar el render si la URL guardada viene mal formada. */
+function hostnameOf(url: string, fallback: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return fallback;
+  }
+}
+
 /**
  * Editor IMIN real y configurable.
  *
@@ -32,7 +41,7 @@ export default function IminWorkspace({ projects = [], ...props }: IminWorkspace
         {...props}
         projectSlug={selected?.slug ?? props.projectSlug}
         siteUrl={selected?.url ?? props.siteUrl}
-        siteName={selected ? new URL(selected.url).hostname : props.siteName}
+        siteName={selected ? hostnameOf(selected.url, props.siteName ?? selected.name) : props.siteName}
         siteOptions={projects}
         onSiteChange={setSelectedSlug}
         variant="panel"

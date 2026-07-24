@@ -7,6 +7,8 @@ export type PanelSession = {
     id: string;
     email: string;
     name: string | null;
+    image: string | null;
+    phone: string | null;
     role: string;
     displayId: string | null;
     projectSlug: string | null;
@@ -26,6 +28,7 @@ export async function requirePanelSession(): Promise<PanelSession | null> {
     displayId?: string | null;
     projectSlug?: string | null;
     enabled?: boolean | null;
+    phone?: string | null;
   };
 
   if (user.enabled === false) return null;
@@ -35,6 +38,8 @@ export async function requirePanelSession(): Promise<PanelSession | null> {
       id: user.id,
       email: user.email,
       name: user.name ?? null,
+      image: user.image ?? null,
+      phone: user.phone ?? null,
       role: user.role ?? "cliente",
       displayId: user.displayId ?? null,
       projectSlug: user.projectSlug ?? null,

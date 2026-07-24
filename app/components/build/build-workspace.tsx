@@ -346,7 +346,7 @@ export default function BuildWorkspace({
   // Indicador de la "moneda"/ticket: cada sitio disponible es una creacion que
   // la compra habilito. Los internos (admins) no consumen tickets.
   const ticketBadge = isInternal ? (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[0.68rem] font-semibold text-violet-700">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[0.68rem] font-semibold text-blue-700">
       <LuTicket className="h-3.5 w-3.5" /> Interno · sitios ilimitados
     </span>
   ) : (
@@ -1923,14 +1923,36 @@ function NavbarView({ doc, tokens, navMode, activePage, device, content, onCommi
     fallback: tokens.navInk,
   };
 
+  const logoMode = (content[NAV_CONTENT.logoMode] ?? NAV_CONTENT_DEFAULTS[NAV_CONTENT.logoMode]) === "image" ? "image" : "text";
   const logo = (
-    <EditableImage
-      value={get(NAV_CONTENT.logo)}
-      onCommit={(v) => onCommit(NAV_CONTENT.logo, v)}
-      className="h-7 w-24 shrink-0"
-      fit="contain"
-      bgClass="bg-transparent"
-    />
+    <span className="group/logo relative inline-flex shrink-0 items-center gap-1">
+      {logoMode === "image" ? (
+        <EditableImage
+          value={get(NAV_CONTENT.logo)}
+          onCommit={(v) => onCommit(NAV_CONTENT.logo, v)}
+          className="h-7 w-24 shrink-0"
+          fit="contain"
+          bgClass="bg-transparent"
+        />
+      ) : (
+        <EditableText
+          as="span"
+          value={get(NAV_CONTENT.brand)}
+          onCommit={makeTextCommit(onCommit, NAV_CONTENT.brand, content[`${NAV_CONTENT.brand}:textStyle`])}
+          className="text-base font-bold"
+          style={{ color: navInk }}
+        />
+      )}
+      <button
+        type="button"
+        onClick={() => onCommit(NAV_CONTENT.logoMode, logoMode === "image" ? "text" : "image")}
+        title={logoMode === "image" ? "Cambiar el logo a texto" : "Cambiar el logo a imagen"}
+        aria-label="Cambiar el logo entre imagen y texto"
+        className="rounded-md border border-slate-300 bg-white/90 p-1 text-slate-500 opacity-0 shadow-sm transition hover:text-slate-800 group-hover/logo:opacity-100"
+      >
+        <LuArrowLeftRight className="h-3 w-3" />
+      </button>
+    </span>
   );
 
   const links =

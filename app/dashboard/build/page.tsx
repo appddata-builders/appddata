@@ -18,13 +18,20 @@ export default async function DashboardBuildPage() {
   const plan = await getPanelPlan(session);
   if (!plan.isInternal && !plan.hasUnassignedSitePackage) redirect("/dashboard");
 
+  // El builder abre con las especificaciones del plan CONTRATADO para el sitio
+  // nuevo (el ticket pendiente), no las del plan mayor al que apunte la cuenta.
+  // Sin ticket (admin interno) se usa el plan del sitio actual como respaldo.
+  const buildPlan = plan.pendingSitePlan ?? plan.sitePlan;
+
   return (
     // Los margenes negativos anulan el padding del chrome para ocupar todo el
     // alto util debajo de la barra superior, igual que el editor IMIN.
     <div className="-mx-4 -my-6 flex h-[calc(100dvh-3.5rem)] flex-col sm:-mx-6">
       <BuildWorkspace
-        siteName={plan.projectName ?? "mi-sitio.appddata.com"}
-        initialPlan={plan.sitePlan === "free" ? "beginner" : plan.sitePlan}
+        siteName={plan.projectName ?? "innovation.appddata.io"}
+        initialPlan={buildPlan === "free" ? "beginner" : buildPlan}
+        availableSites={plan.availableSites}
+        isInternal={plan.isInternal}
       />
     </div>
   );

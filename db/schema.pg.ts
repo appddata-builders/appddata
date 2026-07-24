@@ -110,6 +110,41 @@ export const siteEntitlement = pgTable(
   ],
 );
 
+export const iminEntitlement = pgTable(
+  "imin_entitlement",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    tier: text("tier").notNull(),
+    stripeSessionId: text("stripe_session_id").notNull(),
+    expiresAt: timestamp("expires_at", { precision: 3, mode: "date" }).notNull(),
+    createdAt: timestamp("created_at", { precision: 3, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("imin_entitlement_user_id_idx").on(table.userId),
+    uniqueIndex("imin_entitlement_stripe_session_uidx").on(table.stripeSessionId),
+  ],
+);
+
+export const accountSubscription = pgTable(
+  "account_subscription",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    stripeCustomerId: text("stripe_customer_id"),
+    stripeSubscriptionId: text("stripe_subscription_id").notNull(),
+    status: text("status").notNull(),
+    currentPeriodEnd: timestamp("current_period_end", { precision: 3, mode: "date" }),
+    createdAt: timestamp("created_at", { precision: 3, mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 3, mode: "date" }).notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("account_subscription_user_id_idx").on(table.userId),
+    uniqueIndex("account_subscription_stripe_id_uidx").on(table.stripeSubscriptionId),
+  ],
+);
+
 export const userProject = pgTable(
   "user_project",
   {

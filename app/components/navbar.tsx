@@ -54,7 +54,7 @@ function NavbarContent({ pathname, accountName, accountEmail }: NavbarContentPro
       }}
       className={`fixed left-0 top-0 z-40 w-full rounded-b-3xl border border-slate-200 bg-stone-50/80 backdrop-blur-sm overflow-hidden transition-shadow duration-300 ${scrolled ? "shadow-[0_8px_32px_rgba(15,23,42,0.10)]" : ""}`}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-3">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-3 sm:gap-4 sm:px-6 sm:py-3.5">
         <Link
           href="/?from=logo"
           className="flex min-w-0 flex-none items-center justify-center"
@@ -156,7 +156,7 @@ function NavbarContent({ pathname, accountName, accountEmail }: NavbarContentPro
                   )}
                   <span>{initials ? accountName ?? "Mi cuenta" : "Cuenta"}</span>
                 </span>
-                <span className="text-violet-700">
+                <span className="text-blue-700">
                   <CiLogin className="h-4 w-4" />
                 </span>
               </a>

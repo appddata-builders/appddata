@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, ImageIcon, LayoutGrid, Palette, Sparkles, Type } from "lucide-react";
+import { LuCircleCheckBig, LuImage, LuLayoutGrid, LuPalette, LuSparkles, LuType } from "react-icons/lu";
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -16,19 +16,19 @@ import {
 
 function getToolIcon(tool: TutorialTool) {
   if (tool === "texto") {
-    return Type;
+    return LuType;
   }
 
   if (tool === "imagenes" || tool === "multimedia") {
-    return ImageIcon;
+    return LuImage;
   }
 
   if (tool === "iconos" || tool === "animacion") {
-    return Sparkles;
+    return LuSparkles;
   }
 
   if (tool === "agregar-bloque") {
-    return LayoutGrid;
+    return LuLayoutGrid;
   }
 
   if (
@@ -38,10 +38,10 @@ function getToolIcon(tool: TutorialTool) {
     tool === "bosque" ||
     tool === "terracota"
   ) {
-    return Palette;
+    return LuPalette;
   }
 
-  return CheckCircle2;
+  return LuCircleCheckBig;
 }
 
 type IminTutorialRibbonProps = {

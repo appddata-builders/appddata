@@ -11,11 +11,14 @@ import { getDb } from "@/db";
 import { project, siteEntitlement } from "@/db/schema";
 import {
   normalizePlan,
+  planHasImin,
   sitePlanFromProjectPlan,
   type PanelPlan,
   type ProjectPlan,
 } from "@/lib/plans";
+import { hasActiveImin } from "@/lib/imin-entitlements-server";
 import { isAdmin, type PanelSession } from "@/lib/require-panel-session";
+import type { SitePlan } from "@/lib/site-packages";
 import { ensureSiteEntitlementSchema } from "@/lib/site-entitlements-server";
 
 export async function getProjectPlan(slug: string): Promise<ProjectPlan> {
@@ -36,18 +39,32 @@ export async function getPanelPlan(session: PanelSession): Promise<PanelPlan> {
       sitePlan: "premium",
       hasImin: true,
       hasUnassignedSitePackage: true,
+      availableSites: 0,
+      pendingSitePlan: null,
       isInternal: true,
     };
   }
 
   await ensureSiteEntitlementSchema();
-  const [available] = await getDb()
+  // Cada entitlement sin `projectSlug` es un ticket/moneda sin consumir: uno por
+  // sitio que la cuenta todavia puede crear. El mas reciente define el plan.
+  const unassigned = await getDb()
     .select({ plan: siteEntitlement.plan })
     .from(siteEntitlement)
     .where(and(eq(siteEntitlement.userId, session.user.id), isNull(siteEntitlement.projectSlug)))
-    .orderBy(desc(siteEntitlement.createdAt))
-    .limit(1);
-  const availablePlan = normalizePlan(available?.plan);
+    .orderBy(desc(siteEntitlement.createdAt));
+  const availableSites = unassigned.length;
+  const availablePlan = normalizePlan(unassigned[0]?.plan);
+  // El proximo sitio se construye con el plan del ticket que se va a consumir,
+  // que es el mas antiguo (projects/route.ts los consume en orden asc). Como
+  // `unassigned` viene ordenado desc, el mas antiguo es el ultimo.
+  const pendingSitePlan: SitePlan | null =
+    availableSites > 0
+      ? sitePlanFromProjectPlan(normalizePlan(unassigned[unassigned.length - 1]?.plan))
+      : null;
+  // IMIN es de la cuenta y por periodo: activo mientras la suscripcion no caduque.
+  // Se mantiene el plan del proyecto (imin/premium) como via heredada.
+  const iminActive = await hasActiveImin(session.user.id);
   const slug = session.user.projectSlug;
   if (slug == null || slug === "") {
     return {
@@ -55,8 +72,10 @@ export async function getPanelPlan(session: PanelSession): Promise<PanelPlan> {
       projectName: null,
       plan: "free",
       sitePlan: sitePlanFromProjectPlan(availablePlan),
-      hasImin: availablePlan === "premium",
-      hasUnassignedSitePackage: availablePlan !== "free",
+      hasImin: iminActive || planHasImin(availablePlan),
+      hasUnassignedSitePackage: availableSites > 0,
+      availableSites,
+      pendingSitePlan,
       isInternal: false,
     };
   }
@@ -73,8 +92,10 @@ export async function getPanelPlan(session: PanelSession): Promise<PanelPlan> {
     projectName: row?.name ?? slug,
     plan,
     sitePlan: sitePlanFromProjectPlan(plan),
-    hasImin: plan === "imin" || plan === "premium",
-    hasUnassignedSitePackage: availablePlan !== "free",
+    hasImin: iminActive || planHasImin(plan),
+    hasUnassignedSitePackage: availableSites > 0,
+    availableSites,
+    pendingSitePlan,
     isInternal: false,
   };
 }

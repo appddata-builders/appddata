@@ -28,6 +28,15 @@ export type PanelPlan = {
   hasImin: boolean;
   /** Compra pagada que todavía no ha sido consumida por un proyecto. */
   hasUnassignedSitePackage: boolean;
+  /** Cuántos sitios puede crear ahora mismo (tickets/monedas sin consumir). */
+  availableSites: number;
+  /**
+   * Plan del ticket que se consumira al crear el proximo sitio. El builder debe
+   * abrir con las especificaciones de ESTE plan (el contratado para el sitio
+   * nuevo), no las del plan mas grande al que apunte la cuenta. `null` si no hay
+   * ticket pendiente.
+   */
+  pendingSitePlan: SitePlan | null;
   isInternal: boolean;
 };
 
@@ -40,4 +49,13 @@ export function normalizePlan(raw: string | null | undefined): ProjectPlan {
 export function sitePlanFromProjectPlan(plan: ProjectPlan): SitePlan {
   // Compatibilidad con cuentas anteriores: `imin` representaba todo el plan.
   return plan === "imin" ? "premium" : plan;
+}
+
+/**
+ * Fuente unica de verdad de "este plan incluye el editor IMIN". La habilitacion
+ * del panel (getPanelPlan.hasImin) y los guards de las rutas del editor deben
+ * usar esto para no divergir: `premium` tambien contrata IMIN.
+ */
+export function planHasImin(plan: ProjectPlan): boolean {
+  return plan === "imin" || plan === "premium";
 }

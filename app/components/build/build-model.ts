@@ -1,49 +1,30 @@
 import {
-  BadgePercent,
-  CalendarClock,
-  CircleHelp,
-  GalleryHorizontalEnd,
-  Image,
-  Images,
-  LayoutList,
-  Layers,
-  MailOpen,
-  Megaphone,
-  Newspaper,
-  Quote,
-  Sparkles,
-  SquareStack,
-  Star,
-  Type,
-  Video,
-  Wrench,
-} from "lucide-react";
+  LuBadgePercent,
+  LuCalendarClock,
+  LuCircleHelp,
+  LuGalleryHorizontalEnd,
+  LuImage,
+  LuImages,
+  LuLayoutList,
+  LuLayers,
+  LuMailOpen,
+  LuMegaphone,
+  LuNewspaper,
+  LuQuote,
+  LuSparkles,
+  LuSquareStack,
+  LuStar,
+  LuType,
+  LuVideo,
+  LuWrench,
+} from "react-icons/lu";
 import type { ComponentType } from "react";
 
 import { getSitePackage } from "@/lib/site-packages";
 
-/**
- * Modelo de datos de Appddata Build.
- *
- * Armador de sitios que arranca con las paginas por defecto que llevan todos
- * los paquetes (Home, About, Productos, Contact) y deja al usuario:
- *  - elegir plantilla visual y variantes de navbar / footer,
- *  - decidir si todo vive en una sola pagina con anclas o en paginas separadas,
- *  - arrastrar widgets al body (maximo 4 por pagina, sin candados) y editar
- *    textos, logo e imagenes inline.
- * El tabulador de plan es informativo: muestra que incluye cada paquete
- * (precio, IMIN, soporte, servicios extra). No limita los widgets.
- * Todo vive en el cliente; no toca la base de datos.
- */
-
-/* ------------------------------- Planes -------------------------------- */
-
 export type BuildPlanId = "beginner" | "super" | "premium";
-
 export const PLAN_ORDER: BuildPlanId[] = ["beginner", "super", "premium"];
-
 export const MAX_WIDGETS_PER_PAGE = 4;
-/** La pagina Contact es especial: un solo widget elegido de un set curado. */
 export const MAX_WIDGETS_CONTACT = 1;
 
 export type PlanMeta = {
@@ -52,10 +33,8 @@ export type PlanMeta = {
   price: string;
   description: string;
   imin: boolean;
-  /** Texto del renglon de IMIN en la tarjeta del paquete. */
   iminLabel: string;
   soporte: string;
-  /** Servicios y extras contratables del paquete. */
   extras: string[];
   accent: string;
   accentSoft: string;
@@ -112,11 +91,9 @@ export const PAGES: { id: PageId; label: string; anchor: string }[] = [
   { id: "contact", label: "Contact", anchor: "contacto" },
 ];
 
-/** Todo en una sola pagina con anclas, o navegando entre paginas separadas. */
 export type NavMode = "single" | "multi";
 
 /* -------------------------- Widgets del body --------------------------- */
-
 export type WidgetId =
   | "hero"
   | "features"
@@ -144,23 +121,23 @@ export type WidgetDef = {
 };
 
 export const WIDGETS: WidgetDef[] = [
-  { id: "hero", name: "Encabezado / Hero", description: "Titulo grande con subtitulo y boton.", icon: Type },
-  { id: "features", name: "Beneficios", description: "Tres puntos con icono y texto.", icon: Layers },
-  { id: "image-text", name: "Imagen + texto", description: "Imagen a un lado y contenido al otro.", icon: SquareStack },
-  { id: "text-block", name: "Bloque de texto", description: "Titulo y parrafo editable.", icon: LayoutList },
-  { id: "product-tiers", name: "Tiers de productos", description: "Tres tarjetas de planes o productos.", icon: Layers },
-  { id: "services", name: "Servicios", description: "Tarjetas para tus servicios especializados.", icon: Wrench },
-  { id: "stats", name: "Metricas", description: "Cifras clave de tu negocio.", icon: Star },
-  { id: "cta-banner", name: "Franja CTA", description: "Llamado a la accion a todo lo ancho.", icon: Megaphone },
-  { id: "carousel", name: "Carrusel", description: "Slider de imagenes con navegacion.", icon: GalleryHorizontalEnd },
-  { id: "gallery", name: "Galeria", description: "Cuadricula de imagenes.", icon: Images },
-  { id: "bg-image", name: "Fondo con imagen", description: "Seccion con imagen de fondo.", icon: Image },
-  { id: "bg-video", name: "Fondo con video", description: "Seccion inmersiva con video.", icon: Video },
-  { id: "blog", name: "Blog", description: "Tarjetas de entradas o noticias.", icon: Newspaper },
-  { id: "promos", name: "Promotions", description: "Ofertas con descuento destacado.", icon: BadgePercent },
-  { id: "testimonials", name: "Testimony", description: "Citas de clientes satisfechos.", icon: Quote },
-  { id: "faq", name: "FAQs", description: "Lista de preguntas y respuestas.", icon: CircleHelp },
-  { id: "contact", name: "Contact", description: "Datos de contacto y formulario.", icon: MailOpen },
+  { id: "hero", name: "Encabezado / Hero", description: "Titulo grande con subtitulo y boton.", icon: LuType },
+  { id: "features", name: "Beneficios", description: "Tres puntos con icono y texto.", icon: LuLayers },
+  { id: "image-text", name: "Imagen + texto", description: "Imagen a un lado y contenido al otro.", icon: LuSquareStack },
+  { id: "text-block", name: "Bloque de texto", description: "Titulo y parrafo editable.", icon: LuLayoutList },
+  { id: "product-tiers", name: "Tiers de productos", description: "Tres tarjetas de planes o productos.", icon: LuLayers },
+  { id: "services", name: "Servicios", description: "Tarjetas para tus servicios especializados.", icon: LuWrench },
+  { id: "stats", name: "Metricas", description: "Cifras clave de tu negocio.", icon: LuStar },
+  { id: "cta-banner", name: "Franja CTA", description: "Llamado a la accion a todo lo ancho.", icon: LuMegaphone },
+  { id: "carousel", name: "Carrusel", description: "Slider de imagenes con navegacion.", icon: LuGalleryHorizontalEnd },
+  { id: "gallery", name: "Galeria", description: "Cuadricula de imagenes.", icon: LuImages },
+  { id: "bg-image", name: "Fondo con imagen", description: "Seccion con imagen de fondo.", icon: LuImage },
+  { id: "bg-video", name: "Fondo con video", description: "Seccion inmersiva con video.", icon: LuVideo },
+  { id: "blog", name: "Blog", description: "Tarjetas de entradas o noticias.", icon: LuNewspaper },
+  { id: "promos", name: "Promotions", description: "Ofertas con descuento destacado.", icon: LuBadgePercent },
+  { id: "testimonials", name: "Testimony", description: "Citas de clientes satisfechos.", icon: LuQuote },
+  { id: "faq", name: "FAQs", description: "Lista de preguntas y respuestas.", icon: LuCircleHelp },
+  { id: "contact", name: "Contact", description: "Datos de contacto y formulario.", icon: LuMailOpen },
 ];
 
 export const WIDGETS_BY_ID: Record<WidgetId, WidgetDef> = WIDGETS.reduce(
@@ -512,6 +489,7 @@ export const STOCK_IMAGES = [
 /** Claves fijas de contenido para navbar y footer (independientes de la variante). */
 export const NAV_CONTENT = {
   logo: "chrome:navbar:logo",
+  logoMode: "chrome:navbar:logoMode",
   cta: "chrome:navbar:cta",
   brand: "chrome:footer:brand",
   c1: "chrome:footer:c1",
@@ -524,6 +502,9 @@ export const NAV_CONTENT = {
 
 export const NAV_CONTENT_DEFAULTS: Record<string, string> = {
   [NAV_CONTENT.logo]: DEFAULT_LOGO,
+  // Logo por defecto en texto (la marca): coincide con lo que genera el sitio y
+  // evita depender de una imagen. El usuario puede cambiar a imagen con el switch.
+  [NAV_CONTENT.logoMode]: "text",
   [NAV_CONTENT.cta]: "Iniciar Sesión",
   [NAV_CONTENT.brand]: "Appddata",
   [NAV_CONTENT.c1]: "Producto",
@@ -542,7 +523,7 @@ export const NAV_CONTENT_DEFAULTS: Record<string, string> = {
 };
 
 /** Iconos disponibles para el widget de beneficios (marcadores visuales). */
-export const FEATURE_ICONS = [Sparkles, Layers, Wrench, CalendarClock] as const;
+export const FEATURE_ICONS = [LuSparkles, LuLayers, LuWrench, LuCalendarClock] as const;
 
 /** Valores por defecto de los campos editables, por widget. */
 export const WIDGET_DEFAULTS: Record<WidgetId, Record<string, string>> = {
@@ -610,7 +591,7 @@ export const WIDGET_DEFAULTS: Record<WidgetId, Record<string, string>> = {
     g6: STOCK_IMAGES[5],
   },
   "bg-image": { image: STOCK_IMAGES[0], caption: "Seccion con imagen de fondo" },
-  "bg-video": { title: "Video de fondo" },
+  "bg-video": { title: "LuVideo de fondo" },
   blog: {
     title: "Ultimas entradas",
     p1t: "Titulo del articulo uno",
@@ -663,7 +644,6 @@ export const WIDGET_DEFAULTS: Record<WidgetId, Record<string, string>> = {
 };
 
 /* ------------------------------ Botones -------------------------------- */
-
 export type ButtonFill = "solid" | "gradient" | "soft";
 
 export type ButtonStyle = {

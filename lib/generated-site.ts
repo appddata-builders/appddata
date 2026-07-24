@@ -15,7 +15,15 @@ import {
 
 type Content = Record<string, string>;
 type SavedDocument = { version?: number; plan?: BuildPlanId; template?: TemplateId; navMode?: NavMode; doc?: Doc; content?: Content };
-export type GeneratedFile = { path: string; body: string };
+export type GeneratedFile = {
+  path: string;
+  body: string;
+  /**
+   * Codificacion del `body`. Por defecto texto UTF-8; `base64` para archivos
+   * binarios (imagenes extraidas de data URLs) que se suben tal cual a GitHub.
+   */
+  encoding?: "utf8" | "base64";
+};
 
 const pageNames: Record<PageId, string> = { home: "Home", about: "About", productos: "Productos", contact: "Contact" };
 const anchors: Record<PageId, string> = { home: "inicio", about: "nosotros", productos: "productos", contact: "contacto" };

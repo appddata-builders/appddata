@@ -45,7 +45,11 @@ export async function createGitHubRepository(projectName: string, slug: string, 
     clone_url: string;
     private: boolean;
   };
-  const sourceFiles = siteFiles.map((file) => ({ path: file.path.replace(/^\//, ""), body: file.body }));
+  const sourceFiles = siteFiles.map((file) => ({
+    path: file.path.replace(/^\//, ""),
+    // Los binarios (imagenes) ya vienen en base64; el resto es texto UTF-8.
+    content: file.encoding === "base64" ? file.body : Buffer.from(file.body, "utf8").toString("base64"),
+  }));
   for (const file of sourceFiles) {
     const contentsUrl = `https://api.github.com/repos/${encodeURIComponent(repository.owner.login)}/${encodeURIComponent(repository.name)}/contents/${file.path.split("/").map(encodeURIComponent).join("/")}`;
     const current = await fetch(contentsUrl, { headers });
@@ -62,7 +66,7 @@ export async function createGitHubRepository(projectName: string, slug: string, 
       headers,
       body: JSON.stringify({
         message: `Add ${file.path}`,
-        content: Buffer.from(file.body, "utf8").toString("base64"),
+        content: file.content,
         ...(sha ? { sha } : {}),
       }),
     });

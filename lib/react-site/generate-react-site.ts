@@ -35,6 +35,30 @@ type SavedDocument = {
   content?: Content;
 };
 
+const DATA_IMAGE = /^data:image\/(png|jpe?g|webp|gif);base64,([A-Za-z0-9+/=]+)$/i;
+
+/**
+ * Extrae las imagenes subidas (data URLs) a archivos binarios en `public/uploads`
+ * y reescribe el contenido para referenciarlas por ruta.
+ *
+ * Sin esto, una imagen grande se hornea como base64 dentro del .tsx y la Contents
+ * API de GitHub rechaza el archivo (400: request malformado / demasiado grande).
+ */
+function extractImageAssets(content: Content): { content: Content; assets: GeneratedFile[] } {
+  const resolved: Content = { ...content };
+  const assets: GeneratedFile[] = [];
+  let index = 0;
+  for (const [key, value] of Object.entries(content)) {
+    const match = DATA_IMAGE.exec((value ?? "").trim());
+    if (!match) continue;
+    const ext = match[1].toLowerCase() === "jpeg" ? "jpg" : match[1].toLowerCase();
+    const name = `${key.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase()}-${index++}.${ext}`;
+    assets.push({ path: `public/uploads/${name}`, body: match[2], encoding: "base64" });
+    resolved[key] = `/uploads/${name}`;
+  }
+  return { content: resolved, assets };
+}
+
 const anchorOf = (page: PageId): string => PAGES.find((p) => p.id === page)?.anchor ?? page;
 const pageFunctionName = (page: PageId): string =>
   page === "home" ? "HomePage" : `${page.charAt(0).toUpperCase()}${page.slice(1)}Page`;
@@ -151,12 +175,16 @@ export function generateReactSiteFiles(projectName: string, slug: string, raw: u
   const navMode: NavMode = saved.navMode === "multi" ? "multi" : "single";
   const doc = saved.doc;
   if (!doc?.pages) throw new Error("El preview no contiene un documento de sitio valido.");
-  const content = saved.content && typeof saved.content === "object" ? saved.content : {};
+  const rawContent = saved.content && typeof saved.content === "object" ? saved.content : {};
+  // Las imagenes subidas (data URLs) salen a public/uploads como binarios; el
+  // resto del contenido queda igual pero apuntando a esas rutas.
+  const { content, assets } = extractImageAssets(rawContent);
   const tokens = TEMPLATES[template];
   const accent = BUILD_PLANS[plan];
 
   const files: GeneratedFile[] = [
     ...scaffoldFiles(projectName, slug, tokens, accent),
+    ...assets,
     navbarFile(projectName, doc, content, navMode),
     footerFile(doc, content, navMode, tokens),
     PRIMITIVES_FILE,

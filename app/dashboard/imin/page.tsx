@@ -5,6 +5,7 @@ import IminWorkspace from "@/app/components/imin/imin-workspace";
 import { getDb } from "@/db";
 import { project, projectText, userProject } from "@/db/schema";
 import { getPanelPlan } from "@/lib/plans-server";
+import { hasUsedIminTrial, iminAccessExpiry } from "@/lib/imin-entitlements-server";
 import { ensureProjectAccessSchema } from "@/lib/project-access-server";
 import { requirePanelSession } from "@/lib/require-panel-session";
 
@@ -38,18 +39,34 @@ export default async function DashboardIminPage() {
 
   const plan = await getPanelPlan(session);
   if (!plan.hasImin) {
-    return <IminUpgrade isFree={plan.sitePlan === "free"} />;
+    return <IminUpgrade isFree={plan.sitePlan === "free"} hasUsedTrial={await hasUsedIminTrial(session.user.id)} />;
   }
+  const iminExpiresAt = await iminAccessExpiry(session.user.id);
 
   await ensureProjectAccessSchema();
   const accessRows = await getDb()
     .select({ slug: userProject.projectSlug, url: userProject.siteUrl })
     .from(userProject)
     .where(eq(userProject.userId, session.user.id));
-  const projects = (await Promise.all(accessRows.map(async (access) => {
+
+  // Sitios vinculados a la cuenta (los paquetes adquiridos). Se indexan por slug
+  // para poder garantizar sin duplicar que el proyecto propio siempre este.
+  const bySlug = new Map<string, { slug: string; name: string; url: string }>();
+  await Promise.all(accessRows.map(async (access) => {
     const [row] = await getDb().select({ name: project.name }).from(project).where(eq(project.slug, access.slug)).limit(1);
-    return { slug: access.slug, name: row?.name ?? access.slug, url: access.url };
-  }))).sort((a, b) => {
+    bySlug.set(access.slug, { slug: access.slug, name: row?.name ?? access.slug, url: access.url });
+  }));
+
+  // El proyecto asignado a la cuenta es el que le corresponde por defecto; si aun
+  // no esta entre los sitios vinculados se agrega para que siempre sea visible y
+  // seleccionable en el switcher.
+  if (plan.projectSlug && !bySlug.has(plan.projectSlug)) {
+    const ownUrl = (await resolveSiteUrl(plan.projectSlug)) ?? "https://refautomex.com";
+    bySlug.set(plan.projectSlug, { slug: plan.projectSlug, name: plan.projectName ?? plan.projectSlug, url: ownUrl });
+  }
+
+  const projects = [...bySlug.values()].sort((a, b) => {
+    // El proyecto propio (premium por defecto) va primero; el resto por nombre.
     if (a.slug === plan.projectSlug) return -1;
     if (b.slug === plan.projectSlug) return 1;
     return a.name.localeCompare(b.name);
@@ -65,7 +82,14 @@ export default async function DashboardIminPage() {
     // Los margenes negativos anulan el padding del chrome para que el editor
     // ocupe todo el alto util debajo de la barra superior.
     <div className="-mx-4 -my-6 flex h-[calc(100dvh-3.5rem)] flex-col sm:-mx-6">
-      <IminWorkspace projectSlug={slug} siteUrl={siteUrl} siteName={siteName} projects={projects} />
+      <IminWorkspace
+        projectSlug={slug}
+        siteUrl={siteUrl}
+        siteName={siteName}
+        projects={projects}
+        accessExpiresAt={iminExpiresAt?.toISOString() ?? null}
+        accessIncludedInPlan={iminExpiresAt == null}
+      />
     </div>
   );
 }

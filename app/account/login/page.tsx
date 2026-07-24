@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple, FaFacebook } from "react-icons/fa";
-import { Eye, EyeOff } from "lucide-react";
+import { LuEye, LuEyeOff } from "react-icons/lu";
 
 import { LoginLoadingOverlay } from "@/app/components/account/login-loading-overlay";
 import { Button } from "@/app/components/ui/button";
@@ -183,7 +183,7 @@ export default function AccountLoginPage() {
                       aria-label={passwordVisible ? "Ocultar contrasena" : "Mostrar contrasena"}
                       disabled={overlayActive}
                     >
-                      {passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {passwordVisible ? <LuEyeOff className="h-4 w-4" /> : <LuEye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>

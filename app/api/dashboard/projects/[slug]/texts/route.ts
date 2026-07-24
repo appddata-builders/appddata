@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { project, projectText } from "@/db/schema";
 import { ensureDefaultProjects } from "@/lib/default-projects";
-import { getProjectPlan } from "@/lib/plans-server";
+import { getPanelPlan } from "@/lib/plans-server";
 import {
   canEditProject,
   isAdmin,
@@ -16,14 +16,10 @@ type RouteParams = {
   params: Promise<{ slug: string }>;
 };
 
-/**
- * El candado del menu es cosmetico; el que manda es este. Un cliente solo
- * llega a los textos de su propio proyecto y solo si contrato el paquete.
- */
 async function denyReason(session: PanelSession, slug: string): Promise<string | null> {
   if (isAdmin(session)) return null;
   if (!canEditProject(session, slug)) return "no autorizado";
-  if ((await getProjectPlan(slug)) !== "imin") return "paquete IMIN no contratado";
+  if (!(await getPanelPlan(session)).hasImin) return "paquete IMIN no contratado";
   return null;
 }
 

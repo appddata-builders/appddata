@@ -1,7 +1,10 @@
-import { Check, CreditCard, Sparkles } from "lucide-react";
+"use client";
+
+import { LuCheck, LuCreditCard, LuTicket } from "react-icons/lu";
 import Link from "next/link";
 
 import { SitePackageIcon, SitePackageName } from "@/app/components/packages/site-package-identity";
+import IminMark from "@/app/components/imin/imin-mark";
 import type { PanelPlan } from "@/lib/plans";
 import {
   getSitePackage,
@@ -32,8 +35,14 @@ export default function DashboardSummary({ plan }: { plan: PanelPlan }) {
           )}
           {plan.hasImin ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+              <IminMark className="h-4.5 w-4.5" />
               IMIN
+            </span>
+          ) : null}
+          {plan.availableSites > 0 ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+              <LuTicket className="h-3.5 w-3.5" aria-hidden="true" />
+              {plan.availableSites} sitio{plan.availableSites === 1 ? "" : "s"} por crear
             </span>
           ) : null}
         </div>
@@ -94,7 +103,7 @@ export default function DashboardSummary({ plan }: { plan: PanelPlan }) {
                 <ul className="mt-5 grid gap-2 border-t border-slate-100 py-5">
                   {[...SHARED_SITE_FEATURES, ...sitePackage.extras].map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-xs leading-5 text-slate-600">
-                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
+                      <LuCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
                       {feature}
                     </li>
                   ))}
@@ -105,7 +114,7 @@ export default function DashboardSummary({ plan }: { plan: PanelPlan }) {
                     type="submit"
                     className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#0C6CC6] px-4 text-sm font-medium text-white transition hover:bg-[#0a5aa6]"
                   >
-                    <CreditCard className="h-4 w-4" aria-hidden="true" />
+                    <LuCreditCard className="h-4 w-4" aria-hidden="true" />
                     Ir a checkout
                   </button>
                 </form>

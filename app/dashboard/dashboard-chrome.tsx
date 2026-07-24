@@ -1,27 +1,25 @@
 "use client";
 
 import {
-  ChartColumn,
-  CreditCard,
-  Globe,
-  KeyRound,
-  LayoutDashboard,
-  LayoutTemplate,
-  Lock,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Plug,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
-  Users,
-  Workflow,
-} from "lucide-react";
+  LuChartColumn,
+  LuCreditCard,
+  LuGlobe,
+  LuKeyRound,
+  LuLayoutDashboard,
+  LuLayoutTemplate,
+  LuLock,
+  LuPanelLeftClose,
+  LuPanelLeftOpen,
+  LuPlug,
+  LuShieldCheck,
+  LuSlidersHorizontal,
+} from "react-icons/lu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import Brand from "@/app/components/brand";
+import IminMark from "@/app/components/imin/imin-mark";
 import {
   SitePackageIcon,
   SitePackageName,
@@ -50,21 +48,19 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Planes", icon: LayoutDashboard },
-  { href: "/dashboard/build", label: "Appddata Build", icon: LayoutTemplate },
-  { href: "/dashboard/imin", label: "IMIN", icon: Sparkles, requiresImin: true },
-  { href: "/dashboard/analiticas", label: "Analiticas", icon: ChartColumn, disabled: true },
-  { href: "/dashboard/dominios", label: "Dominios", icon: Globe, disabled: true },
-  { href: "/dashboard/integraciones", label: "Integraciones", icon: Plug, disabled: true },
-  { href: "/dashboard/seguridad", label: "Seguridad", icon: ShieldCheck, disabled: true },
-  { href: "/dashboard/automatizaciones", label: "Automatizaciones", icon: Workflow },
-  { href: "/dashboard/usuarios", label: "Usuarios", icon: Users },
+  { href: "/dashboard", label: "Plan activo", icon: LuLayoutDashboard },
+  { href: "/dashboard/build", label: "Appddata Build", icon: LuLayoutTemplate },
+  { href: "/dashboard/imin", label: "IMIN", icon: IminMark, requiresImin: true },
+  { href: "/dashboard/analiticas", label: "Analiticas", icon: LuChartColumn, disabled: true },
+  { href: "/dashboard/dominios", label: "Dominios", icon: LuGlobe, disabled: true },
+  { href: "/dashboard/integraciones", label: "Integraciones", icon: LuPlug, disabled: true },
+  { href: "/dashboard/seguridad", label: "Seguridad", icon: LuShieldCheck, disabled: true },
 ];
 
 const configItems: NavItem[] = [
-  { href: "/dashboard/configuracion/pagos", label: "Pagos", icon: CreditCard },
-  { href: "/dashboard/configuracion/autenticacion", label: "Autenticacion", icon: KeyRound },
-  { href: "/dashboard/configuracion/app", label: "Aplicacion", icon: SlidersHorizontal },
+  { href: "/dashboard/configuracion/pagos", label: "Pagos", icon: LuCreditCard },
+  { href: "/dashboard/configuracion/autenticacion", label: "Autenticacion", icon: LuKeyRound },
+  { href: "/dashboard/configuracion/settings", label: "Cuenta", icon: LuSlidersHorizontal },
 ];
 
 const SIDEBAR_STORAGE_KEY = "appddata:dashboard-sidebar-collapsed";
@@ -120,11 +116,8 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
 
   function renderNavLink(item: NavItem) {
     if (item.href === "/dashboard/build" && !plan.isInternal && !plan.hasUnassignedSitePackage) return null;
-    const isPackageLink = item.href === "/dashboard/automatizaciones";
-    const displayLabel =
-      isPackageLink
-        ? PLAN_LABELS[plan.sitePlan]
-        : item.label;
+    const isPackageLink = item.href === "/dashboard";
+    const displayLabel = isPackageLink ? PLAN_LABELS[plan.sitePlan] : item.label;
     const active =
       item.href === "/dashboard"
         ? pathname === "/dashboard"
@@ -160,7 +153,7 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
         {isPackageLink ? (
           <SitePackageIcon plan={plan.sitePlan} className="h-4 w-4 shrink-0" />
         ) : (
-          <Icon className="h-4 w-4 shrink-0" />
+        <Icon className={cn("h-4 w-4 shrink-0", item.href === "/dashboard/imin" && "h-4.5 w-4.5")} />
         )}
         <span className={cn("truncate", sidebarCollapsed && "lg:hidden")}>
           {isPackageLink ? (
@@ -170,7 +163,7 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
           )}
         </span>
         {locked ? (
-          <Lock
+          <LuLock
             className={cn(
               "ml-auto h-3.5 w-3.5 shrink-0 text-slate-400",
               sidebarCollapsed && "lg:absolute lg:right-0.5 lg:top-0.5 lg:h-2.5 lg:w-2.5",
@@ -211,7 +204,7 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
         </span>
         {plan.hasImin ? (
           <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[0.6875rem] font-semibold text-amber-700 sm:inline-flex">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            <IminMark className="h-4.5 w-4.5" />
             IMIN
           </span>
         ) : null}
@@ -298,9 +291,9 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
             )}
           >
             {sidebarCollapsed ? (
-              <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
+              <LuPanelLeftOpen className="h-4 w-4" aria-hidden="true" />
             ) : (
-              <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
+              <LuPanelLeftClose className="h-4 w-4" aria-hidden="true" />
             )}
             <span className={cn("text-xs", sidebarCollapsed && "hidden")}>Colapsar</span>
           </button>
@@ -327,7 +320,7 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
                 )}
               >
                 {canUpgradeToImin ? (
-                  <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                  <IminMark className="h-4.5 w-4.5" />
                 ) : (
                   <SitePackageIcon plan="free" className="h-3.5 w-3.5" />
                 )}
@@ -370,7 +363,7 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
               )}
             >
               {canUpgradeToImin ? (
-                <Sparkles className="h-4 w-4" aria-hidden="true" />
+                <IminMark className="h-4.5 w-4.5" />
               ) : (
                 <SitePackageIcon plan="free" className="h-4 w-4" />
               )}

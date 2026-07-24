@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, ImagePlay, LayoutGrid, Monitor, MousePointer2, Palette, Plus, Trash2, Type } from "lucide-react";
+import { LuCalendarClock, LuChevronDown, LuChevronUp, LuExternalLink, LuImagePlay, LuLayoutGrid, LuLoaderCircle, LuMonitor, LuMousePointer2, LuPalette, LuPlus, LuRotateCcw, LuSmartphone, LuTrash2, LuType } from "react-icons/lu";
 import {
   useCallback,
   useEffect,
@@ -9,7 +9,6 @@ import {
   type ChangeEvent,
 } from "react";
 import type { IconType } from "react-icons";
-import { FaCircle } from "react-icons/fa";
 import {
   FaArrowLeft,
   FaArrowRight,
@@ -109,7 +108,7 @@ import {
 import { TbEngine, TbManualGearbox } from "react-icons/tb";
 
 import { Badge } from "@/app/components/ui/badge";
-import { WIDGETS, type WidgetId } from "@/app/components/build/build-model";
+import { CONTACT_WIDGET_IDS, WIDGETS, type WidgetId } from "@/app/components/build/build-model";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_SITE_URL = "https://refautomex.com";
@@ -184,12 +183,12 @@ type StyleEditor =
 type TextTab = "description" | "color";
 type TextEditor = { selector: string; value: string; key?: string } | null;
 
-const modeOptions: { id: EditorMode; label: string; icon: typeof Type }[] = [
-  { id: "navigate", label: "Navegar", icon: MousePointer2 },
-  { id: "text", label: "Editar textos", icon: Type },
-  { id: "media", label: "Editar medios", icon: ImagePlay },
-  { id: "style", label: "Colores e iconos", icon: Palette },
-  { id: "widgets", label: "Widgets", icon: LayoutGrid },
+const modeOptions: { id: EditorMode; label: string; icon: typeof LuType }[] = [
+  { id: "navigate", label: "Navegar", icon: LuMousePointer2 },
+  { id: "text", label: "Editar textos", icon: LuType },
+  { id: "media", label: "Editar medios", icon: LuImagePlay },
+  { id: "style", label: "Colores e iconos", icon: LuPalette },
+  { id: "widgets", label: "Widgets", icon: LuLayoutGrid },
 ];
 
 type IminWidget = { id: string; type: WidgetId };
@@ -446,6 +445,9 @@ export type IminWorkspaceProps = {
   editsEndpoint?: string;
   demoTitle?: string;
   demoDescription?: string;
+  /** Fin del periodo contratado. Null cuando IMIN viene incluido en el plan. */
+  accessExpiresAt?: string | null;
+  accessIncludedInPlan?: boolean;
 };
 
 /** Una edicion aplicada al sitio, tal cual se le manda al bridge. */
@@ -453,6 +455,15 @@ type StoredEdit = Record<string, unknown> & { type: string; selector: string };
 
 function editKey(edit: StoredEdit): string {
   return `${edit.type}|${edit.selector}`;
+}
+
+/** Hostname para el selector; nunca revienta el render si la URL viene mal. */
+function safeHostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
 }
 
 export function IminWorkspace({
@@ -465,6 +476,8 @@ export function IminWorkspace({
   editsEndpoint = DEFAULT_EDITS_ENDPOINT,
   demoTitle = "Demostración IMIN",
   demoDescription = "Tutorial de edición de refautomex.com. Demostrativo.",
+  accessExpiresAt = null,
+  accessIncludedInPlan = false,
 }: IminWorkspaceProps = {}) {
   const targetOrigin = new URL(siteUrl).origin;
   const canSave = variant === "panel" && typeof projectSlug === "string" && projectSlug !== "";
@@ -473,6 +486,10 @@ export function IminWorkspace({
   const pendingMediaRef = useRef<{ selector: string; kind: MediaKind; key?: string } | null>(null);
   const [mode, setMode] = useState<EditorMode>("navigate");
   const [bridgeReady, setBridgeReady] = useState(false);
+  // Estado de carga del sitio incrustado: si no responde en unos segundos (p.ej.
+  // el dominio esta caido) se muestra un aviso en vez de un iframe en blanco.
+  const [previewStatus, setPreviewStatus] = useState<"loading" | "ready" | "timeout">("loading");
+  const [reloadNonce, setReloadNonce] = useState(0);
   const [hasChanges, setHasChanges] = useState(false);
   // Modo destino a la espera de confirmar guardar/descartar (null = sin dialogo).
   const [pendingMode, setPendingMode] = useState<EditorMode | null>(null);
@@ -498,6 +515,11 @@ export function IminWorkspace({
   const [libLimit, setLibLimit] = useState(0);
   const [libLoading, setLibLoading] = useState(false);
   const [widgets, setWidgets] = useState<IminWidget[]>([]);
+  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const availableWidgets = WIDGETS.filter((widget) => !CONTACT_WIDGET_IDS.includes(widget.id));
+  const renewalDays = accessExpiresAt
+    ? Math.max(0, Math.ceil((new Date(accessExpiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+    : null;
 
   // Acumulador de cambios de la sesion. Es un ref y no estado porque solo se
   // lee al guardar y al reaplicar: no debe redibujar el editor.
@@ -581,6 +603,24 @@ export function IminWorkspace({
     }
   }, [bridgeReady, targetOrigin]);
 
+  // Vigila la carga del sitio incrustado. Si el iframe no dispara `onLoad` en el
+  // plazo (dominio caido, sin respuesta), pasa a "timeout" para mostrar el aviso.
+  useEffect(() => {
+    setPreviewStatus("loading");
+    const timer = window.setTimeout(() => {
+      setPreviewStatus((current) => (current === "ready" ? current : "timeout"));
+    }, 15000);
+    return () => window.clearTimeout(timer);
+  }, [siteUrl, reloadNonce]);
+
+  // Reintenta la vista previa forzando un remount del iframe (el `key` incluye
+  // reloadNonce) y reinicia el contador de espera.
+  const retryPreview = () => {
+    setPreviewStatus("loading");
+    setBridgeReady(false);
+    setReloadNonce((n) => n + 1);
+  };
+
   const applyWidgets = (next: IminWidget[]) => {
     const valid = next.slice(0, 4);
     setWidgets(valid);
@@ -595,7 +635,7 @@ export function IminWorkspace({
     try {
       const res = await fetch(editsEndpoint, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-LuType": "application/json" },
         body: JSON.stringify({ slug: projectSlug, edits }),
       });
       if (!res.ok) throw new Error("no se pudo guardar");
@@ -926,7 +966,7 @@ export function IminWorkspace({
               variant === "panel" && "p-0.5",
             )}
           >
-            {modeOptions.map((option) => {
+            {modeOptions.filter((option) => variant === "panel" || option.id !== "widgets").map((option) => {
               const Icon = option.icon;
               const active = mode === option.id;
 
@@ -964,6 +1004,39 @@ export function IminWorkspace({
                 {workspaceSectionDescription}
               </p>
             ) : null}
+            {variant === "panel" ? (
+              <span
+                className="hidden h-7 shrink-0 items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 text-[0.68rem] font-medium text-amber-700 md:inline-flex"
+                title={accessExpiresAt ? `Vigencia hasta ${new Intl.DateTimeFormat("es-MX", { dateStyle: "long" }).format(new Date(accessExpiresAt))}` : undefined}
+              >
+                <LuCalendarClock className="h-3.5 w-3.5" aria-hidden="true" />
+                {renewalDays != null
+                  ? `Renovación en ${renewalDays} día${renewalDays === 1 ? "" : "s"}`
+                  : accessIncludedInPlan
+                    ? "Incluido en tu plan"
+                    : "Vigencia activa"}
+              </span>
+            ) : null}
+            <div className="inline-flex h-7 shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+              <button
+                type="button"
+                onClick={() => setDevice("desktop")}
+                aria-label="Vista normal"
+                title="Vista normal"
+                className={cn("grid w-7 place-items-center rounded-md transition", device === "desktop" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-700")}
+              >
+                <LuMonitor className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setDevice("mobile")}
+                aria-label="Vista móvil"
+                title="Vista móvil"
+                className={cn("grid w-7 place-items-center rounded-md transition", device === "mobile" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-700")}
+              >
+                <LuSmartphone className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <button
               type="button"
               disabled={!canSave || saveState === "saving"}
@@ -987,7 +1060,7 @@ export function IminWorkspace({
             </button>
             {variant === "panel" && siteOptions.length > 0 ? (
               <label className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2 text-blue-600">
-                <Monitor className="h-3.5 w-3.5" aria-hidden="true" />
+                <LuMonitor className="h-3.5 w-3.5" aria-hidden="true" />
                 <span className="sr-only">Cambiar sitio</span>
                 <select
                   value={projectSlug}
@@ -997,7 +1070,7 @@ export function IminWorkspace({
                 >
                   {siteOptions.map((site) => (
                     <option key={site.slug} value={site.slug}>
-                      {site.name} · {new URL(site.url).hostname}
+                      {safeHostname(site.url)}
                     </option>
                   ))}
                 </select>
@@ -1015,21 +1088,11 @@ export function IminWorkspace({
                   onClick={() => window.open(siteUrl, "_blank", "noopener,noreferrer")}
                   className="flex cursor-pointer items-center gap-1 text-blue-400 hover:text-blue-500"
                 >
-                  <Monitor className={cn("mr-2 h-3.5 w-3.5", variant === "panel" && "mr-1 h-3 w-3")} />
+                  <LuMonitor className={cn("mr-2 h-3.5 w-3.5", variant === "panel" && "mr-1 h-3 w-3")} />
                   {siteName}
                 </button>
               </Badge>
             )}
-            <Badge
-              variant="outline"
-              className={cn(
-                "shrink-0 whitespace-nowrap bg-amber-50 font-bold tracking-[0.18em] text-yellow-600",
-                variant === "panel" && "px-2 py-0.5 tracking-[0.14em]",
-              )}
-            >
-              <FaCircle className="mr-2 h-2 w-2 animate-pulse text-yellow-600" />
-              IMIN
-            </Badge>
           </div>
         </div>
 
@@ -1039,33 +1102,82 @@ export function IminWorkspace({
           </p>
         ) : null}
         {mode === "widgets" ? (
-          <div className="mb-2 grid max-h-56 shrink-0 gap-3 overflow-hidden rounded-xl border border-slate-200 bg-white p-3 lg:grid-cols-[1fr_1fr]">
-            <div className="min-h-0 overflow-y-auto">
-              <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-slate-500">Agregar widget</p>
-              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-4">
-                {WIDGETS.map((widget) => {
+          <div className="mb-2 grid max-h-72 shrink-0 gap-3 overflow-hidden rounded-xl border border-slate-200 bg-white p-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(17rem,0.65fr)]">
+            <div className="min-h-0 overflow-y-auto pr-1">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-slate-500">Agregar una sección</p>
+                  <p className="mt-0.5 text-[0.68rem] text-slate-400">Elige un bloque; aparecerá al final del sitio.</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-blue-50 px-2 py-1 text-[0.62rem] font-semibold text-blue-600">{widgets.length}/4 usadas</span>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {availableWidgets.map((widget) => {
                   const Icon = widget.icon;
-                  return <button key={widget.id} type="button" disabled={widgets.length >= 4} onClick={() => applyWidgets([...widgets, { id: `${widget.id}-${Date.now().toString(36)}`, type: widget.id }].slice(0, 4))} className="flex min-w-0 items-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1.5 text-left text-[0.65rem] text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-35"><Icon className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{widget.name}</span><Plus className="ml-auto h-3 w-3 shrink-0" /></button>;
+                  return (
+                    <button
+                      key={widget.id}
+                      type="button"
+                      disabled={widgets.length >= 4}
+                      onClick={() => applyWidgets([...widgets, { id: `${widget.id}-${Date.now().toString(36)}`, type: widget.id }])}
+                      className="group flex min-w-0 items-start gap-2.5 rounded-xl border border-slate-200 p-2.5 text-left transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50/60 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:translate-y-0"
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600 transition group-hover:bg-white group-hover:text-blue-600">
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-semibold text-slate-700">{widget.name}</span>
+                        <span className="mt-0.5 block line-clamp-2 text-[0.65rem] leading-4 text-slate-400">{widget.description}</span>
+                      </span>
+                      <LuPlus className="mt-1 h-3.5 w-3.5 shrink-0 text-blue-500" />
+                    </button>
+                  );
                 })}
               </div>
             </div>
-            <div className="min-h-0 overflow-y-auto border-t border-slate-100 pt-2 lg:border-l lg:border-t-0 lg:pl-3 lg:pt-0">
-              <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-slate-500">Secciones agregadas · {widgets.length}/4</p>
-              {widgets.length === 0 ? <p className="rounded-lg border border-dashed border-slate-200 p-3 text-center text-xs text-slate-400">Todavia no hay widgets administrados.</p> : <div className="space-y-1">{widgets.map((widget, index) => {
-                const definition = WIDGETS.find((item) => item.id === widget.type);
-                return <div key={widget.id} className="flex items-center gap-2 rounded-lg bg-slate-50 px-2 py-1.5 text-xs text-slate-600"><span className="min-w-0 flex-1 truncate">{definition?.name ?? widget.type}</span><button type="button" disabled={index === 0} onClick={() => { const next = [...widgets]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; applyWidgets(next); }} className="disabled:opacity-25" aria-label="Subir"><ChevronUp className="h-3.5 w-3.5" /></button><button type="button" disabled={index === widgets.length - 1} onClick={() => { const next = [...widgets]; [next[index], next[index + 1]] = [next[index + 1], next[index]]; applyWidgets(next); }} className="disabled:opacity-25" aria-label="Bajar"><ChevronDown className="h-3.5 w-3.5" /></button><button type="button" onClick={() => applyWidgets(widgets.filter((item) => item.id !== widget.id))} className="text-rose-500" aria-label="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button></div>;
-              })}</div>}
+            <div className="min-h-0 overflow-y-auto border-t border-slate-100 pt-3 lg:border-l lg:border-t-0 lg:pl-3 lg:pt-0">
+              <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-slate-500">Orden de las secciones</p>
+              {widgets.length === 0 ? (
+                <div className="grid min-h-28 place-items-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-center">
+                  <div>
+                    <LuLayoutGrid className="mx-auto h-5 w-5 text-slate-300" />
+                    <p className="mt-2 text-xs font-medium text-slate-500">Tu sitio todavía no tiene secciones IMIN.</p>
+                    <p className="mt-1 text-[0.65rem] text-slate-400">Selecciona una tarjeta para agregarla.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {widgets.map((widget, index) => {
+                    const definition = WIDGETS.find((item) => item.id === widget.type);
+                    const Icon = definition?.icon ?? LuLayoutGrid;
+                    return (
+                      <div key={widget.id} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-2.5 py-2 text-xs text-slate-600">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white text-blue-600 ring-1 ring-slate-200"><Icon className="h-3.5 w-3.5" /></span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium text-slate-700">{definition?.name ?? widget.type}</span>
+                          <span className="text-[0.62rem] text-slate-400">Posición {index + 1}</span>
+                        </span>
+                        <button type="button" disabled={index === 0} onClick={() => { const next = [...widgets]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; applyWidgets(next); }} className="rounded-md p-1 text-slate-400 transition hover:bg-white hover:text-slate-700 disabled:opacity-20" aria-label={`Subir ${definition?.name ?? widget.type}`}><LuChevronUp className="h-3.5 w-3.5" /></button>
+                        <button type="button" disabled={index === widgets.length - 1} onClick={() => { const next = [...widgets]; [next[index], next[index + 1]] = [next[index + 1], next[index]]; applyWidgets(next); }} className="rounded-md p-1 text-slate-400 transition hover:bg-white hover:text-slate-700 disabled:opacity-20" aria-label={`Bajar ${definition?.name ?? widget.type}`}><LuChevronDown className="h-3.5 w-3.5" /></button>
+                        <button type="button" onClick={() => applyWidgets(widgets.filter((item) => item.id !== widget.id))} className="rounded-md p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600" aria-label={`Eliminar ${definition?.name ?? widget.type}`}><LuTrash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         ) : null}
         <div
           className={cn(
-            "mx-auto w-full max-w-336 overflow-hidden rounded-2xl shadow-[0_30px_120px_rgba(0,0,0,0.3)]",
+            "relative mx-auto w-full overflow-hidden rounded-2xl shadow-[0_30px_120px_rgba(0,0,0,0.3)] transition-[max-width] duration-300",
+            device === "mobile" ? "max-w-[390px]" : "max-w-336",
             variant === "panel" &&
-              "min-h-0 max-w-none flex-1 rounded-lg border border-slate-200 shadow-none",
+              cn("min-h-0 flex-1 rounded-lg border border-slate-200 shadow-none", device === "desktop" && "max-w-none"),
           )}
         >
           <iframe
+            key={`${siteUrl}-${reloadNonce}`}
             ref={iframeRef}
             src={siteUrl}
             title={siteName}
@@ -1074,8 +1186,49 @@ export function IminWorkspace({
               variant === "panel" ? "h-full" : "h-[90vh]",
             )}
             referrerPolicy="no-referrer-when-downgrade"
-            onLoad={() => setBridgeReady(false)}
+            onLoad={() => {
+              setBridgeReady(false);
+              setPreviewStatus("ready");
+            }}
           />
+          {previewStatus !== "ready" ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/95 p-6 text-center">
+              {previewStatus === "loading" ? (
+                <>
+                  <LuLoaderCircle className="h-6 w-6 animate-spin text-blue-500" aria-hidden="true" />
+                  <p className="text-sm text-slate-500">Cargando la vista previa de {siteName}...</p>
+                </>
+              ) : (
+                <>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 ring-1 ring-amber-100">
+                    <span className="text-lg font-semibold">!</span>
+                  </div>
+                  <p className="max-w-xs text-sm font-medium text-slate-700">
+                    No se pudo cargar la vista previa de {siteName}.
+                  </p>
+                  <p className="max-w-xs text-xs text-slate-400">
+                    El sitio no respondio a tiempo. Puede estar temporalmente fuera de linea.
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={retryPreview}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700"
+                    >
+                      <LuRotateCcw className="h-3.5 w-3.5" /> Reintentar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => window.open(siteUrl, "_blank", "noopener,noreferrer")}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+                    >
+                      <LuExternalLink className="h-3.5 w-3.5" /> Abrir en pestaña
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : null}
         </div>
 
       </div>
@@ -1134,7 +1287,7 @@ export function IminWorkspace({
           <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-[2rem] border border-white/80 bg-white/95 p-6 shadow-[0_32px_100px_rgba(15,23,42,0.28)] ring-1 ring-slate-900/5 sm:p-7">
             <div aria-hidden="true" className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent" />
             <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-[#0455a2] ring-1 ring-blue-100">
-              <Type className="h-5 w-5" aria-hidden="true" />
+              <LuType className="h-5 w-5" aria-hidden="true" />
             </div>
             <h3 className="text-base font-semibold text-slate-900">Cambiar texto</h3>
             <p className="mt-2 text-sm text-slate-500">
@@ -1272,9 +1425,9 @@ export function IminWorkspace({
       {styleEditor?.kind === "color" ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-md">
           <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-sm overflow-y-auto rounded-[2rem] border border-white/80 bg-white/95 p-6 shadow-[0_32px_100px_rgba(15,23,42,0.28)] ring-1 ring-slate-900/5 sm:p-7">
-            <div aria-hidden="true" className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-violet-400 to-transparent" />
-            <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 ring-1 ring-violet-100">
-              <Palette className="h-5 w-5" aria-hidden="true" />
+            <div aria-hidden="true" className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent" />
+            <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+              <LuPalette className="h-5 w-5" aria-hidden="true" />
             </div>
             <h3 className="text-base font-semibold text-slate-900">Cambiar fondo</h3>
             <p className="mt-2 text-sm text-slate-500">
@@ -1400,7 +1553,7 @@ export function IminWorkspace({
           <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-[2rem] border border-white/80 bg-white/95 p-6 shadow-[0_32px_100px_rgba(15,23,42,0.28)] ring-1 ring-slate-900/5 sm:p-7">
             <div aria-hidden="true" className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
             <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
-              <Palette className="h-5 w-5" aria-hidden="true" />
+              <LuPalette className="h-5 w-5" aria-hidden="true" />
             </div>
             <h3 className="text-base font-semibold text-slate-900">Elegir icono</h3>
             <p className="mt-2 text-sm text-slate-500">

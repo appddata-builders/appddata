@@ -3,10 +3,6 @@ const titles: Record<string, { title: string; subtitle: string }> = {
     title: "Planes",
     subtitle: "Vista general del panel interno. Aqui conectaras metricas y alertas.",
   },
-  usuarios: {
-    title: "Usuarios",
-    subtitle: "Listado y roles. Esta pantalla es un esqueleto listo para tu backlog.",
-  },
   analiticas: {
     title: "Analiticas",
     subtitle: "Graficos y embudos. Pendiente de integracion.",
@@ -47,8 +43,8 @@ const titles: Record<string, { title: string; subtitle: string }> = {
     title: "Configuracion: autenticacion",
     subtitle: "Better Auth en local. Cambia a tu proveedor cuando toque.",
   },
-  "configuracion/app": {
-    title: "Configuracion: aplicacion",
+  "configuracion/settings": {
+    title: "Configuracion: cuenta",
     subtitle: "Variables generales y entornos.",
   },
 };
@@ -65,6 +61,37 @@ export default async function DashboardCatchAllPage({ params }: DashboardCatchAl
   if (key === "") {
     const session = await requirePanelSession();
     if (session) return <DashboardSummary plan={await getPanelPlan(session)} />;
+  }
+  if (key === "configuracion/pagos") {
+    const session = await requirePanelSession();
+    if (session) {
+      const [plan, subscriptions, upcomingCharges] = await Promise.all([
+        getPanelPlan(session),
+        getAccountSubscriptions(session.user.id),
+        getUpcomingAccountCharges(session.user.id),
+      ]);
+      return (
+        <section className="mx-auto w-full max-w-5xl space-y-5">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Configuración</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-900">Pagos y suscripciones</h1>
+            <p className="mt-2 text-sm text-slate-600">Administra los servicios recurrentes asociados a tu cuenta.</p>
+          </div>
+          <AccountSubscriptions
+            hasPlan={plan.sitePlan !== "free"}
+            subscriptions={subscriptions.map((item) => ({ kind: item.kind, status: item.status }))}
+            upcomingCharges={upcomingCharges.map((charge) => ({
+              ...charge,
+              chargeAt: charge.chargeAt?.toISOString() ?? null,
+            }))}
+          />
+        </section>
+      );
+    }
+  }
+  if (key === "configuracion/settings") {
+    const session = await requirePanelSession();
+    if (session) return <AccountSettings user={session.user} />;
   }
   const entry = titles[key] ?? {
     title: "Seccion",
@@ -84,5 +111,8 @@ export default async function DashboardCatchAllPage({ params }: DashboardCatchAl
   );
 }
 import DashboardSummary from "@/app/dashboard/dashboard-summary";
+import { AccountSubscriptions } from "@/app/dashboard/account-subscriptions";
+import { AccountSettings } from "@/app/dashboard/account-settings";
+import { getAccountSubscriptions, getUpcomingAccountCharges } from "@/lib/account-subscriptions-server";
 import { getPanelPlan } from "@/lib/plans-server";
 import { requirePanelSession } from "@/lib/require-panel-session";
