@@ -1,4 +1,6 @@
-import { Check, Lock } from "lucide-react";
+"use client";
+
+import { LuCheck, LuLock, LuSparkles } from "react-icons/lu";
 import Link from "next/link";
 
 import IminMark from "@/app/components/imin/imin-mark";
@@ -10,6 +12,20 @@ const FEATURES = [
   "Cambios publicados al instante en tu sitio",
 ];
 
+const IMIN_TIERS: {
+  id: string;
+  name: string;
+  price: string;
+  suffix: string;
+  description: string;
+  saving?: string;
+  featured?: boolean;
+}[] = [
+  { id: "monthly", name: "Mensual", price: "$149", suffix: "MXN / mes", description: "Flexibilidad mes a mes." },
+  { id: "six-months", name: "6 meses", price: "$845", suffix: "MXN", description: "Un pago por seis meses.", saving: "Ahorras $49 MXN", featured: true },
+  { id: "annual", name: "Anual", price: "$1,599", suffix: "MXN", description: "Un año completo de IMIN.", saving: "Ahorras $189 MXN" },
+];
+
 /**
  * Pantalla que sustituye al editor cuando el proyecto no tiene el paquete.
  * El bloqueo real esta en el server component que la renderiza: esto es solo
@@ -17,12 +33,12 @@ const FEATURES = [
  */
 export function IminUpgrade({ isFree }: { isFree: boolean }) {
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto w-full max-w-5xl">
       <div className="rounded-lg border border-slate-200 bg-white">
         <div className="grid gap-5 border-b border-slate-100 p-6 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-center">
           <div className="flex min-w-0 items-start gap-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
-              <Lock className="h-5 w-5 text-slate-500" />
+              <LuLock className="h-5 w-5 text-slate-500" />
             </div>
             <div className="min-w-0">
               <h1 className="text-lg font-semibold text-slate-900">IMIN no esta incluido en tu plan</h1>
@@ -43,28 +59,42 @@ export function IminUpgrade({ isFree }: { isFree: boolean }) {
         <ul className="grid gap-3 p-6">
           {FEATURES.map((feature) => (
             <li key={feature} className="flex items-start gap-3 text-sm text-slate-700">
-              <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+              <LuCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
               <span>{feature}</span>
             </li>
           ))}
         </ul>
 
-        <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 bg-slate-50 p-6">
-          <Link
-            href={isFree ? "/dashboard" : "/imin"}
-            className="inline-flex h-9 items-center rounded-md bg-amber-400 px-4 text-sm font-medium text-amber-950 transition hover:bg-amber-300"
-          >
-            {isFree ? "Ver Planes" : "Contratar IMIN"}
-          </Link>
-          <Link
-            href="/imin"
-            className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-4 text-sm text-slate-700 transition hover:bg-slate-50"
-          >
-            Ver que incluye
-          </Link>
-          <p className="text-xs text-slate-500">
-            Ya lo contrataste? Escribenos y activamos el paquete en tu proyecto.
-          </p>
+        <div className="border-t border-slate-100 bg-slate-50 p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">Suscripción IMIN</p>
+          <h2 className="mt-1 text-xl font-semibold text-slate-900">Elige la duración de tu acceso</h2>
+          <p className="mt-1 text-sm text-slate-500">Todos los periodos incluyen las mismas herramientas de edición y publicación.</p>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {IMIN_TIERS.map((tier) => (
+              <article key={tier.id} className={`relative flex flex-col rounded-xl border bg-white p-4 ${tier.featured ? "border-amber-400 shadow-[0_12px_35px_rgba(245,158,11,0.12)]" : "border-slate-200"}`}>
+                {tier.featured ? <span className="absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-1 text-[0.6rem] font-bold uppercase tracking-wider text-amber-800">Recomendado</span> : null}
+                <LuSparkles className="h-5 w-5 text-amber-500" aria-hidden="true" />
+                <h3 className="mt-3 text-sm font-semibold text-slate-900">{tier.name}</h3>
+                <p className="mt-2">
+                  <span className="text-2xl font-bold tracking-tight text-slate-950">{tier.price}</span>{" "}
+                  <span className="text-xs text-slate-500">{tier.suffix}</span>
+                </p>
+                <p className="mt-2 text-xs leading-5 text-slate-500">{tier.description}</p>
+                {tier.saving ? <p className="mt-1 text-xs font-semibold text-emerald-600">{tier.saving}</p> : null}
+                <button type="button" disabled title="El checkout de Stripe se conectará en el siguiente paso." className="mt-4 inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-70">
+                  Suscribirme
+                </button>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <Link href={isFree ? "/dashboard" : "/imin"} className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-4 text-sm text-slate-700 transition hover:bg-slate-100">
+              {isFree ? "Volver a Planes" : "Ver demostración IMIN"}
+            </Link>
+            <p className="text-xs text-slate-500">Los botones quedarán disponibles al conectar Stripe.</p>
+          </div>
         </div>
       </div>
     </div>
