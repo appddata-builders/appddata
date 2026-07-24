@@ -21,7 +21,7 @@ const IMIN_TIERS: {
   saving?: string;
   featured?: boolean;
 }[] = [
-  { id: "monthly", name: "Mensual", price: "$149", suffix: "MXN / mes", description: "Flexibilidad mes a mes." },
+  { id: "monthly", name: "Mensual", price: "$149", suffix: "MXN", description: "Flexibilidad mes a mes." },
   { id: "six-months", name: "6 meses", price: "$845", suffix: "MXN", description: "Un pago por seis meses.", saving: "Ahorras $49 MXN", featured: true },
   { id: "annual", name: "Anual", price: "$1,599", suffix: "MXN", description: "Un año completo de IMIN.", saving: "Ahorras $189 MXN" },
 ];
@@ -82,7 +82,7 @@ export function IminUpgrade({ isFree }: { isFree: boolean }) {
                 </p>
                 <p className="mt-2 text-xs leading-5 text-slate-500">{tier.description}</p>
                 {tier.saving ? <p className="mt-1 text-xs font-semibold text-emerald-600">{tier.saving}</p> : null}
-                <button type="button" disabled title="El checkout de Stripe se conectará en el siguiente paso." className="mt-4 inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-70">
+                <button type="button" disabled title="El checkout de Stripe se conectará en el siguiente paso." className="mt-auto inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-70">
                   Suscribirme
                 </button>
               </article>
