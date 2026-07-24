@@ -20,34 +20,35 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  ArrowLeftRight,
-  CalendarClock,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  GripVertical,
-  ImagePlus,
-  Layers,
-  LayoutTemplate,
-  Lock,
-  MailOpen,
-  MapPin,
-  Menu,
-  Minus,
-  Monitor,
-  PanelTop,
-  Pencil,
-  Play,
-  Plus,
-  Quote,
-  RotateCcw,
-  Smartphone,
-  Sparkles,
-  Star,
-  Upload,
-  Wrench,
-  X,
-} from "lucide-react";
+  LuArrowLeftRight,
+  LuCalendarClock,
+  LuCheck,
+  LuChevronLeft,
+  LuChevronRight,
+  LuGripVertical,
+  LuImagePlus,
+  LuLayers,
+  LuLayoutTemplate,
+  LuLock,
+  LuMailOpen,
+  LuMapPin,
+  LuMenu,
+  LuMinus,
+  LuMonitor,
+  LuPanelTop,
+  LuPencil,
+  LuPlay,
+  LuPlus,
+  LuQuote,
+  LuRotateCcw,
+  LuSmartphone,
+  LuSparkles,
+  LuStar,
+  LuTicket,
+  LuUpload,
+  LuWrench,
+  LuX,
+} from "react-icons/lu";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FaFacebookF, FaInstagram, FaLinkedinIn, FaYoutube } from "react-icons/fa6";
@@ -125,7 +126,17 @@ function readPersisted(): PersistedState | null {
 
 /* ============================ Componente raiz =========================== */
 
-export default function BuildWorkspace({ siteName, initialPlan }: { siteName: string; initialPlan: BuildPlanId }) {
+export default function BuildWorkspace({
+  siteName,
+  initialPlan,
+  availableSites,
+  isInternal,
+}: {
+  siteName: string;
+  initialPlan: BuildPlanId;
+  availableSites: number;
+  isInternal: boolean;
+}) {
   const [plan, setPlan] = useState<BuildPlanId>(initialPlan);
   const [template, setTemplate] = useState<TemplateId>("aurora");
   const [navMode, setNavMode] = useState<NavMode>("single");
@@ -138,6 +149,9 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
   const [createOpen, setCreateOpen] = useState(false);
   const [panelStep, setPanelStep] = useState<1 | 2 | 3>(1);
   const [projectName, setProjectName] = useState("");
+  // El nombre se pide y valida ANTES de mostrar el builder; hasta que no queda
+  // confirmado se muestra el gate en vez del lienzo.
+  const [nameConfirmed, setNameConfirmed] = useState(false);
   const [createState, setCreateState] = useState<{ step: "input" | "valid" | "creating" | "done"; message?: string; slug?: string; url?: string; repoUrl?: string }>({ step: "input" });
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -181,11 +195,18 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
   const tokens = TEMPLATES[template];
   const activeFull = doc.pages[activePage].length >= maxWidgetsFor(activePage);
 
-  const validateNewProject = async () => {
+  const validateNewProject = async (): Promise<boolean> => {
     setCreateState({ step: "creating", message: "Validando nombre..." });
     const response = await fetch("/api/dashboard/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: projectName, validateOnly: true }) });
     const data = await response.json() as { error?: string; slug?: string };
     setCreateState(response.ok ? { step: "valid", slug: data.slug, message: "Nombre disponible." } : { step: "input", message: data.error ?? "No se pudo validar." });
+    return response.ok;
+  };
+
+  // Gate previo al builder: valida el nombre y, si esta disponible, revela el
+  // lienzo con el nombre ya fijado (se crea/despliega recien al publicar).
+  const confirmProjectName = async () => {
+    if (await validateNewProject()) setNameConfirmed(true);
   };
 
   const createNewProject = async () => {
@@ -322,6 +343,61 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
 
   const total = countInstances(doc);
 
+  // Indicador de la "moneda"/ticket: cada sitio disponible es una creacion que
+  // la compra habilito. Los internos (admins) no consumen tickets.
+  const ticketBadge = isInternal ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[0.68rem] font-semibold text-violet-700">
+      <LuTicket className="h-3.5 w-3.5" /> Interno · sitios ilimitados
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[0.68rem] font-semibold text-emerald-700">
+      <LuTicket className="h-3.5 w-3.5" />
+      {availableSites} sitio{availableSites === 1 ? "" : "s"} disponible{availableSites === 1 ? "" : "s"}
+    </span>
+  );
+
+  // Gate de nombre: se muestra antes del lienzo. El acceso a la pagina ya exige
+  // un ticket; aqui solo se comprueba que el nombre este disponible.
+  if (!nameConfirmed) {
+    const busy = createState.step === "creating";
+    return (
+      <div className="flex h-full flex-col items-center justify-center bg-slate-50 p-6">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <p className="text-base font-semibold text-slate-800">Nombra tu nuevo sitio</p>
+            {ticketBadge}
+          </div>
+          <p className="text-xs leading-5 text-slate-500">
+            Antes de empezar a construir, elige el nombre del proyecto. Comprobamos que
+            este disponible; el sitio se crea y publica cuando termines de diseñarlo.
+          </p>
+          <label className="mt-4 block text-xs font-medium text-slate-600">
+            Nombre del proyecto
+            <input
+              autoFocus
+              value={projectName}
+              disabled={busy}
+              onChange={(event) => { setProjectName(event.target.value); setCreateState({ step: "input" }); }}
+              onKeyDown={(event) => { if (event.key === "Enter" && projectName.trim() && !busy) void confirmProjectName(); }}
+              placeholder="Mi nuevo sitio"
+              className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-400"
+            />
+          </label>
+          {createState.slug ? <p className="mt-2 text-xs text-slate-400">Slug: <span className="font-medium text-slate-700">{createState.slug}</span></p> : null}
+          {createState.message ? <p className={cn("mt-3 rounded-lg px-3 py-2 text-xs", createState.step === "valid" ? "bg-emerald-50 text-emerald-700" : "bg-slate-50 text-slate-500")}>{createState.message}</p> : null}
+          <button
+            type="button"
+            onClick={() => void confirmProjectName()}
+            disabled={busy || projectName.trim().length === 0}
+            className="mt-4 w-full rounded-lg bg-sky-600 py-2.5 text-xs font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+          >
+            {busy ? "Validando..." : "Validar y continuar"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <DndContext
       id="appddata-build-dnd"
@@ -359,6 +435,7 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
           </div>
 
           <div className="ml-auto flex items-center gap-2">
+            <span className="hidden md:inline-flex">{ticketBadge}</span>
             <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5">
               <button
                 type="button"
@@ -369,7 +446,7 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
                   device === "desktop" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400",
                 )}
               >
-                <Monitor className="h-3.5 w-3.5" />
+                <LuMonitor className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
@@ -380,16 +457,16 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
                   device === "mobile" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400",
                 )}
               >
-                <Smartphone className="h-3.5 w-3.5" />
+                <LuSmartphone className="h-3.5 w-3.5" />
               </button>
             </div>
-            <button type="button" onClick={() => { setCreateOpen(true); setCreateState({ step: "input" }); }} className="inline-flex h-8 items-center gap-1.5 rounded-md bg-sky-600 px-2.5 text-[0.76rem] font-medium text-white transition hover:bg-sky-700"><Plus className="h-3.5 w-3.5" /><span className="hidden sm:inline">Crear sitio</span></button>
+            <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex h-8 items-center gap-1.5 rounded-md bg-sky-600 px-2.5 text-[0.76rem] font-medium text-white transition hover:bg-sky-700"><LuPlus className="h-3.5 w-3.5" /><span className="hidden sm:inline">Crear y publicar</span></button>
             <button
               type="button"
               onClick={restoreDefault}
               className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-[0.78rem] font-medium text-slate-700 transition hover:bg-slate-50"
             >
-              <Sparkles className="h-3.5 w-3.5" />
+              <LuSparkles className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Restaurar</span>
             </button>
             <button
@@ -398,7 +475,7 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
               disabled={total === 0}
               className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[0.78rem] font-medium text-slate-500 transition hover:bg-slate-100 disabled:opacity-40"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
+              <LuRotateCcw className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Vaciar</span>
             </button>
           </div>
@@ -508,10 +585,10 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-1">
                 <div className="grid grid-cols-2 gap-1" role="group" aria-label="Tipo de navegacion">
                   <button type="button" onClick={() => setNavMode("single")} aria-pressed={navMode === "single"} className={cn("flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[0.72rem] font-semibold transition", navMode === "single" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-700")}>
-                    <PanelTop className="h-3.5 w-3.5" />Una pagina
+                    <LuPanelTop className="h-3.5 w-3.5" />Una pagina
                   </button>
                   <button type="button" onClick={() => setNavMode("multi")} aria-pressed={navMode === "multi"} className={cn("flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[0.72rem] font-semibold transition", navMode === "multi" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-700")}>
-                    <LayoutTemplate className="h-3.5 w-3.5" />Paginas
+                    <LuLayoutTemplate className="h-3.5 w-3.5" />Paginas
                   </button>
                 </div>
               </div>
@@ -607,7 +684,7 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
           </aside>
 
           {/* ---------------------------- Lienzo --------------------------- */}
-          <main ref={previewRef} className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+          <main ref={previewRef} data-build-preview-scroll className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
             <div
               className={cn(
                 "mx-auto overflow-hidden rounded-2xl border border-slate-200 shadow-[0_20px_60px_rgba(15,23,42,0.12)] transition-[max-width] duration-300",
@@ -619,7 +696,7 @@ export default function BuildWorkspace({ siteName, initialPlan }: { siteName: st
                 <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
                 <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
                 <span className="ml-2 truncate rounded-md bg-white px-2 py-0.5 text-[0.62rem] text-slate-400">
-                  {siteName}
+                  {projectName || siteName}
                   {navMode === "multi" && activePage !== "home"
                     ? `/${PAGE_BY_ID[activePage].anchor}`
                     : ""}
@@ -709,9 +786,9 @@ function FeatureRow({ ok, label }: { ok: boolean; label: string }) {
   return (
     <li className="flex items-center gap-1.5">
       {ok ? (
-        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+        <LuCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
       ) : (
-        <Minus className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+        <LuMinus className="h-3.5 w-3.5 shrink-0 text-slate-300" />
       )}
       <span className={cn(!ok && "text-slate-400")}>{label}</span>
     </li>
@@ -762,7 +839,7 @@ function ThumbCard({
     >
       {thumb}
       <span className="mt-1 flex items-center gap-1 text-[0.7rem] font-semibold text-slate-800">
-        {disabled ? <Lock className="h-3 w-3" /> : null}
+        {disabled ? <LuLock className="h-3 w-3" /> : null}
         {name}
         {badge ? <span className="ml-auto text-[0.55rem] font-medium text-sky-700">{badge}</span> : null}
       </span>
@@ -859,7 +936,7 @@ function FooterThumb({ variant }: { variant: FooterVariant }) {
       {variant === "map" ? (
         <>
           <div className="grid h-6 w-8 place-items-center rounded-sm bg-slate-600">
-            <MapPin className="h-3 w-3 text-slate-300" />
+            <LuMapPin className="h-3 w-3 text-slate-300" />
           </div>
           <div className="ml-1.5 flex gap-1.5">{column}</div>
           <div className="ml-auto">{dots}</div>
@@ -892,7 +969,7 @@ function PaletteItem({ widget, onAdd, selected = false }: { widget: WidgetDef; o
         isDragging && "opacity-40",
       )}
     >
-      <GripVertical className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+      <LuGripVertical className="h-3.5 w-3.5 shrink-0 text-slate-300" />
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-500">
         <Icon className="h-3.5 w-3.5" />
       </span>
@@ -970,7 +1047,7 @@ const EditableText = memo(function EditableText({
     <div className="pointer-events-auto fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <button type="button" aria-label="Cerrar" className="absolute inset-0 bg-slate-950/45" onClick={() => setOpen(false)} />
       <div role="dialog" aria-modal="true" aria-label="Editar texto" className="relative z-10 w-full max-w-[380px] rounded-xl border border-slate-200 bg-white p-4 text-slate-800 shadow-2xl">
-        <div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-full bg-slate-900 text-white"><Pencil className="h-3.5 w-3.5" /></span><p className="text-sm font-semibold">Editar texto</p></div>
+        <div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-full bg-slate-900 text-white"><LuPencil className="h-3.5 w-3.5" /></span><p className="text-sm font-semibold">Editar texto</p></div>
         <div className="mt-3 grid grid-cols-2 rounded-lg bg-slate-100 p-0.5"><button type="button" onClick={() => setTab("text")} className={cn("rounded-md py-1.5 text-xs font-medium", tab === "text" ? "bg-white shadow-sm" : "text-slate-400")}>Texto</button><button type="button" onClick={() => setTab("color")} className={cn("rounded-md py-1.5 text-xs font-medium", tab === "color" ? "bg-white shadow-sm" : "text-slate-400")}>Color</button></div>
         {tab === "text" ? (multiline ? <textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={5} className="mt-3 w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-400" /> : <input value={draft} onChange={(event) => setDraft(event.target.value)} className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-400" />) : (
           <div className="mt-3 space-y-3">
@@ -1008,7 +1085,7 @@ const EditableText = memo(function EditableText({
     >
       <span style={textStyleCss(onCommit.styleValue, allowGradient)}>{value}</span>
     </Tag>
-    <button type="button" onClick={(event) => { event.stopPropagation(); setDraft(value); setTab("text"); setOpen(true); }} aria-label="Editar texto" title="Editar texto" className="absolute -right-2 -top-2 z-30 grid h-5 w-5 place-items-center rounded-full bg-white text-slate-600 opacity-0 shadow transition hover:text-sky-600 group-hover/text:opacity-100 group-focus-within/text:opacity-100"><Pencil className="h-3 w-3" /></button>
+    <button type="button" onClick={(event) => { event.stopPropagation(); setDraft(value); setTab("text"); setOpen(true); }} aria-label="Editar texto" title="Editar texto" className="absolute -right-2 -top-2 z-30 grid h-5 w-5 place-items-center rounded-full bg-white text-slate-600 opacity-0 shadow transition hover:text-sky-600 group-hover/text:opacity-100 group-focus-within/text:opacity-100"><LuPencil className="h-3 w-3" /></button>
     {modal ? createPortal(modal, document.body) : null}
     </Wrapper>
   );
@@ -1023,11 +1100,32 @@ type EditableImageProps = {
   bgClass?: string;
 };
 
+function useBuildModalLock(open: boolean) {
+  useEffect(() => {
+    if (!open) return;
+    const preview = document.querySelector<HTMLElement>("[data-build-preview-scroll]");
+    const previous = {
+      body: document.body.style.overflow,
+      html: document.documentElement.style.overflow,
+      preview: preview?.style.overflow ?? "",
+    };
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    if (preview) preview.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous.body;
+      document.documentElement.style.overflow = previous.html;
+      if (preview) preview.style.overflow = previous.preview;
+    };
+  }, [open]);
+}
+
 function EditableImage({ value, onCommit, className, style, fit = "cover", bgClass = "bg-slate-200" }: EditableImageProps) {
   const [open, setOpen] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  useBuildModalLock(open);
 
   function onPickFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -1066,21 +1164,25 @@ function EditableImage({ value, onCommit, className, style, fit = "cover", bgCla
           className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/0 opacity-0 transition group-hover/img:bg-slate-950/35 group-hover/img:opacity-100"
         >
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[0.68rem] font-medium text-slate-800 shadow">
-            <ImagePlus className="h-3.5 w-3.5" />
+            <LuImagePlus className="h-3.5 w-3.5" />
             Cambiar
           </span>
         </button>
       </div>
 
-      {open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {open ? createPortal(
+        <div
+          className="pointer-events-auto fixed inset-0 z-[10000] flex items-center justify-center overscroll-none p-4"
+          onWheel={(event) => event.preventDefault()}
+          onTouchMove={(event) => event.preventDefault()}
+        >
           <button
             type="button"
             aria-label="Cerrar"
-            className="absolute inset-0 cursor-default bg-slate-950/45"
+            className="absolute inset-0 cursor-default bg-slate-950/70 backdrop-blur-[2px]"
             onClick={() => setOpen(false)}
           />
-          <div className="relative w-full max-w-[300px] rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-label="Cambiar imagen" className="relative z-10 w-full max-w-[340px] rounded-xl border border-slate-200 bg-white p-4 text-left shadow-[0_30px_100px_rgba(15,23,42,0.45)]">
             <p className="mb-1.5 text-[0.72rem] font-semibold text-slate-700">Cambiar imagen</p>
 
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPickFile} />
@@ -1089,7 +1191,7 @@ function EditableImage({ value, onCommit, className, style, fit = "cover", bgCla
               onClick={() => fileRef.current?.click()}
               className="flex w-full items-center justify-center gap-1.5 rounded-md bg-slate-900 py-1.5 text-[0.72rem] font-medium text-white transition hover:bg-slate-800"
             >
-              <Upload className="h-3.5 w-3.5" />
+              <LuUpload className="h-3.5 w-3.5" />
               Subir desde tu equipo
             </button>
             {uploadError ? (
@@ -1135,7 +1237,8 @@ function EditableImage({ value, onCommit, className, style, fit = "cover", bgCla
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );
@@ -1296,7 +1399,7 @@ function ButtonStyleEditor({ edit }: { edit: BtnEdit }) {
         title="Editar color y relleno de este boton"
         className="absolute -right-2 -top-2 z-20 grid h-5 w-5 place-items-center rounded-full bg-white text-slate-600 opacity-0 shadow transition hover:text-sky-600 group-hover/btn:opacity-100"
       >
-        <Pencil className="h-3 w-3" />
+        <LuPencil className="h-3 w-3" />
       </button>
       {open ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1454,7 +1557,7 @@ function SitePreview(props: PreviewProps) {
                             aria-label="Cambiar posicion de imagen y texto"
                             className="pointer-events-auto grid h-6 w-6 place-items-center rounded-md bg-slate-900/70 text-white"
                           >
-                            <ArrowLeftRight className="h-3.5 w-3.5" />
+                            <LuArrowLeftRight className="h-3.5 w-3.5" />
                           </button>
                         ) : null}
                         {instance.widgetId !== "bg-image" ? (
@@ -1605,21 +1708,21 @@ function BackgroundEditor({ value, fallback, onChange, title }: { value: string;
       </div>
     </div>
   ) : null;
-  return <><button type="button" onClick={() => setOpen(true)} aria-label={`Editar ${title}`} className="pointer-events-auto z-30 grid h-5 w-5 place-items-center rounded-full bg-white text-slate-600 shadow hover:text-sky-600"><Pencil className="h-3 w-3" /></button>{modal ? createPortal(modal, document.body) : null}</>;
+  return <><button type="button" onClick={() => setOpen(true)} aria-label={`Editar ${title}`} className="pointer-events-auto z-30 grid h-5 w-5 place-items-center rounded-full bg-white text-slate-600 shadow hover:text-sky-600"><LuPencil className="h-3 w-3" /></button>{modal ? createPortal(modal, document.body) : null}</>;
 }
 
 const EDITABLE_ICON_OPTIONS = {
-  sparkles: { label: "Destellos", icon: Sparkles },
-  layers: { label: "Capas", icon: Layers },
-  wrench: { label: "Herramienta", icon: Wrench },
-  calendar: { label: "Calendario", icon: CalendarClock },
-  check: { label: "Check", icon: Check },
-  star: { label: "Estrella", icon: Star },
-  quote: { label: "Testimonio", icon: Quote },
-  mail: { label: "Correo", icon: MailOpen },
-  pin: { label: "Ubicacion", icon: MapPin },
-  play: { label: "Reproducir", icon: Play },
-  image: { label: "Imagen", icon: ImagePlus },
+  sparkles: { label: "Destellos", icon: LuSparkles },
+  layers: { label: "Capas", icon: LuLayers },
+  wrench: { label: "Herramienta", icon: LuWrench },
+  calendar: { label: "Calendario", icon: LuCalendarClock },
+  check: { label: "LuCheck", icon: LuCheck },
+  star: { label: "Estrella", icon: LuStar },
+  quote: { label: "Testimonio", icon: LuQuote },
+  mail: { label: "Correo", icon: LuMailOpen },
+  pin: { label: "Ubicacion", icon: LuMapPin },
+  play: { label: "Reproducir", icon: LuPlay },
+  image: { label: "Imagen", icon: LuImagePlus },
 } as const;
 
 type EditableIconId = keyof typeof EDITABLE_ICON_OPTIONS;
@@ -1737,14 +1840,14 @@ function ColorEditor({ edit, title = "Color del componente", compact = false }: 
           compact ? "pointer-events-auto" : "absolute -right-2 -top-2 opacity-0 group-hover/btn:opacity-100",
         )}
       >
-        <Pencil className="h-3 w-3" />
+        <LuPencil className="h-3 w-3" />
       </button>
       {modal ? createPortal(modal, document.body) : null}
     </>
   );
 }
 
-/** Menu hamburguesa funcional: al dar clic despliega los enlaces; trae su pluma. */
+/** LuMenu hamburguesa funcional: al dar clic despliega los enlaces; trae su pluma. */
 function NavMenuButton({
   color,
   colorEdit,
@@ -1774,7 +1877,7 @@ function NavMenuButton({
           className="grid h-7 w-7 place-items-center rounded-md transition hover:opacity-70"
           style={{ color }}
         >
-          <Menu className="h-5 w-5" />
+          <LuMenu className="h-5 w-5" />
         </button>
         <ColorEditor edit={colorEdit} title="Color del menu" />
       </span>
@@ -1948,7 +2051,7 @@ function FooterSocialIcon({ index, content, onCommit, accent, usedIcons }: { ind
               <input value={url} onChange={(event) => onCommit(urlKey, event.target.value)} placeholder="https://..." className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-[0.72rem] outline-none focus:border-sky-400" />
             </label>
             <div className="mt-3 flex gap-2">
-              <button type="button" onClick={() => { onCommit(`chrome:footer:social:${index}:enabled`, "false"); setOpen(false); }} className="grid h-8 w-8 place-items-center rounded-md border border-rose-200 text-rose-500" aria-label={`Quitar ${selected.label}`}><Minus className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => { onCommit(`chrome:footer:social:${index}:enabled`, "false"); setOpen(false); }} className="grid h-8 w-8 place-items-center rounded-md border border-rose-200 text-rose-500" aria-label={`Quitar ${selected.label}`}><LuMinus className="h-3.5 w-3.5" /></button>
               <a href={url} target="_blank" rel="noreferrer" className="flex-1 rounded-md border border-slate-200 py-1.5 text-center text-[0.7rem] font-medium">Probar enlace</a>
               <button type="button" onClick={() => setOpen(false)} className="flex-1 rounded-md bg-slate-900 py-1.5 text-[0.7rem] font-medium text-white">Listo</button>
             </div>
@@ -1984,7 +2087,7 @@ function FooterView({ doc, tokens, device, content, onCommit, onNavigate, accent
   const social = (
     <div className={cn("flex items-center gap-2", variant === "social" && "justify-center")}>
       {uniqueSocialSlots.map((i) => <FooterSocialIcon key={i} index={i} content={content} onCommit={onCommit} accent={accent.accent} usedIcons={usedSocialIcons} />)}
-      {uniqueSocialSlots.length < 4 ? <button type="button" onClick={addSocial} className="grid h-7 w-7 place-items-center rounded-full border border-dashed border-current opacity-50 transition hover:opacity-100" aria-label="Agregar red social"><Plus className="h-3.5 w-3.5" /></button> : null}
+      {uniqueSocialSlots.length < 4 ? <button type="button" onClick={addSocial} className="grid h-7 w-7 place-items-center rounded-full border border-dashed border-current opacity-50 transition hover:opacity-100" aria-label="Agregar red social"><LuPlus className="h-3.5 w-3.5" /></button> : null}
     </div>
   );
 
@@ -2139,7 +2242,7 @@ function FooterMap({
           }}
           className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[0.68rem] font-medium text-slate-800 shadow"
         >
-          <MapPin className="h-3.5 w-3.5" />
+          <LuMapPin className="h-3.5 w-3.5" />
           Ubicacion
         </button>
       </div>
@@ -2229,7 +2332,7 @@ function SortableBlock({
           aria-label={`Mover ${label}`}
           className="pointer-events-auto grid h-6 w-6 cursor-grab place-items-center rounded-md bg-slate-900/70 text-white active:cursor-grabbing"
         >
-          <GripVertical className="h-3.5 w-3.5" />
+          <LuGripVertical className="h-3.5 w-3.5" />
         </button>
         <span className="rounded bg-slate-900/75 px-1.5 py-0.5 text-[0.55rem] font-medium uppercase tracking-[0.12em] text-white">
           {label}
@@ -2242,7 +2345,7 @@ function SortableBlock({
         aria-label={`Quitar ${label}`}
         className="absolute right-2 top-2 z-20 grid h-6 w-6 place-items-center rounded-full bg-white/90 text-slate-500 opacity-0 shadow transition hover:text-rose-600 group-hover/block:opacity-100"
       >
-        <X className="h-3.5 w-3.5" />
+        <LuX className="h-3.5 w-3.5" />
       </button>
       {children}
     </div>
@@ -2657,7 +2760,7 @@ function CarouselWidget({
           aria-label="Slide anterior"
           className="absolute left-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-700 shadow transition hover:bg-white"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <LuChevronLeft className="h-4 w-4" />
         </button>
         <button
           type="button"
@@ -2665,7 +2768,7 @@ function CarouselWidget({
           aria-label="Slide siguiente"
           className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-700 shadow transition hover:bg-white"
         >
-          <ChevronRight className="h-4 w-4" />
+          <LuChevronRight className="h-4 w-4" />
         </button>
         <div className="mt-3 flex justify-center gap-1.5">
           {fields.map((_, i) => (
