@@ -53,6 +53,29 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FaFacebookF, FaInstagram, FaLinkedinIn, FaYoutube } from "react-icons/fa6";
 
+import {
+  BG_IMAGE,
+  BG_VIDEO,
+  BLOG,
+  BUTTON_BASE,
+  CARD_BG_ALPHA,
+  CARD_BORDER_ALPHA,
+  CAROUSEL,
+  CONTACT,
+  CTA_BANNER,
+  FAQ,
+  FEATURES,
+  GALLERY,
+  HERO,
+  IMAGE_TEXT,
+  PROMOS,
+  PRODUCT_TIERS,
+  SECTION,
+  SERVICES,
+  STATS,
+  TESTIMONIALS,
+  TEXT_BLOCK,
+} from "@/lib/react-site/widget-contract";
 import { cn } from "@/lib/utils";
 
 import {
@@ -350,9 +373,9 @@ export default function BuildWorkspace({
       <LuTicket className="h-3.5 w-3.5" /> Interno · sitios ilimitados
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[0.68rem] font-semibold text-emerald-700">
-      <LuTicket className="h-3.5 w-3.5" />
-      {availableSites} sitio{availableSites === 1 ? "" : "s"} disponible{availableSites === 1 ? "" : "s"}
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f3c49f] bg-[#fff4e8] px-2.5 py-1 text-[0.68rem] font-semibold text-[#b85f28]">
+      <LuTicket className="h-3.5 w-3.5 text-[#df7a3a]" />
+      {availableSites} Website{availableSites === 1 ? "" : "s"}
     </span>
   );
 
@@ -1496,6 +1519,9 @@ function SitePreview(props: PreviewProps) {
         backgroundColor: tokens.surface,
         color: tokens.ink,
         fontFamily: tokens.bodyFamily,
+        // Mismo token de radio que el sitio (--radius) para que las clases
+        // compartidas rounded-[var(--radius)] rindan igual en el preview.
+        ["--radius" as string]: `${tokens.radius}px`,
         filter: tokens.grayscale ? "grayscale(1)" : undefined,
       }}
     >
@@ -2383,6 +2409,13 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
   const set = (field: string) => makeTextCommit(onCommit, `${iid}:${field}`, content[`${iid}:${field}:textStyle`]);
   const background = (fallback: string) => backgroundCss(content[`${iid}:background`], fallback);
   const titleStyle: React.CSSProperties = { fontFamily: tokens.titleFamily, fontWeight: tokens.titleWeight };
+  // Igual que la capa base del sitio generado (h1-h3: fuente titulo + peso + lh 1.12).
+  const headingStyle: React.CSSProperties = { ...titleStyle, lineHeight: 1.12 };
+  // Igual que las tarjetas del sitio (border-muted/20 + bg-surface-alt/90).
+  const cardStyle: React.CSSProperties = {
+    borderColor: hexAlpha(tokens.muted, CARD_BORDER_ALPHA),
+    backgroundColor: hexAlpha(tokens.surfaceAlt, CARD_BG_ALPHA),
+  };
   const isMobile = device === "mobile";
   // Cada boton guarda su propio estilo (color / relleno) en content, por componente.
   const btnStyleOf = (field: string) => parseBtnStyle(content[`${iid}:${field}:style`]);
@@ -2395,12 +2428,16 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
 
   if (widgetId === "hero") {
     const left = tokens.heroAlign === "left";
+    // Mismo contrato de clases que el sitio generado (HERO): el preview deja de
+    // ser un mock a escala y se ve identico a lo que se publica.
     return (
-      <section className={cn("px-8 py-14", left ? "text-left" : "text-center")} style={background(tokens.surface)}>
-        <EditableText as="p" value={get("eyebrow")} onCommit={set("eyebrow")} className="text-[0.7rem] font-semibold uppercase tracking-[0.22em]" style={{ color: accent.accent }} />
-        <EditableText as="h2" value={get("title")} onCommit={set("title")} className="mt-2 text-3xl" style={{ ...titleStyle, color: tokens.ink }} />
-        <EditableText as="p" multiline value={get("subtitle")} onCommit={set("subtitle")} className={cn("mt-3 text-sm", left ? "max-w-md" : "mx-auto max-w-md")} style={{ color: tokens.muted }} />
-        <SiteButton value={get("cta")} onCommit={set("cta")} css={btnCssOf("cta")} className="mt-5 px-5 py-2 text-xs font-medium" editable={btnEditOf("cta")} />
+      <section className={cn(HERO.section, HERO.alignText(left))} style={background(tokens.surface)}>
+        <div className={HERO.container}>
+          <EditableText as="p" value={get("eyebrow")} onCommit={set("eyebrow")} className={HERO.eyebrow} style={{ color: accent.accent }} />
+          <EditableText as="h1" value={get("title")} onCommit={set("title")} className={HERO.title} style={titleStyle} />
+          <EditableText as="p" multiline value={get("subtitle")} onCommit={set("subtitle")} className={cn(HERO.subtitleLead(left), HERO.subtitle)} style={{ color: tokens.muted }} />
+          <SiteButton value={get("cta")} onCommit={set("cta")} css={btnCssOf("cta")} className={HERO.cta} editable={btnEditOf("cta")} />
+        </div>
       </section>
     );
   }
@@ -2412,50 +2449,43 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
       { t: "f3t", d: "f3d" },
     ];
     return (
-      <section className="px-8 py-12" style={background(tokens.surface)}>
-        <div className={cn("mx-auto max-w-3xl gap-6", isMobile ? "flex flex-col" : "grid grid-cols-3")}>
-          {feats.map((feat, i) => {
-            const fallbackIcons: EditableIconId[] = ["sparkles", "layers", "wrench"];
-            return (
-              <div key={feat.t} className="text-center">
-                <span className="mx-auto grid h-10 w-10 place-items-center rounded-full" style={{ backgroundColor: accent.accentSoft, color: accent.accent }}>
-                  <EditableIcon value={get(`icon${i + 1}`)} fallback={fallbackIcons[i] ?? "sparkles"} onCommit={set(`icon${i + 1}`)} className="h-5 w-5" />
-                </span>
-                <EditableText as="p" value={get(feat.t)} onCommit={set(feat.t)} className="mt-2 text-sm font-semibold" style={{ color: tokens.ink }} />
-                <EditableText as="p" multiline value={get(feat.d)} onCommit={set(feat.d)} className="mt-1 text-xs leading-5" style={{ color: tokens.muted }} />
-              </div>
-            );
-          })}
+      <section className={SECTION.outer} style={background(tokens.surface)}>
+        <div className={SECTION.container}>
+          <div className={FEATURES.grid}>
+            {feats.map((feat, i) => {
+              const fallbackIcons: EditableIconId[] = ["sparkles", "layers", "wrench"];
+              return (
+                <div
+                  key={feat.t}
+                  className={FEATURES.card}
+                  style={{ borderColor: hexAlpha(tokens.muted, CARD_BORDER_ALPHA), backgroundColor: hexAlpha(tokens.surfaceAlt, CARD_BG_ALPHA) }}
+                >
+                  <span className={FEATURES.icon} style={{ color: accent.accent }}>
+                    <EditableIcon value={get(`icon${i + 1}`)} fallback={fallbackIcons[i] ?? "sparkles"} onCommit={set(`icon${i + 1}`)} className="h-6 w-6" />
+                  </span>
+                  <EditableText as="h3" value={get(feat.t)} onCommit={set(feat.t)} style={headingStyle} />
+                  <EditableText as="p" multiline value={get(feat.d)} onCommit={set(feat.d)} className={FEATURES.desc} style={{ color: tokens.muted }} />
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
     );
   }
 
   if (widgetId === "image-text") {
-    const imageFirst = get("layout") !== "image-right";
-    const image = (
-      <EditableImage value={get("image")} onCommit={set("image")} className="h-40 w-full" style={{ borderRadius: radius }} />
-    );
-    const text = (
-      <div>
-        <EditableText as="h3" value={get("title")} onCommit={set("title")} className="text-xl" style={{ ...titleStyle, color: tokens.ink }} />
-        <EditableText as="p" multiline value={get("body")} onCommit={set("body")} className="mt-2 text-sm leading-6" style={{ color: tokens.muted }} />
-      </div>
-    );
+    const reverse = get("layout") === "image-right";
     return (
-      <section className="px-8 py-12" style={background(tokens.surface)}>
-        <div className={cn("mx-auto max-w-3xl items-center gap-6", isMobile ? "flex flex-col" : "grid grid-cols-2")}>
-          {imageFirst ? (
-            <>
-              {image}
-              {text}
-            </>
-          ) : (
-            <>
-              {text}
-              {image}
-            </>
-          )}
+      <section className={SECTION.outer} style={background(tokens.surface)}>
+        <div className={SECTION.container}>
+          <div className={IMAGE_TEXT.grid}>
+            <EditableImage value={get("image")} onCommit={set("image")} className={cn(IMAGE_TEXT.image, reverse && "md:order-2")} />
+            <div>
+              <EditableText as="h2" value={get("title")} onCommit={set("title")} className={IMAGE_TEXT.title} style={headingStyle} />
+              <EditableText as="p" multiline value={get("body")} onCommit={set("body")} className={cn(IMAGE_TEXT.body)} style={{ color: tokens.muted }} />
+            </div>
+          </div>
         </div>
       </section>
     );
@@ -2463,10 +2493,10 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
 
   if (widgetId === "text-block") {
     return (
-      <section className="px-8 py-12" style={background(tokens.surfaceAlt)}>
-        <div className="mx-auto max-w-2xl">
-          <EditableText as="h3" value={get("title")} onCommit={set("title")} className="text-xl" style={{ ...titleStyle, color: tokens.ink }} />
-          <EditableText as="p" multiline value={get("body")} onCommit={set("body")} className="mt-2 text-sm leading-6" style={{ color: tokens.muted }} />
+      <section className={cn(SECTION.outer, "text-center")} style={background(tokens.surfaceAlt)}>
+        <div className={SECTION.container}>
+          <EditableText as="h2" value={get("title")} onCommit={set("title")} className={TEXT_BLOCK.title} style={headingStyle} />
+          <EditableText as="p" multiline value={get("body")} onCommit={set("body")} className={TEXT_BLOCK.body} style={{ color: tokens.muted }} />
         </div>
       </section>
     );
@@ -2479,35 +2509,17 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
       { name: "t3name", price: "t3price" },
     ];
     return (
-      <section className="px-6 py-12" style={background(tokens.surfaceAlt)}>
-        <EditableText as="h3" value={get("title")} onCommit={set("title")} className="mb-6 text-center text-xl" style={{ ...titleStyle, color: tokens.ink }} />
-        <div className={cn("mx-auto max-w-3xl gap-3", isMobile ? "flex flex-col" : "grid grid-cols-3")}>
-          {tiers.map((tier, i) => (
-            <div key={tier.name} className="p-4 text-center" style={{ backgroundColor: i === 1 ? accent.accentSoft : tokens.surface, border: `1px solid ${i === 1 ? accent.accent : `${tokens.muted}33`}`, borderRadius: radius }}>
-              <EditableText as="p" value={get(tier.name)} onCommit={set(tier.name)} className="text-xs font-semibold" style={{ color: tokens.ink }} />
-              <EditableText as="p" value={get(tier.price)} onCommit={set(tier.price)} className="mt-1 text-lg font-bold" style={{ color: accent.accentText }} />
-              <div className="mt-3 space-y-1">
-                {[0, 1, 2].map((row) => (
-                  <div key={row} className="mx-auto h-1.5 w-4/5 rounded-full" style={{ backgroundColor: `${tokens.muted}22` }} />
-                ))}
+      <section className={SECTION.outer} style={background(tokens.surfaceAlt)}>
+        <div className={SECTION.container}>
+          <EditableText as="h2" value={get("title")} onCommit={set("title")} className={PRODUCT_TIERS.title} style={headingStyle} />
+          <div className={PRODUCT_TIERS.grid}>
+            {tiers.map((tier) => (
+              <div key={tier.name} className={PRODUCT_TIERS.card} style={cardStyle}>
+                <EditableText as="h3" value={get(tier.name)} onCommit={set(tier.name)} style={headingStyle} />
+                <EditableText as="p" value={get(tier.price)} onCommit={set(tier.price)} className={PRODUCT_TIERS.price} style={{ color: accent.accent }} />
               </div>
-              {i === 1 ? (
-                <StyledButton
-                  label="Elegir"
-                  css={btnCssOf("elegir")}
-                  className="mt-4 block w-full py-1.5 text-[0.7rem] font-medium"
-                  editable={btnEditOf("elegir")}
-                />
-              ) : (
-                <span
-                  className="mt-4 block py-1.5 text-center text-[0.7rem] font-medium"
-                  style={{ border: `1px solid ${tokens.muted}44`, color: tokens.muted, borderRadius: radius / 2 }}
-                >
-                  Elegir
-                </span>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -2520,18 +2532,20 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
       { n: "s3name", d: "s3desc" },
     ];
     return (
-      <section className="px-6 py-12" style={background(tokens.surface)}>
-        <EditableText as="h3" value={get("title")} onCommit={set("title")} className="mb-6 text-center text-xl" style={{ ...titleStyle, color: tokens.ink }} />
-        <div className={cn("mx-auto max-w-3xl gap-3", isMobile ? "flex flex-col" : "grid grid-cols-3")}>
-          {svcs.map((svc, index) => (
-            <div key={svc.n} className="p-4" style={{ border: `1px solid ${tokens.muted}33`, borderRadius: radius, backgroundColor: tokens.surfaceAlt }}>
-              <span className="grid h-8 w-8 place-items-center rounded-lg" style={{ backgroundColor: accent.accentSoft, color: accent.accent }}>
-                <EditableIcon value={get(`serviceIcon${index + 1}`)} fallback="check" onCommit={set(`serviceIcon${index + 1}`)} className="h-4 w-4" />
-              </span>
-              <EditableText as="p" value={get(svc.n)} onCommit={set(svc.n)} className="mt-2 text-sm font-semibold" style={{ color: tokens.ink }} />
-              <EditableText as="p" multiline value={get(svc.d)} onCommit={set(svc.d)} className="mt-1 text-xs leading-5" style={{ color: tokens.muted }} />
-            </div>
-          ))}
+      <section className={SECTION.outer} style={background(tokens.surface)}>
+        <div className={SECTION.container}>
+          <EditableText as="h2" value={get("title")} onCommit={set("title")} className={SERVICES.title} style={headingStyle} />
+          <div className={SERVICES.grid}>
+            {svcs.map((svc, index) => (
+              <div key={svc.n} className={SERVICES.card} style={cardStyle}>
+                <span className={SERVICES.icon} style={{ color: accent.accent }}>
+                  <EditableIcon value={get(`serviceIcon${index + 1}`)} fallback="check" onCommit={set(`serviceIcon${index + 1}`)} className="h-6 w-6" />
+                </span>
+                <EditableText as="h3" value={get(svc.n)} onCommit={set(svc.n)} style={headingStyle} />
+                <EditableText as="p" multiline value={get(svc.d)} onCommit={set(svc.d)} className={SERVICES.desc} style={{ color: tokens.muted }} />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -2544,14 +2558,16 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
       { n: "n3", l: "l3" },
     ];
     return (
-      <section className="px-6 py-12" style={background(tokens.surfaceAlt)}>
-        <div className="mx-auto grid max-w-3xl grid-cols-3 gap-3 text-center">
-          {cells.map((cell) => (
-            <div key={cell.n}>
-              <EditableText as="p" value={get(cell.n)} onCommit={set(cell.n)} className="text-2xl font-bold" style={{ ...titleStyle, color: accent.accent }} />
-              <EditableText as="p" value={get(cell.l)} onCommit={set(cell.l)} className="mt-1 text-[0.7rem] uppercase tracking-wide" style={{ color: tokens.muted }} />
-            </div>
-          ))}
+      <section className={SECTION.outer} style={background(tokens.surfaceAlt)}>
+        <div className={SECTION.container}>
+          <div className={STATS.grid}>
+            {cells.map((cell) => (
+              <div key={cell.n} className={STATS.cell}>
+                <EditableText as="p" value={get(cell.n)} onCommit={set(cell.n)} className={STATS.number} style={{ ...headingStyle, color: accent.accent }} />
+                <EditableText as="p" value={get(cell.l)} onCommit={set(cell.l)} className={STATS.label} style={{ color: tokens.muted }} />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -2566,10 +2582,12 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
         ? { backgroundColor: "#fff", color: accent.accentText, borderRadius: radius / 2 }
         : btnCssOf("cta");
     return (
-      <section className="px-8 py-10" style={background(accent.accent)}>
-        <div className={cn("mx-auto max-w-3xl items-center gap-4", isMobile ? "flex flex-col text-center" : "flex")}>
-          <EditableText as="h3" value={get("title")} onCommit={set("title")} className="text-xl text-white" style={titleStyle} />
-          <SiteButton value={get("cta")} onCommit={set("cta")} css={bannerBtn} className={cn("px-4 py-2 text-xs font-semibold", isMobile ? "" : "ml-auto")} editable={btnEditOf("cta")} />
+      <section className={SECTION.outer} style={background(accent.accent)}>
+        <div className={SECTION.container}>
+          <div className={cn(CTA_BANNER.row, "text-white")}>
+            <EditableText as="h2" value={get("title")} onCommit={set("title")} className={CTA_BANNER.title} style={headingStyle} />
+            <SiteButton value={get("cta")} onCommit={set("cta")} css={bannerBtn} className={cn(BUTTON_BASE, CTA_BANNER.cta)} editable={btnEditOf("cta")} />
+          </div>
         </div>
       </section>
     );
@@ -2582,11 +2600,13 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
   if (widgetId === "gallery") {
     const fields = ["g1", "g2", "g3", "g4", "g5", "g6"] as const;
     return (
-      <section className="px-6 py-8" style={background(tokens.surfaceAlt)}>
-        <div className={cn("mx-auto grid max-w-3xl gap-2", isMobile ? "grid-cols-2" : "grid-cols-3")}>
-          {fields.map((field) => (
-            <EditableImage key={field} value={get(field)} onCommit={set(field)} className="aspect-square w-full" style={{ borderRadius: radius }} />
-          ))}
+      <section className={SECTION.outer} style={background(tokens.surfaceAlt)}>
+        <div className={SECTION.container}>
+          <div className={GALLERY.grid}>
+            {fields.map((field) => (
+              <EditableImage key={field} value={get(field)} onCommit={set(field)} className={GALLERY.image} />
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -2594,11 +2614,10 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
 
   if (widgetId === "bg-image") {
     return (
-      <section className="relative">
-        <EditableImage value={get("image")} onCommit={set("image")} className="h-56 w-full" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/60 to-slate-950/10" />
-        <div className="pointer-events-none absolute inset-0 flex items-end p-6">
-          <EditableText as="p" value={get("caption")} onCommit={set("caption")} className="pointer-events-auto text-sm font-medium text-white" style={titleStyle} />
+      <section className={BG_IMAGE.section}>
+        <EditableImage value={get("image")} onCommit={set("image")} className={BG_IMAGE.image} />
+        <div className={BG_IMAGE.overlay}>
+          <EditableText as="p" value={get("caption")} onCommit={set("caption")} className={BG_IMAGE.caption} />
         </div>
       </section>
     );
@@ -2606,13 +2625,14 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
 
   if (widgetId === "bg-video") {
     return (
-      <section className="relative flex h-56 items-center justify-center" style={background("#020617")}>
-        <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_30%_30%,#334155,transparent_60%)]" />
-        <div className="relative flex flex-col items-center gap-2">
-          <span className="grid h-12 w-12 place-items-center rounded-full text-white" style={{ backgroundColor: accent.accent }}>
-            <EditableIcon value={get("playIcon")} fallback="play" onCommit={set("playIcon")} className="h-5 w-5" />
-          </span>
-          <EditableText as="p" value={get("title")} onCommit={set("title")} className="text-xs font-medium text-white/85" />
+      <section className={SECTION.outer} style={{ ...background("#020617"), color: "#fff" }}>
+        <div className={SECTION.container}>
+          <div className={BG_VIDEO.inner}>
+            <span className="mb-3 inline-block h-6 w-6" style={{ color: accent.accent }}>
+              <EditableIcon value={get("playIcon")} fallback="play" onCommit={set("playIcon")} className="h-6 w-6" />
+            </span>
+            <EditableText as="h3" value={get("title")} onCommit={set("title")} style={headingStyle} />
+          </div>
         </div>
       </section>
     );
@@ -2625,18 +2645,20 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
       { t: "p3t", e: "p3e", img: "p3img" },
     ];
     return (
-      <section className="px-6 py-12" style={background(tokens.surface)}>
-        <EditableText as="h3" value={get("title")} onCommit={set("title")} className="mb-6 text-center text-xl" style={{ ...titleStyle, color: tokens.ink }} />
-        <div className={cn("mx-auto max-w-3xl gap-3", isMobile ? "flex flex-col" : "grid grid-cols-3")}>
-          {posts.map((post) => (
-            <div key={post.t} className="overflow-hidden" style={{ border: `1px solid ${tokens.muted}22`, borderRadius: radius, backgroundColor: tokens.surfaceAlt }}>
-              <EditableImage value={get(post.img)} onCommit={set(post.img)} className="h-24 w-full" />
-              <div className="p-3">
-                <EditableText as="p" value={get(post.t)} onCommit={set(post.t)} className="text-sm font-semibold" style={{ color: tokens.ink }} />
-                <EditableText as="p" multiline value={get(post.e)} onCommit={set(post.e)} className="mt-1 text-xs leading-5" style={{ color: tokens.muted }} />
+      <section className={SECTION.outer} style={background(tokens.surface)}>
+        <div className={SECTION.container}>
+          <EditableText as="h2" value={get("title")} onCommit={set("title")} className={BLOG.title} style={headingStyle} />
+          <div className={BLOG.grid}>
+            {posts.map((post) => (
+              <div key={post.t} className={BLOG.card} style={cardStyle}>
+                <EditableImage value={get(post.img)} onCommit={set(post.img)} className={BLOG.image} />
+                <div className={BLOG.body}>
+                  <EditableText as="h3" value={get(post.t)} onCommit={set(post.t)} style={headingStyle} />
+                  <EditableText as="p" multiline value={get(post.e)} onCommit={set(post.e)} className={BLOG.excerpt} style={{ color: tokens.muted }} />
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -2649,16 +2671,18 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
       { tag: "o3tag", t: "o3t", d: "o3d" },
     ];
     return (
-      <section className="px-6 py-12" style={background(tokens.surfaceAlt)}>
-        <EditableText as="h3" value={get("title")} onCommit={set("title")} className="mb-6 text-center text-xl" style={{ ...titleStyle, color: tokens.ink }} />
-        <div className={cn("mx-auto max-w-3xl gap-3", isMobile ? "flex flex-col" : "grid grid-cols-3")}>
-          {offers.map((offer) => (
-            <div key={offer.t} className="relative p-4 pt-6 text-center" style={{ border: `1px solid ${accent.accent}44`, borderRadius: radius, backgroundColor: tokens.surface }}>
-              <EditableText as="span" value={get(offer.tag)} onCommit={set(offer.tag)} className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[0.7rem] font-bold text-white" style={{ backgroundColor: accent.accent }} />
-              <EditableText as="p" value={get(offer.t)} onCommit={set(offer.t)} className="text-sm font-semibold" style={{ color: tokens.ink }} />
-              <EditableText as="p" multiline value={get(offer.d)} onCommit={set(offer.d)} className="mt-1 text-xs leading-5" style={{ color: tokens.muted }} />
-            </div>
-          ))}
+      <section className={SECTION.outer} style={background(tokens.surfaceAlt)}>
+        <div className={SECTION.container}>
+          <EditableText as="h2" value={get("title")} onCommit={set("title")} className={PROMOS.title} style={headingStyle} />
+          <div className={PROMOS.grid}>
+            {offers.map((offer) => (
+              <div key={offer.t} className={PROMOS.card} style={cardStyle}>
+                <EditableText as="span" value={get(offer.tag)} onCommit={set(offer.tag)} className={PROMOS.tag} style={{ backgroundColor: accent.accent }} />
+                <EditableText as="h3" value={get(offer.t)} onCommit={set(offer.t)} style={headingStyle} />
+                <EditableText as="p" multiline value={get(offer.d)} onCommit={set(offer.d)} className={PROMOS.desc} style={{ color: tokens.muted }} />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -2671,16 +2695,20 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
       { q: "q3", a: "a3" },
     ];
     return (
-      <section className="px-6 py-12" style={background(tokens.surface)}>
-        <EditableText as="h3" value={get("title")} onCommit={set("title")} className="mb-6 text-center text-xl" style={{ ...titleStyle, color: tokens.ink }} />
-        <div className={cn("mx-auto max-w-3xl gap-3", isMobile ? "flex flex-col" : "grid grid-cols-3")}>
-          {quotes.map((item, index) => (
-            <div key={item.q} className="p-4" style={{ border: `1px solid ${tokens.muted}22`, borderRadius: radius, backgroundColor: tokens.surfaceAlt }}>
-              <span style={{ color: accent.accent }}><EditableIcon value={get(`quoteIcon${index + 1}`)} fallback="quote" onCommit={set(`quoteIcon${index + 1}`)} className="h-5 w-5" /></span>
-              <EditableText as="p" multiline value={get(item.q)} onCommit={set(item.q)} className="mt-2 text-xs leading-5" style={{ color: tokens.ink }} />
-              <EditableText as="p" value={get(item.a)} onCommit={set(item.a)} className="mt-2 text-[0.72rem] font-semibold" style={{ color: accent.accentText }} />
-            </div>
-          ))}
+      <section className={SECTION.outer} style={background(tokens.surface)}>
+        <div className={SECTION.container}>
+          <EditableText as="h2" value={get("title")} onCommit={set("title")} className={TESTIMONIALS.title} style={headingStyle} />
+          <div className={TESTIMONIALS.grid}>
+            {quotes.map((item, index) => (
+              <div key={item.q} className={TESTIMONIALS.card} style={cardStyle}>
+                <span className="mb-3 inline-block h-6 w-6" style={{ color: accent.accent }}>
+                  <EditableIcon value={get(`quoteIcon${index + 1}`)} fallback="quote" onCommit={set(`quoteIcon${index + 1}`)} className="h-6 w-6" />
+                </span>
+                <EditableText as="p" multiline value={get(item.q)} onCommit={set(item.q)} style={{ color: tokens.muted }} />
+                <EditableText as="p" value={get(item.a)} onCommit={set(item.a)} className={TESTIMONIALS.author} style={{ color: accent.accent }} />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -2693,48 +2721,47 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
       { q: "q3", a: "a3" },
     ];
     return (
-      <section className="px-8 py-12" style={background(tokens.surfaceAlt)}>
-        <EditableText as="h3" value={get("title")} onCommit={set("title")} className="mb-6 text-center text-xl" style={{ ...titleStyle, color: tokens.ink }} />
-        <div className="mx-auto max-w-2xl space-y-2">
-          {items.map((item) => (
-            <div key={item.q} className="p-3" style={{ border: `1px solid ${tokens.muted}22`, borderRadius: radius, backgroundColor: tokens.surface }}>
-              <EditableText as="p" value={get(item.q)} onCommit={set(item.q)} className="text-sm font-semibold" style={{ color: tokens.ink }} />
-              <EditableText as="p" multiline value={get(item.a)} onCommit={set(item.a)} className="mt-1 text-xs leading-5" style={{ color: tokens.muted }} />
-            </div>
-          ))}
+      <section className={SECTION.outer} style={background(tokens.surfaceAlt)}>
+        <div className={SECTION.container}>
+          <EditableText as="h2" value={get("title")} onCommit={set("title")} className={FAQ.title} style={headingStyle} />
+          <div className={FAQ.list}>
+            {items.map((item) => (
+              <div key={item.q} className={FAQ.item} style={{ borderColor: hexAlpha(tokens.muted, CARD_BORDER_ALPHA), backgroundColor: tokens.surface }}>
+                <EditableText as="p" value={get(item.q)} onCommit={set(item.q)} className={FAQ.summary} />
+                <EditableText as="p" multiline value={get(item.a)} onCommit={set(item.a)} className={FAQ.answer} style={{ color: tokens.muted }} />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     );
   }
 
   if (widgetId === "contact") {
+    const contactInputStyle: React.CSSProperties = {
+      borderColor: hexAlpha(tokens.muted, 0.35),
+      backgroundColor: tokens.surface,
+      color: tokens.ink,
+    };
     return (
-      <section className="px-8 py-12" style={background(tokens.surface)}>
-        <div className={cn("mx-auto max-w-3xl gap-8", isMobile ? "flex flex-col" : "grid grid-cols-2")}>
-          <div>
-            <EditableText as="h3" value={get("title")} onCommit={set("title")} className="text-xl" style={{ ...titleStyle, color: tokens.ink }} />
-            <EditableText as="p" multiline value={get("subtitle")} onCommit={set("subtitle")} className="mt-1 text-sm" style={{ color: tokens.muted }} />
-            <div className="mt-4 space-y-1.5 text-sm" style={{ color: tokens.ink }}>
-              <EditableText as="p" value={get("email")} onCommit={set("email")} />
-              <EditableText as="p" value={get("phone")} onCommit={set("phone")} />
-              <EditableText as="p" value={get("address")} onCommit={set("address")} />
+      <section className={SECTION.outer} style={background(tokens.surface)}>
+        <div className={SECTION.container}>
+          <div className={CONTACT.grid}>
+            <div>
+              <EditableText as="h2" value={get("title")} onCommit={set("title")} className={CONTACT.title} style={headingStyle} />
+              <EditableText as="p" multiline value={get("subtitle")} onCommit={set("subtitle")} className={CONTACT.subtitle} style={{ color: tokens.muted }} />
+              <address className={CONTACT.address} style={{ color: tokens.muted }}>
+                <EditableText as="p" value={get("email")} onCommit={set("email")} />
+                <EditableText as="p" value={get("phone")} onCommit={set("phone")} />
+                <EditableText as="p" value={get("address")} onCommit={set("address")} />
+              </address>
             </div>
-          </div>
-          <div className="space-y-2">
-            {["Nombre", "Correo"].map((ph) => (
-              <div key={ph} className="px-3 py-2 text-[0.72rem]" style={{ border: `1px solid ${tokens.muted}33`, borderRadius: radius / 2, color: tokens.muted }}>
-                {ph}
-              </div>
-            ))}
-            <div className="px-3 py-6 text-[0.72rem]" style={{ border: `1px solid ${tokens.muted}33`, borderRadius: radius / 2, color: tokens.muted }}>
-              Mensaje
-            </div>
-            <StyledButton
-              label="Enviar"
-              css={btnCssOf("send")}
-              className="block w-full py-2 text-xs font-medium"
-              editable={btnEditOf("send")}
-            />
+            <form className="grid gap-3" onSubmit={(event) => event.preventDefault()}>
+              <input disabled placeholder="Nombre" className={CONTACT.input} style={contactInputStyle} />
+              <input disabled placeholder="Correo" className={CONTACT.input} style={contactInputStyle} />
+              <textarea disabled placeholder="Mensaje" className={cn(CONTACT.input, "min-h-[130px]")} style={contactInputStyle} />
+              <StyledButton label="Enviar" css={btnCssOf("send")} className={cn(BUTTON_BASE, "text-center")} editable={btnEditOf("send")} />
+            </form>
           </div>
         </div>
       </section>

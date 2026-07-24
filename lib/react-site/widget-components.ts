@@ -15,8 +15,28 @@
 
 import type { CSSProperties } from "react";
 
-import type { BuildPlanId, TemplateTokens, WidgetId } from "@/app/components/build/build-model";
+import { BUILD_PLANS, type BuildPlanId, type TemplateTokens, type WidgetId } from "@/app/components/build/build-model";
 import type { GeneratedFile } from "@/lib/generated-site";
+import {
+  BG_IMAGE as BG_IMAGE_CLASS,
+  BG_VIDEO as BG_VIDEO_CLASS,
+  BLOG as BLOG_CLASS,
+  CAROUSEL as CAROUSEL_CLASS,
+  CONTACT as CONTACT_CLASS,
+  CTA_BANNER as CTA_BANNER_CLASS,
+  FAQ as FAQ_CLASS,
+  FEATURES as FEATURES_CLASS,
+  GALLERY as GALLERY_CLASS,
+  HERO as HERO_CLASS,
+  IMAGE_TEXT as IMAGE_TEXT_CLASS,
+  PRODUCT_TIERS as PRODUCT_TIERS_CLASS,
+  PROMOS as PROMOS_CLASS,
+  SECTION as SECTION_CLASS,
+  SERVICES as SERVICES_CLASS,
+  STATS as STATS_CLASS,
+  TESTIMONIALS as TESTIMONIALS_CLASS,
+  TEXT_BLOCK as TEXT_BLOCK_CLASS,
+} from "@/lib/react-site/widget-contract";
 import {
   backgroundStyle,
   buttonStyle,
@@ -78,8 +98,8 @@ import { resolveReactIcon } from "@/components/widgets/react-icons";
 
 export function Section({ children, style, className = "" }: { children: ReactNode; style?: CSSProperties; className?: string }) {
   return (
-    <section className={"px-[max(5vw,1.25rem)] py-18 " + className} style={style}>
-      <div className="mx-auto w-full max-w-[1050px]">{children}</div>
+    <section className={"${SECTION_CLASS.outer} " + className} style={style}>
+      <div className="${SECTION_CLASS.container}">{children}</div>
     </section>
   );
 }
@@ -107,9 +127,10 @@ export function Icon({ glyph, icon }: { glyph: string; icon?: string }) {
 
 /* --------------------------- Fuentes de widgets ------------------------- */
 
+// Fuente unica: las clases salen del contrato compartido (HERO), y los colores
+// de marca van inline con el mismo valor de token que usa el preview. Asi el
+// sitio generado y el preview del builder renderizan identico.
 const HERO = `import type { CSSProperties } from "react";
-
-import { Button, Section } from "@/components/widgets/primitives";
 
 type Props = {
   iid: string;
@@ -119,32 +140,37 @@ type Props = {
   cta?: string;
   ctaHref: string;
   align?: "center" | "left";
+  accentColor: string;
+  mutedColor: string;
+  titleStyle?: CSSProperties;
   bg?: CSSProperties;
   ctaStyle?: CSSProperties;
   styles?: Record<string, CSSProperties>;
 };
 
-export default function Hero({ iid, eyebrow, title, subtitle, cta, ctaHref, align = "center", bg, ctaStyle, styles }: Props) {
+export default function Hero({ iid, eyebrow, title, subtitle, cta, ctaHref, align = "center", accentColor, mutedColor, titleStyle, bg, ctaStyle, styles }: Props) {
   const left = align === "left";
   return (
-    <Section style={bg} className={left ? "py-28 text-left" : "py-28 text-center"}>
-      {eyebrow ? (
-        <p data-imin-key={iid + ":eyebrow"} className="font-bold uppercase tracking-[0.2em] text-accent" style={styles?.eyebrow}>
-          {eyebrow}
+    <section className={"${HERO_CLASS.section} " + (left ? "${HERO_CLASS.alignText(true)}" : "${HERO_CLASS.alignText(false)}")} style={bg}>
+      <div className="${HERO_CLASS.container}">
+        {eyebrow ? (
+          <p data-imin-key={iid + ":eyebrow"} className="${HERO_CLASS.eyebrow}" style={{ color: accentColor, ...styles?.eyebrow }}>
+            {eyebrow}
+          </p>
+        ) : null}
+        <h1 data-imin-key={iid + ":title"} className="${HERO_CLASS.title}" style={{ ...titleStyle, ...styles?.title }}>
+          {title}
+        </h1>
+        <p data-imin-key={iid + ":subtitle"} className={(left ? "" : "${HERO_CLASS.subtitleLead(false).trim()} ") + "${HERO_CLASS.subtitle}"} style={{ color: mutedColor, ...styles?.subtitle }}>
+          {subtitle}
         </p>
-      ) : null}
-      <h1 data-imin-key={iid + ":title"} className="mt-2 text-[clamp(2.5rem,7vw,5.5rem)]" style={styles?.title}>
-        {title}
-      </h1>
-      <p data-imin-key={iid + ":subtitle"} className={(left ? "" : "mx-auto ") + "mt-4 max-w-[620px] text-lg text-muted"} style={styles?.subtitle}>
-        {subtitle}
-      </p>
-      {cta ? (
-        <Button href={ctaHref} dataKey={iid + ":cta"} className="mt-6" style={ctaStyle}>
-          {cta}
-        </Button>
-      ) : null}
-    </Section>
+        {cta ? (
+          <a href={ctaHref} data-imin-key={iid + ":cta"} className="${HERO_CLASS.cta}" style={ctaStyle}>
+            {cta}
+          </a>
+        ) : null}
+      </div>
+    </section>
   );
 }
 `;
@@ -158,12 +184,12 @@ type Item = { glyph: string; icon?: string; titleKey: string; title?: string; de
 export default function Features({ items, bg }: { items: Item[]; bg?: CSSProperties }) {
   return (
     <Section style={bg}>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="${FEATURES_CLASS.grid}">
         {items.map((item, i) => (
-          <article key={i} className="rounded-[var(--radius)] border border-muted/20 bg-surface-alt/90 p-6">
+          <article key={i} className="${FEATURES_CLASS.card} border-muted/20 bg-surface-alt/90">
             <Icon glyph={item.glyph} icon={item.icon} />
             <h3 data-imin-key={item.titleKey}>{item.title}</h3>
-            <p data-imin-key={item.descKey} className="mt-1 text-muted">{item.desc}</p>
+            <p data-imin-key={item.descKey} className="${FEATURES_CLASS.desc} text-muted">{item.desc}</p>
           </article>
         ))}
       </div>
@@ -189,13 +215,13 @@ type Props = {
 export default function ImageText({ iid, title, body, image, reverse, bg, styles }: Props) {
   return (
     <Section style={bg}>
-      <div className="grid items-center gap-12 md:grid-cols-2">
-        <img data-imin-key={iid + ":image"} src={image} alt="" className={"h-[330px] w-full rounded-[var(--radius)] object-cover " + (reverse ? "md:order-2" : "")} />
+      <div className="${IMAGE_TEXT_CLASS.grid}">
+        <img data-imin-key={iid + ":image"} src={image} alt="" className={"${IMAGE_TEXT_CLASS.image} " + (reverse ? "md:order-2" : "")} />
         <div>
-          <h2 data-imin-key={iid + ":title"} className="text-[clamp(1.8rem,4vw,3rem)]" style={styles?.title}>
+          <h2 data-imin-key={iid + ":title"} className="${IMAGE_TEXT_CLASS.title}" style={styles?.title}>
             {title}
           </h2>
-          <p data-imin-key={iid + ":body"} className="mt-3 text-muted" style={styles?.body}>
+          <p data-imin-key={iid + ":body"} className="${IMAGE_TEXT_CLASS.body} text-muted" style={styles?.body}>
             {body}
           </p>
         </div>
@@ -214,10 +240,10 @@ type Props = { iid: string; title?: string; body?: string; bg?: CSSProperties; s
 export default function TextBlock({ iid, title, body, bg, styles }: Props) {
   return (
     <Section style={bg} className="text-center">
-      <h2 data-imin-key={iid + ":title"} className="text-[clamp(1.8rem,4vw,3rem)]" style={styles?.title}>
+      <h2 data-imin-key={iid + ":title"} className="${TEXT_BLOCK_CLASS.title}" style={styles?.title}>
         {title}
       </h2>
-      <p data-imin-key={iid + ":body"} className="mx-auto mt-3 max-w-[640px] text-lg text-muted" style={styles?.body}>
+      <p data-imin-key={iid + ":body"} className="${TEXT_BLOCK_CLASS.body} text-muted" style={styles?.body}>
         {body}
       </p>
     </Section>
@@ -234,14 +260,14 @@ type Tier = { nameKey: string; name?: string; priceKey: string; price?: string }
 export default function ProductTiers({ iid, title, tiers, bg, styles }: { iid: string; title?: string; tiers: Tier[]; bg?: CSSProperties; styles?: Record<string, CSSProperties> }) {
   return (
     <Section style={bg}>
-      <h2 data-imin-key={iid + ":title"} className="mb-8 text-center text-[clamp(1.8rem,4vw,3rem)]" style={styles?.title}>
+      <h2 data-imin-key={iid + ":title"} className="${PRODUCT_TIERS_CLASS.title}" style={styles?.title}>
         {title}
       </h2>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="${PRODUCT_TIERS_CLASS.grid}">
         {tiers.map((tier, i) => (
-          <article key={i} className="rounded-[var(--radius)] border border-muted/20 bg-surface-alt/90 p-6 text-center">
+          <article key={i} className="${PRODUCT_TIERS_CLASS.card} border-muted/20 bg-surface-alt/90">
             <h3 data-imin-key={tier.nameKey}>{tier.name}</h3>
-            <strong data-imin-key={tier.priceKey} className="mt-2 block text-3xl text-accent">{tier.price}</strong>
+            <strong data-imin-key={tier.priceKey} className="${PRODUCT_TIERS_CLASS.price} text-accent">{tier.price}</strong>
           </article>
         ))}
       </div>
@@ -259,15 +285,15 @@ type Item = { glyph: string; icon?: string; nameKey: string; name?: string; desc
 export default function Services({ iid, title, items, bg, styles }: { iid: string; title?: string; items: Item[]; bg?: CSSProperties; styles?: Record<string, CSSProperties> }) {
   return (
     <Section style={bg}>
-      <h2 data-imin-key={iid + ":title"} className="mb-8 text-center text-[clamp(1.8rem,4vw,3rem)]" style={styles?.title}>
+      <h2 data-imin-key={iid + ":title"} className="${SERVICES_CLASS.title}" style={styles?.title}>
         {title}
       </h2>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="${SERVICES_CLASS.grid}">
         {items.map((item, i) => (
-          <article key={i} className="rounded-[var(--radius)] border border-muted/20 bg-surface-alt/90 p-6">
+          <article key={i} className="${SERVICES_CLASS.card} border-muted/20 bg-surface-alt/90">
             <Icon glyph={item.glyph} icon={item.icon} />
             <h3 data-imin-key={item.nameKey}>{item.name}</h3>
-            <p data-imin-key={item.descKey} className="mt-1 text-muted">{item.desc}</p>
+            <p data-imin-key={item.descKey} className="${SERVICES_CLASS.desc} text-muted">{item.desc}</p>
           </article>
         ))}
       </div>
@@ -285,11 +311,11 @@ type Item = { numberKey: string; number?: string; labelKey: string; label?: stri
 export default function Stats({ items, bg }: { items: Item[]; bg?: CSSProperties }) {
   return (
     <Section style={bg}>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="${STATS_CLASS.grid}">
         {items.map((item, i) => (
-          <article key={i} className="text-center">
-            <strong data-imin-key={item.numberKey} className="block text-3xl text-accent">{item.number}</strong>
-            <p data-imin-key={item.labelKey} className="mt-1 text-muted">{item.label}</p>
+          <article key={i} className="${STATS_CLASS.cell}">
+            <strong data-imin-key={item.numberKey} className="${STATS_CLASS.number} text-accent">{item.number}</strong>
+            <p data-imin-key={item.labelKey} className="${STATS_CLASS.label} text-muted">{item.label}</p>
           </article>
         ))}
       </div>
@@ -307,12 +333,12 @@ type Props = { iid: string; title?: string; cta?: string; ctaHref: string; bg?: 
 export default function CtaBanner({ iid, title, cta, ctaHref, bg, ctaStyle, styles }: Props) {
   return (
     <Section style={bg}>
-      <div className="flex flex-col items-start gap-6 text-white md:flex-row md:items-center">
-        <h2 data-imin-key={iid + ":title"} className="text-[clamp(1.8rem,4vw,3rem)]" style={styles?.title}>
+      <div className="${CTA_BANNER_CLASS.row} text-white">
+        <h2 data-imin-key={iid + ":title"} className="${CTA_BANNER_CLASS.title}" style={styles?.title}>
           {title}
         </h2>
         {cta ? (
-          <Button href={ctaHref} dataKey={iid + ":cta"} className="md:ml-auto" style={ctaStyle}>
+          <Button href={ctaHref} dataKey={iid + ":cta"} className="${CTA_BANNER_CLASS.cta}" style={ctaStyle}>
             {cta}
           </Button>
         ) : null}
@@ -336,9 +362,9 @@ export default function Carousel({ images, bg }: { images: Slide[]; bg?: CSSProp
   const go = (delta: number) => setIndex((prev) => (prev + delta + images.length) % images.length);
   return (
     <Section style={bg}>
-      <div className="relative h-[420px]">
+      <div className="${CAROUSEL_CLASS.frame}">
         {images.map((slide, i) => (
-          <img key={i} data-imin-key={slide.key} src={slide.src} alt="" className={"h-full w-full rounded-[var(--radius)] object-cover " + (i === index ? "block" : "hidden")} />
+          <img key={i} data-imin-key={slide.key} src={slide.src} alt="" className={"${CAROUSEL_CLASS.slide} " + (i === index ? "block" : "hidden")} />
         ))}
         <button type="button" onClick={() => go(-1)} aria-label="Anterior" className="absolute left-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/80 text-2xl text-slate-900">
           {"\\u2039"}
@@ -361,9 +387,9 @@ type Img = { key: string; src: string };
 export default function Gallery({ images, bg }: { images: Img[]; bg?: CSSProperties }) {
   return (
     <Section style={bg}>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div className="${GALLERY_CLASS.grid}">
         {images.map((img, i) => (
-          <img key={i} data-imin-key={img.key} src={img.src} alt="" className="aspect-square w-full rounded-[var(--radius)] object-cover" />
+          <img key={i} data-imin-key={img.key} src={img.src} alt="" className="${GALLERY_CLASS.image}" />
         ))}
       </div>
     </Section>
@@ -375,10 +401,10 @@ const BG_IMAGE = `type Props = { iid: string; image: string; caption?: string };
 
 export default function BgImage({ iid, image, caption }: Props) {
   return (
-    <section className="relative h-[480px]">
-      <img data-imin-key={iid + ":image"} src={image} alt="" className="h-full w-full object-cover" />
-      <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 to-transparent p-12">
-        <p data-imin-key={iid + ":caption"} className="text-xl text-white">{caption}</p>
+    <section className="${BG_IMAGE_CLASS.section}">
+      <img data-imin-key={iid + ":image"} src={image} alt="" className="${BG_IMAGE_CLASS.image}" />
+      <div className="${BG_IMAGE_CLASS.overlay}">
+        <p data-imin-key={iid + ":caption"} className="${BG_IMAGE_CLASS.caption}">{caption}</p>
       </div>
     </section>
   );
@@ -394,7 +420,7 @@ type Props = { iid: string; title?: string; icon: { glyph: string; icon?: string
 export default function BgVideo({ iid, title, icon, bg }: Props) {
   return (
     <Section style={bg} className="text-white">
-      <div className="py-16 text-center">
+      <div className="${BG_VIDEO_CLASS.inner}">
         <Icon glyph={icon.glyph} icon={icon.icon} />
         <h3 data-imin-key={iid + ":title"}>{title}</h3>
       </div>
@@ -412,16 +438,16 @@ type Post = { imageKey: string; image: string; titleKey: string; title?: string;
 export default function Blog({ iid, title, posts, bg, styles }: { iid: string; title?: string; posts: Post[]; bg?: CSSProperties; styles?: Record<string, CSSProperties> }) {
   return (
     <Section style={bg}>
-      <h2 data-imin-key={iid + ":title"} className="mb-8 text-center text-[clamp(1.8rem,4vw,3rem)]" style={styles?.title}>
+      <h2 data-imin-key={iid + ":title"} className="${BLOG_CLASS.title}" style={styles?.title}>
         {title}
       </h2>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="${BLOG_CLASS.grid}">
         {posts.map((post, i) => (
-          <article key={i} className="overflow-hidden rounded-[var(--radius)] border border-muted/20 bg-surface-alt/90">
-            <img data-imin-key={post.imageKey} src={post.image} alt="" className="h-[180px] w-full object-cover" />
-            <div className="p-5">
+          <article key={i} className="${BLOG_CLASS.card} border-muted/20 bg-surface-alt/90">
+            <img data-imin-key={post.imageKey} src={post.image} alt="" className="${BLOG_CLASS.image}" />
+            <div className="${BLOG_CLASS.body}">
               <h3 data-imin-key={post.titleKey}>{post.title}</h3>
-              <p data-imin-key={post.excerptKey} className="mt-1 text-muted">{post.excerpt}</p>
+              <p data-imin-key={post.excerptKey} className="${BLOG_CLASS.excerpt} text-muted">{post.excerpt}</p>
             </div>
           </article>
         ))}
@@ -440,15 +466,15 @@ type Item = { tagKey: string; tag?: string; titleKey: string; title?: string; de
 export default function Promos({ iid, title, items, bg, styles }: { iid: string; title?: string; items: Item[]; bg?: CSSProperties; styles?: Record<string, CSSProperties> }) {
   return (
     <Section style={bg}>
-      <h2 data-imin-key={iid + ":title"} className="mb-8 text-center text-[clamp(1.8rem,4vw,3rem)]" style={styles?.title}>
+      <h2 data-imin-key={iid + ":title"} className="${PROMOS_CLASS.title}" style={styles?.title}>
         {title}
       </h2>
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="${PROMOS_CLASS.grid}">
         {items.map((item, i) => (
-          <article key={i} className="relative rounded-[var(--radius)] border border-muted/20 bg-surface-alt/90 p-6 pt-8 text-center">
-            <span data-imin-key={item.tagKey} className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-1 text-sm font-extrabold text-white">{item.tag}</span>
+          <article key={i} className="${PROMOS_CLASS.card} border-muted/20 bg-surface-alt/90">
+            <span data-imin-key={item.tagKey} className="${PROMOS_CLASS.tag} bg-accent">{item.tag}</span>
             <h3 data-imin-key={item.titleKey}>{item.title}</h3>
-            <p data-imin-key={item.descKey} className="mt-1 text-muted">{item.desc}</p>
+            <p data-imin-key={item.descKey} className="${PROMOS_CLASS.desc} text-muted">{item.desc}</p>
           </article>
         ))}
       </div>
@@ -466,15 +492,15 @@ type Item = { glyph: string; icon?: string; quoteKey: string; quote?: string; au
 export default function Testimonials({ iid, title, items, bg, styles }: { iid: string; title?: string; items: Item[]; bg?: CSSProperties; styles?: Record<string, CSSProperties> }) {
   return (
     <Section style={bg}>
-      <h2 data-imin-key={iid + ":title"} className="mb-8 text-center text-[clamp(1.8rem,4vw,3rem)]" style={styles?.title}>
+      <h2 data-imin-key={iid + ":title"} className="${TESTIMONIALS_CLASS.title}" style={styles?.title}>
         {title}
       </h2>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="${TESTIMONIALS_CLASS.grid}">
         {items.map((item, i) => (
-          <article key={i} className="rounded-[var(--radius)] border border-muted/20 bg-surface-alt/90 p-6">
+          <article key={i} className="${TESTIMONIALS_CLASS.card} border-muted/20 bg-surface-alt/90">
             <Icon glyph={item.glyph} icon={item.icon} />
             <p data-imin-key={item.quoteKey} className="text-muted">{item.quote}</p>
-            <strong data-imin-key={item.authorKey} className="mt-4 block text-accent">{item.author}</strong>
+            <strong data-imin-key={item.authorKey} className="${TESTIMONIALS_CLASS.author} text-accent">{item.author}</strong>
           </article>
         ))}
       </div>
@@ -492,14 +518,14 @@ type Item = { qKey: string; q?: string; aKey: string; a?: string };
 export default function Faq({ iid, title, items, bg, styles }: { iid: string; title?: string; items: Item[]; bg?: CSSProperties; styles?: Record<string, CSSProperties> }) {
   return (
     <Section style={bg}>
-      <h2 data-imin-key={iid + ":title"} className="mb-8 text-center text-[clamp(1.8rem,4vw,3rem)]" style={styles?.title}>
+      <h2 data-imin-key={iid + ":title"} className="${FAQ_CLASS.title}" style={styles?.title}>
         {title}
       </h2>
-      <div className="mx-auto w-full max-w-[760px]">
+      <div className="${FAQ_CLASS.list}">
         {items.map((item, i) => (
-          <details key={i} className="my-3 rounded-[var(--radius)] border border-muted/20 bg-surface p-4">
-            <summary data-imin-key={item.qKey} className="cursor-pointer font-bold">{item.q}</summary>
-            <p data-imin-key={item.aKey} className="mt-2 text-muted">{item.a}</p>
+          <details key={i} className="${FAQ_CLASS.item} border-muted/20 bg-surface">
+            <summary data-imin-key={item.qKey} className="${FAQ_CLASS.summary}">{item.q}</summary>
+            <p data-imin-key={item.aKey} className="${FAQ_CLASS.answer} text-muted">{item.a}</p>
           </details>
         ))}
       </div>
@@ -529,18 +555,18 @@ type Props = {
 
 export default function Contact({ iid, title, subtitle, email, phone, address, sendStyle, bg, styles }: Props) {
   const [sent, setSent] = useState(false);
-  const inputClass = "w-full rounded-[calc(var(--radius)/2)] border border-muted/35 bg-surface p-3 text-ink";
+  const inputClass = "${CONTACT_CLASS.input} border-muted/35 bg-surface text-ink";
   return (
     <Section style={bg}>
-      <div className="grid items-start gap-12 md:grid-cols-2">
+      <div className="${CONTACT_CLASS.grid}">
         <div>
-          <h2 data-imin-key={iid + ":title"} className="text-[clamp(1.8rem,4vw,3rem)]" style={styles?.title}>
+          <h2 data-imin-key={iid + ":title"} className="${CONTACT_CLASS.title}" style={styles?.title}>
             {title}
           </h2>
-          <p data-imin-key={iid + ":subtitle"} className="mt-3 text-muted" style={styles?.subtitle}>
+          <p data-imin-key={iid + ":subtitle"} className="${CONTACT_CLASS.subtitle} text-muted" style={styles?.subtitle}>
             {subtitle}
           </p>
-          <address className="mt-6 not-italic text-muted">
+          <address className="${CONTACT_CLASS.address} text-muted">
             <span data-imin-key={iid + ":email"}>{email}</span>
             <br />
             <span data-imin-key={iid + ":phone"}>{phone}</span>
@@ -594,6 +620,9 @@ export const WIDGET_TEMPLATES: Record<WidgetId, WidgetTemplate> = {
       cta: ctx.get("cta"),
       ctaHref: ctx.contactHref,
       align: ctx.tokens.heroAlign,
+      accentColor: BUILD_PLANS[ctx.plan].accent,
+      mutedColor: ctx.tokens.muted,
+      titleStyle: { fontFamily: ctx.tokens.titleFamily, fontWeight: ctx.tokens.titleWeight },
       bg: sectionBg(ctx),
       ctaStyle: buttonStyle(ctx.content[`${ctx.iid}:cta:style`], ctx.plan, ctx.tokens.radius),
       styles: styleMap({ eyebrow: ts(ctx, "eyebrow", "p"), title: ts(ctx, "title", "h1"), subtitle: ts(ctx, "subtitle", "p") }),

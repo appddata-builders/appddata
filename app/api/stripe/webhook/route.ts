@@ -65,9 +65,26 @@ export async function POST(request: Request) {
   const subscriptionKind = checkout?.metadata?.subscription_kind;
   const subscriptionUserId = checkout?.metadata?.user_id;
   if (
+    checkout?.id &&
+    checkout.payment_status === "paid" &&
+    checkout.client_reference_id === subscriptionUserId &&
+    subscriptionUserId &&
+    subscriptionKind === "technical-support"
+  ) {
+    await saveAccountSubscription({
+      id: checkout.id,
+      userId: subscriptionUserId,
+      kind: subscriptionKind,
+      customerId: checkout.customer,
+      status: "active",
+    });
+    return Response.json({ received: true });
+  }
+
+  if (
     checkout?.subscription &&
     subscriptionUserId &&
-    (subscriptionKind === "cloud-server" || subscriptionKind === "technical-support")
+    subscriptionKind === "cloud-server"
   ) {
     const response = await stripeRequest(`/subscriptions/${encodeURIComponent(checkout.subscription)}`);
     const subscription = await response.json() as {

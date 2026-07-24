@@ -45,7 +45,7 @@ async function openCheckout(request: Request, kind: unknown) {
 
   const origin = (process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin).replace(/\/$/, "");
   const body = new URLSearchParams({
-    mode: "subscription",
+    mode: kind === "cloud-server" ? "subscription" : "payment",
     success_url: `${origin}/dashboard?subscription=activada`,
     cancel_url: `${origin}/dashboard?subscription=cancelada`,
     client_reference_id: session.user.id,
@@ -53,11 +53,13 @@ async function openCheckout(request: Request, kind: unknown) {
     "branding_settings[display_name]": "Appddata",
     "metadata[user_id]": session.user.id,
     "metadata[subscription_kind]": kind,
-    "subscription_data[metadata][user_id]": session.user.id,
-    "subscription_data[metadata][subscription_kind]": kind,
     "line_items[0][price]": price,
     "line_items[0][quantity]": "1",
   });
+  if (kind === "cloud-server") {
+    body.set("subscription_data[metadata][user_id]", session.user.id);
+    body.set("subscription_data[metadata][subscription_kind]", kind);
+  }
   const response = await stripeRequest("/checkout/sessions", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -65,7 +67,7 @@ async function openCheckout(request: Request, kind: unknown) {
   });
   const result = await response.json() as { url?: string; error?: { message?: string } };
   if (!response.ok || !result.url) {
-    console.error("Stripe subscription checkout:", result.error?.message ?? response.statusText);
+    console.error("Stripe account checkout:", result.error?.message ?? response.statusText);
     return NextResponse.redirect(new URL("/dashboard?subscription=error", request.url), 303);
   }
   return NextResponse.redirect(result.url, 303);

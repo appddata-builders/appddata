@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { and, asc, eq, isNull } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { hydrate, project, projectText, siteEntitlement, user } from "@/db/schema";
+import { hydrate, project, projectText, siteEntitlement, user, userProject } from "@/db/schema";
 import { ensureDefaultProjects } from "@/lib/default-projects";
+import { ensureProjectAccessSchema } from "@/lib/project-access-server";
 import { requirePanelSession } from "@/lib/require-panel-session";
 import { generateReactSiteFiles } from "@/lib/react-site/generate-react-site";
 import { buildContentSeed } from "@/lib/react-site/content-keys";
@@ -56,7 +57,12 @@ export async function POST(request: Request) {
     await db.update(siteEntitlement)
       .set({ projectSlug: validation.slug })
       .where(and(eq(siteEntitlement.id, entitlement.id), isNull(siteEntitlement.projectSlug)));
-    await db.update(user).set({ projectSlug: validation.slug }).where(eq(user.id, session.user.id));
+    // El sitio nuevo solo se vuelve el proyecto "principal" de la cuenta si aun
+    // no habia uno. Con varios paquetes, los siguientes sitios se AGREGAN (a
+    // user_project, mas abajo) sin desplazar el principal.
+    if (!session.user.projectSlug) {
+      await db.update(user).set({ projectSlug: validation.slug }).where(eq(user.id, session.user.id));
+    }
   }
   const entries = [
     { key: "site.document", value: JSON.stringify(body.document ?? {}) },
@@ -72,6 +78,15 @@ export async function POST(request: Request) {
     await db.insert(hydrate).values(seed.map(([contentKey, contentValue]) => ({ id: crypto.randomUUID(), projectSlug: validation.slug, contentKey, contentValue })));
   }
 
+  // Enlaza el sitio a la cuenta para que aparezca en el switcher de IMIN.
+  const linkSite = async (siteUrl: string) => {
+    await ensureProjectAccessSchema();
+    await db.insert(userProject)
+      .values({ id: crypto.randomUUID(), userId: session.user.id, projectSlug: validation.slug, siteUrl })
+      .onConflictDoNothing();
+  };
+  const fallbackUrl = `https://${validation.slug}.netlify.app`;
+
   try {
     const generatedFiles = generateReactSiteFiles(validation.name, validation.slug, body.document);
     const repository = await createGitHubRepository(validation.name, validation.slug, generatedFiles);
@@ -86,10 +101,13 @@ export async function POST(request: Request) {
         : ({ status: "configuration_required" } as const);
     await db.insert(projectText).values({ id: crypto.randomUUID(), projectId, contentKey: "site.netlify", contentValue: JSON.stringify(deployment) });
     await db.insert(projectText).values({ id: crypto.randomUUID(), projectId, contentKey: "site.github", contentValue: JSON.stringify(repository) });
+    await linkSite((deployment as { url?: string }).url ?? fallbackUrl);
     return NextResponse.json({ ok: true, project: { id: projectId, name: validation.name, slug: validation.slug }, deployment, repository }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo generar el sitio.";
     await db.insert(projectText).values({ id: crypto.randomUUID(), projectId, contentKey: "site.netlify", contentValue: JSON.stringify({ status: "error", message }) });
+    // Aun con deploy fallido el sitio queda vinculado a la cuenta (editable luego).
+    await linkSite(fallbackUrl);
     return NextResponse.json({ error: message, project: { id: projectId, name: validation.name, slug: validation.slug }, deployment: { status: "error", message } }, { status: 502 });
   }
 }

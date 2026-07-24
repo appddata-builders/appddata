@@ -44,37 +44,16 @@ export async function createGitHubRepository(projectName: string, slug: string, 
     html_url: string;
     clone_url: string;
     private: boolean;
+    default_branch: string;
   };
-  const sourceFiles = siteFiles.map((file) => ({
-    path: file.path.replace(/^\//, ""),
-    // Los binarios (imagenes) ya vienen en base64; el resto es texto UTF-8.
-    content: file.encoding === "base64" ? file.body : Buffer.from(file.body, "utf8").toString("base64"),
-  }));
-  for (const file of sourceFiles) {
-    const contentsUrl = `https://api.github.com/repos/${encodeURIComponent(repository.owner.login)}/${encodeURIComponent(repository.name)}/contents/${file.path.split("/").map(encodeURIComponent).join("/")}`;
-    const current = await fetch(contentsUrl, { headers });
-    let sha: string | undefined;
-    if (current.ok) {
-      const existing = await current.json() as { sha?: string };
-      sha = existing.sha;
-    } else if (current.status !== 404) {
-      const detail = await githubError(current);
-      throw new Error(`GitHub no pudo revisar ${file.path} (${current.status}): ${detail}`);
-    }
-    const upload = await fetch(contentsUrl, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify({
-        message: `Add ${file.path}`,
-        content: file.content,
-        ...(sha ? { sha } : {}),
-      }),
-    });
-    if (!upload.ok) {
-      const detail = await githubError(upload);
-      throw new Error(`GitHub creo el repositorio, pero no pudo subir ${file.path} (${upload.status}): ${detail}`);
-    }
-  }
+
+  // Se sube todo el sitio en UN commit via la Git Data API (blobs + arbol + ref).
+  // A diferencia de la Contents API (un PUT por archivo, con limite de ~1 MB por
+  // archivo), los blobs aceptan binarios grandes: por eso el logo/imagenes ya no
+  // fallan con 400/401.
+  const apiBase = `https://api.github.com/repos/${encodeURIComponent(repository.owner.login)}/${encodeURIComponent(repository.name)}`;
+  await pushFilesInOneCommit(apiBase, repository.default_branch || "main", headers, siteFiles);
+
   return {
     status: "created",
     id: repository.id,
@@ -85,6 +64,74 @@ export async function createGitHubRepository(projectName: string, slug: string, 
     cloneUrl: repository.clone_url,
     private: repository.private,
   };
+}
+
+type GhHeaders = Record<string, string>;
+
+/** Sube todos los archivos del sitio como un solo commit sobre la rama por defecto. */
+async function pushFilesInOneCommit(apiBase: string, branch: string, headers: GhHeaders, siteFiles: GeneratedFile[]) {
+  const api = (path: string, init?: RequestInit) => fetch(`${apiBase}${path}`, { ...init, headers });
+  const ref = `heads/${branch}`;
+
+  // 1. Commit base de la rama (el de `auto_init`). Puede tardar un instante en
+  // existir tras crear el repo, asi que se reintenta un par de veces.
+  let baseCommitSha = "";
+  for (let attempt = 0; attempt < 4 && !baseCommitSha; attempt += 1) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 600));
+    const refRes = await api(`/git/ref/${ref}`);
+    if (refRes.ok) {
+      baseCommitSha = ((await refRes.json()) as { object?: { sha?: string } }).object?.sha ?? "";
+    } else if (refRes.status !== 404 && refRes.status !== 409) {
+      throw new Error(`GitHub no pudo leer la rama ${branch} (${refRes.status}): ${await githubError(refRes)}`);
+    }
+  }
+  if (!baseCommitSha) throw new Error("GitHub no expuso el commit base de la rama tras crear el repositorio.");
+
+  // 2. Arbol base de ese commit.
+  const commitRes = await api(`/git/commits/${baseCommitSha}`);
+  if (!commitRes.ok) throw new Error(`GitHub no pudo leer el commit base (${commitRes.status}): ${await githubError(commitRes)}`);
+  const baseTreeSha = ((await commitRes.json()) as { tree?: { sha?: string } }).tree?.sha;
+
+  // 3. Un blob por archivo; los binarios (imagenes) van en base64.
+  const tree: { path: string; mode: "100644"; type: "blob"; sha: string }[] = [];
+  for (const file of siteFiles) {
+    const path = file.path.replace(/^\//, "");
+    const blobRes = await api(`/git/blobs`, {
+      method: "POST",
+      body: JSON.stringify(
+        file.encoding === "base64"
+          ? { content: file.body, encoding: "base64" }
+          : { content: file.body, encoding: "utf-8" },
+      ),
+    });
+    if (!blobRes.ok) throw new Error(`GitHub no pudo crear el blob de ${path} (${blobRes.status}): ${await githubError(blobRes)}`);
+    const blobSha = ((await blobRes.json()) as { sha?: string }).sha;
+    if (!blobSha) throw new Error(`GitHub no devolvio el sha del blob de ${path}.`);
+    tree.push({ path, mode: "100644", type: "blob", sha: blobSha });
+  }
+
+  // 4. Nuevo arbol sobre el base.
+  const treeRes = await api(`/git/trees`, {
+    method: "POST",
+    body: JSON.stringify({ base_tree: baseTreeSha, tree }),
+  });
+  if (!treeRes.ok) throw new Error(`GitHub no pudo crear el arbol de archivos (${treeRes.status}): ${await githubError(treeRes)}`);
+  const newTreeSha = ((await treeRes.json()) as { sha?: string }).sha;
+
+  // 5. Commit con el sitio generado.
+  const newCommitRes = await api(`/git/commits`, {
+    method: "POST",
+    body: JSON.stringify({ message: "Sitio generado desde Appddata", tree: newTreeSha, parents: [baseCommitSha] }),
+  });
+  if (!newCommitRes.ok) throw new Error(`GitHub no pudo crear el commit (${newCommitRes.status}): ${await githubError(newCommitRes)}`);
+  const newCommitSha = ((await newCommitRes.json()) as { sha?: string }).sha;
+
+  // 6. Mueve la rama al nuevo commit.
+  const patchRes = await api(`/git/refs/${ref}`, {
+    method: "PATCH",
+    body: JSON.stringify({ sha: newCommitSha }),
+  });
+  if (!patchRes.ok) throw new Error(`GitHub creo el repositorio, pero no pudo publicar el sitio (${patchRes.status}): ${await githubError(patchRes)}`);
 }
 
 async function githubError(response: Response) {

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { DashboardChrome } from "@/app/dashboard/dashboard-chrome";
 import { getPanelPlan } from "@/lib/plans-server";
-import { requirePanelSession } from "@/lib/require-panel-session";
+import { isRoot, requirePanelSession } from "@/lib/require-panel-session";
 
 export default async function DashboardLayout({
   children,
@@ -21,7 +21,7 @@ export default async function DashboardLayout({
   const plan = await getPanelPlan(session);
 
   return (
-    <DashboardChrome email={session.user.email} name={session.user.name} plan={plan}>
+    <DashboardChrome email={session.user.email} name={session.user.name} plan={plan} isRoot={isRoot(session)}>
       {children}
     </DashboardChrome>
   );

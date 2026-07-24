@@ -40,8 +40,8 @@ const titles: Record<string, { title: string; subtitle: string }> = {
     subtitle: "Metodos de pago, facturacion y movimientos de la cuenta.",
   },
   "configuracion/autenticacion": {
-    title: "Configuracion: autenticacion",
-    subtitle: "Better Auth en local. Cambia a tu proveedor cuando toque.",
+    title: "Requerimientos",
+    subtitle: "Esta sección se movió a Requerimientos.",
   },
   "configuracion/settings": {
     title: "Configuracion: cuenta",
@@ -74,8 +74,8 @@ export default async function DashboardCatchAllPage({ params }: DashboardCatchAl
         <section className="mx-auto w-full max-w-5xl space-y-5">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Configuración</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-900">Pagos y suscripciones</h1>
-            <p className="mt-2 text-sm text-slate-600">Administra los servicios recurrentes asociados a tu cuenta.</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-900">Pagos y servicios</h1>
+            <p className="mt-2 text-sm text-slate-600">Administra las suscripciones y compras asociadas a tu cuenta.</p>
           </div>
           <AccountSubscriptions
             hasPlan={plan.sitePlan !== "free"}
@@ -92,6 +92,20 @@ export default async function DashboardCatchAllPage({ params }: DashboardCatchAl
   if (key === "configuracion/settings") {
     const session = await requirePanelSession();
     if (session) return <AccountSettings user={session.user} />;
+  }
+  if (key === "requerimientos" || key === "configuracion/autenticacion") {
+    const session = await requirePanelSession();
+    if (session) {
+      return (
+        <SiteRequirements
+          projects={await getRequirementProjects(session)}
+          client={{
+            name: session.user.name ?? "Cliente Appddata",
+            email: session.user.email,
+          }}
+        />
+      );
+    }
   }
   const entry = titles[key] ?? {
     title: "Seccion",
@@ -113,6 +127,8 @@ export default async function DashboardCatchAllPage({ params }: DashboardCatchAl
 import DashboardSummary from "@/app/dashboard/dashboard-summary";
 import { AccountSubscriptions } from "@/app/dashboard/account-subscriptions";
 import { AccountSettings } from "@/app/dashboard/account-settings";
+import { SiteRequirements } from "@/app/dashboard/site-requirements";
 import { getAccountSubscriptions, getUpcomingAccountCharges } from "@/lib/account-subscriptions-server";
 import { getPanelPlan } from "@/lib/plans-server";
 import { requirePanelSession } from "@/lib/require-panel-session";
+import { getRequirementProjects } from "@/lib/site-requirements-server";

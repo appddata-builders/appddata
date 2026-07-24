@@ -78,7 +78,7 @@ export async function getAccountSubscriptions(userId: string): Promise<AccountSu
 
 export async function getUpcomingAccountCharges(userId: string): Promise<UpcomingAccountCharge[]> {
   const subscriptions = (await getAccountSubscriptions(userId))
-    .filter((item) => ["active", "trialing", "past_due"].includes(item.status));
+    .filter((item) => item.kind === "cloud-server" && ["active", "trialing", "past_due"].includes(item.status));
   const charges = await Promise.all(subscriptions.map(async (item): Promise<UpcomingAccountCharge | null> => {
     try {
       const response = await stripeRequest(`/subscriptions/${encodeURIComponent(item.stripeSubscriptionId)}?expand[]=items.data.price`);

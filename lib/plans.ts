@@ -12,7 +12,7 @@ export type ProjectPlan = "free" | "beginner" | "super" | "premium" | "imin";
 
 export const PLAN_LABELS: Record<ProjectPlan, string> = {
   free: "Free",
-  beginner: "Beginner",
+  beginner: "Beginners",
   super: "Super",
   premium: "Premium",
   imin: "IMIN",

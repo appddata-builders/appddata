@@ -21,7 +21,7 @@ export function AccountSubscriptions({ hasPlan, subscriptions, upcomingCharges }
   if (!hasPlan) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
-        Contrata primero un paquete para habilitar las suscripciones de infraestructura y soporte.
+        Contrata primero un paquete para habilitar los servicios de infraestructura y soporte.
       </div>
     );
   }
@@ -68,10 +68,10 @@ export function AccountSubscriptions({ hasPlan, subscriptions, upcomingCharges }
       </section>
 
       <section>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Suscripciones disponibles</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Servicios disponibles</p>
         <div className="grid gap-4 lg:grid-cols-2">
           <SubscriptionCard kind="cloud-server" title="Servidor de base de datos" description="Infraestructura administrada para proyectos que almacenan datos." required active={active("cloud-server")} status={status("cloud-server")} />
-          <SubscriptionCard kind="technical-support" title="Soporte técnico" description="5 Acompañamientos para incidencias, mantenimiento y ajustes técnicos." active={active("technical-support")} status={status("technical-support")} />
+          <SubscriptionCard kind="technical-support" title="Soporte técnico" description="Un solo pago habilita 5 sesiones para incidencias, mantenimiento y ajustes técnicos." active={active("technical-support")} status={status("technical-support")} />
         </div>
       </section>
     </div>
@@ -90,11 +90,14 @@ function SubscriptionCard({ kind, title, description, required = false, active, 
   active: boolean;
   status?: string;
 }) {
+  const isRecurring = kind === "cloud-server";
   return (
     <article className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#0C6CC6]">Suscripción recurrente</p>
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#0C6CC6]">
+            {isRecurring ? "Suscripción recurrente" : "Pago único · 5 sesiones"}
+          </p>
           <h2 className="mt-2 text-lg font-semibold text-slate-900">{title}</h2>
         </div>
         <span className={`rounded-full px-2.5 py-1 text-[0.65rem] font-semibold ${active ? "bg-emerald-50 text-emerald-700" : required ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
@@ -104,13 +107,15 @@ function SubscriptionCard({ kind, title, description, required = false, active, 
       <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
       {status && !active ? <p className="mt-2 text-xs text-amber-700">Estado en Stripe: {status}</p> : null}
       {active ? (
-        <p className="mt-auto pt-5 text-sm font-medium text-emerald-700">Suscripción vinculada con Stripe</p>
+        <p className="mt-auto pt-5 text-sm font-medium text-emerald-700">
+          {isRecurring ? "Suscripción vinculada con Stripe" : "Paquete de 5 sesiones habilitado"}
+        </p>
       ) : (
         <form action="/api/stripe/account-subscription" method="post" className="mt-auto pt-5">
           <input type="hidden" name="kind" value={kind} />
           <button type="submit" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#0C6CC6] px-4 text-sm font-medium text-white transition hover:bg-[#0a5aa6]">
             <LuCreditCard className="h-4 w-4" aria-hidden="true" />
-            Suscribirme
+            {isRecurring ? "Suscribirme" : "Comprar 5 sesiones"}
           </button>
         </form>
       )}

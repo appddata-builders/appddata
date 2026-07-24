@@ -6,6 +6,12 @@ import { FaBolt, FaBoxOpen, FaGem, FaSeedling } from "react-icons/fa6";
 import type { SitePlan } from "@/lib/site-packages";
 import { cn } from "@/lib/utils";
 
+export function sitePackageBadgeBackground(plan: SitePlan) {
+  if (plan === "beginner") return "border-emerald-200 bg-emerald-50";
+  if (plan === "super") return "border-amber-200 bg-amber-50";
+  return "border-[#589bf9]/25 bg-[#589bf9]/10";
+}
+
 export function SitePackageIcon({ plan, className }: { plan: SitePlan; className?: string }) {
   const iconClassName = cn(
     "h-4 w-4",
@@ -55,7 +61,7 @@ export function SitePackageName({
   return (
     <span
       className={cn(
-        "inline-flex whitespace-nowrap filter-[drop-shadow(0_0_10px_rgba(88,155,249,0.24))]",
+        "inline-flex whitespace-nowrap filter-[drop-shadow(0_0_8px_rgba(88,155,249,0.18))]",
         className,
       )}
     >
@@ -66,9 +72,9 @@ export function SitePackageName({
           animate={
             reduceMotion
               ? undefined
-              : { opacity: [0.94, 1, 0.96, 1, 0.94], backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }
+              : { opacity: [0.985, 1, 0.99, 1, 0.985], backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }
           }
-          transition={{ duration: 3.8, delay: index * 0.08, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 6.5, delay: index * 0.1, repeat: Infinity, ease: "easeInOut" }}
         >
           {letter === " " ? "\u00A0" : letter}
         </motion.span>

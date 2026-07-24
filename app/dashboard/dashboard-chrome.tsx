@@ -3,16 +3,17 @@
 import {
   LuChartColumn,
   LuCreditCard,
+  LuDatabase,
   LuGlobe,
-  LuKeyRound,
   LuLayoutDashboard,
-  LuLayoutTemplate,
   LuLock,
+  LuMessageSquarePlus,
   LuPanelLeftClose,
   LuPanelLeftOpen,
   LuPlug,
   LuShieldCheck,
   LuSlidersHorizontal,
+  LuTicket,
 } from "react-icons/lu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,6 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import Brand from "@/app/components/brand";
 import IminMark from "@/app/components/imin/imin-mark";
 import {
+  sitePackageBadgeBackground,
   SitePackageIcon,
   SitePackageName,
 } from "@/app/components/packages/site-package-identity";
@@ -34,6 +36,7 @@ type DashboardChromeProps = {
   email: string;
   name: string | null;
   plan: PanelPlan;
+  isRoot: boolean;
   children: React.ReactNode;
 };
 
@@ -45,27 +48,30 @@ type NavItem = {
   requiresImin?: boolean;
   /** Seccion bloqueada hasta que el proyecto tenga IMIN. */
   disabled?: boolean;
+  /** Solo visible para cuentas root (herramientas internas). */
+  requiresRoot?: boolean;
 };
 
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Plan activo", icon: LuLayoutDashboard },
-  { href: "/dashboard/build", label: "Appddata Build", icon: LuLayoutTemplate },
+  { href: "/dashboard/build", label: "Appddata Build", icon: LuTicket },
   { href: "/dashboard/imin", label: "IMIN", icon: IminMark, requiresImin: true },
   { href: "/dashboard/analiticas", label: "Analiticas", icon: LuChartColumn, disabled: true },
   { href: "/dashboard/dominios", label: "Dominios", icon: LuGlobe, disabled: true },
   { href: "/dashboard/integraciones", label: "Integraciones", icon: LuPlug, disabled: true },
   { href: "/dashboard/seguridad", label: "Seguridad", icon: LuShieldCheck, disabled: true },
+  { href: "/dashboard/requerimientos", label: "Requerimientos", icon: LuMessageSquarePlus },
+  { href: "/dashboard/databases", label: "Databases", icon: LuDatabase, requiresRoot: true },
 ];
 
 const configItems: NavItem[] = [
   { href: "/dashboard/configuracion/pagos", label: "Pagos", icon: LuCreditCard },
-  { href: "/dashboard/configuracion/autenticacion", label: "Autenticacion", icon: LuKeyRound },
   { href: "/dashboard/configuracion/settings", label: "Cuenta", icon: LuSlidersHorizontal },
 ];
 
 const SIDEBAR_STORAGE_KEY = "appddata:dashboard-sidebar-collapsed";
 
-export function DashboardChrome({ email, name, plan, children }: DashboardChromeProps) {
+export function DashboardChrome({ email, name, plan, isRoot, children }: DashboardChromeProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -116,6 +122,7 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
 
   function renderNavLink(item: NavItem) {
     if (item.href === "/dashboard/build" && !plan.isInternal && !plan.hasUnassignedSitePackage) return null;
+    if (item.requiresRoot && !isRoot) return null;
     const isPackageLink = item.href === "/dashboard";
     const displayLabel = isPackageLink ? PLAN_LABELS[plan.sitePlan] : item.label;
     const active =
@@ -153,9 +160,21 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
         {isPackageLink ? (
           <SitePackageIcon plan={plan.sitePlan} className="h-4 w-4 shrink-0" />
         ) : (
-        <Icon className={cn("h-4 w-4 shrink-0", item.href === "/dashboard/imin" && "h-4.5 w-4.5")} />
+          <Icon
+            className={cn(
+              "h-4 w-4 shrink-0",
+              item.href === "/dashboard/imin" && "h-4.5 w-4.5",
+              item.href === "/dashboard/build" && "text-[#df7a3a]",
+            )}
+          />
         )}
-        <span className={cn("truncate", sidebarCollapsed && "lg:hidden")}>
+        <span
+          className={cn(
+            "truncate",
+            item.href === "/dashboard/build" && "text-[#df7a3a]",
+            sidebarCollapsed && "lg:hidden",
+          )}
+        >
           {isPackageLink ? (
             <SitePackageName plan={plan.sitePlan}>{displayLabel}</SitePackageName>
           ) : (
@@ -191,10 +210,8 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
         </Link>
         <span
           className={cn(
-            "hidden items-center gap-1.5 rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium sm:inline-flex",
-            plan.sitePlan === "beginner"
-              ? "border-emerald-200 bg-emerald-50"
-              : "border-[#589bf9]/25 bg-[#589bf9]/10",
+            "hidden h-8 items-center gap-1.5 rounded-full border px-2.5 text-[0.6875rem] font-bold tracking-[0.08em] sm:inline-flex",
+            sitePackageBadgeBackground(plan.sitePlan),
           )}
         >
           <SitePackageIcon plan={plan.sitePlan} className="h-3.5 w-3.5" />
@@ -203,9 +220,12 @@ export function DashboardChrome({ email, name, plan, children }: DashboardChrome
           </SitePackageName>
         </span>
         {plan.hasImin ? (
-          <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[0.6875rem] font-semibold text-amber-700 sm:inline-flex">
-            <IminMark className="h-4.5 w-4.5" />
-            IMIN
+          <span
+            className="hidden h-8 w-8 place-items-center rounded-full border border-amber-200 bg-amber-50 sm:inline-grid"
+            title="IMIN incluido"
+            aria-label="IMIN incluido"
+          >
+            <IminMark className="h-6 w-6" />
           </span>
         ) : null}
 

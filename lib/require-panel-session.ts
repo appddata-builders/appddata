@@ -51,6 +51,20 @@ export function isAdmin(session: PanelSession): boolean {
   return session.user.role === "admin";
 }
 
+/**
+ * "root" es una capacidad ortogonal al rol/plan: no cambia la experiencia de la
+ * cuenta (sigue siendo cliente premium), solo desbloquea herramientas internas
+ * sensibles como el modulo Databases. Se define por allowlist de correos en
+ * `ROOT_USER_EMAILS` (separados por coma) para no depender de una columna mutable.
+ */
+export function isRoot(session: PanelSession): boolean {
+  const allow = (process.env.ROOT_USER_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+  return allow.includes(session.user.email.toLowerCase());
+}
+
 /** Un cliente solo toca el proyecto que tiene asignado; un admin, todos. */
 export function canEditProject(session: PanelSession, slug: string): boolean {
   return isAdmin(session) || session.user.projectSlug === slug;

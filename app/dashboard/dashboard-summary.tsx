@@ -3,7 +3,11 @@
 import { LuCheck, LuCreditCard, LuTicket } from "react-icons/lu";
 import Link from "next/link";
 
-import { SitePackageIcon, SitePackageName } from "@/app/components/packages/site-package-identity";
+import {
+  sitePackageBadgeBackground,
+  SitePackageIcon,
+  SitePackageName,
+} from "@/app/components/packages/site-package-identity";
 import IminMark from "@/app/components/imin/imin-mark";
 import type { PanelPlan } from "@/lib/plans";
 import {
@@ -23,26 +27,29 @@ export default function DashboardSummary({ plan }: { plan: PanelPlan }) {
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {activePackage ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em]">
+            <span className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-bold tracking-[0.08em] ${sitePackageBadgeBackground(activePackage.id)}`}>
               <SitePackageIcon plan={activePackage.id} className="h-3.5 w-3.5" />
               <SitePackageName plan={activePackage.id}>{activePackage.name}</SitePackageName>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#589bf9]/25 bg-[#589bf9]/10 px-3 py-1.5 text-xs font-semibold tracking-[0.18em] text-[#0C6CC6]">
+            <span className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-bold tracking-[0.08em] ${sitePackageBadgeBackground("free")}`}>
               <SitePackageIcon plan="free" className="h-3.5 w-3.5" />
               <SitePackageName plan="free">Free</SitePackageName>
             </span>
           )}
           {plan.hasImin ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-              <IminMark className="h-4.5 w-4.5" />
-              IMIN
+            <span
+              className="inline-grid h-9 w-9 place-items-center rounded-full border border-amber-200 bg-amber-50"
+              title="IMIN incluido"
+              aria-label="IMIN incluido"
+            >
+              <IminMark className="h-7 w-7" />
             </span>
           ) : null}
           {plan.availableSites > 0 ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-              <LuTicket className="h-3.5 w-3.5" aria-hidden="true" />
-              {plan.availableSites} sitio{plan.availableSites === 1 ? "" : "s"} por crear
+            <span className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#f3c49f] bg-[#fff4e8] px-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#b85f28]">
+              <LuTicket className="h-3.5 w-3.5 text-[#df7a3a]" aria-hidden="true" />
+              {plan.availableSites} Website{plan.availableSites === 1 ? "" : "s"}
             </span>
           ) : null}
         </div>
@@ -68,9 +75,10 @@ export default function DashboardSummary({ plan }: { plan: PanelPlan }) {
         {plan.hasUnassignedSitePackage ? (
           <Link
             href="/dashboard/build"
-            className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#0C6CC6] px-4 text-sm font-medium text-white transition hover:bg-[#0a5aa6]"
+            className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#df7a3a]/70 px-4 text-sm font-medium text-white transition hover:bg-[#df7a3a]"
           >
-            Abrir Appddata Build
+            <LuTicket className="h-4 w-4 mr-2" aria-hidden="true" />
+            Appddata Build
           </Link>
         ) : null}
       </div>
@@ -88,7 +96,7 @@ export default function DashboardSummary({ plan }: { plan: PanelPlan }) {
                     <p className="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-[#0C6CC6]">
                       Paquete
                     </p>
-                    <h2 className="mt-2 text-xl font-bold">
+                    <h2 className="mt-2 text-xl font-bold tracking-[0.08em]">
                       <SitePackageName plan={sitePackage.id}>{sitePackage.name}</SitePackageName>
                     </h2>
                   </div>
