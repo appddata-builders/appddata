@@ -30,7 +30,7 @@ export default async function DashboardBuildPage() {
       <BuildWorkspace
         siteName={plan.projectName ?? "innovation.appddata.io"}
         initialPlan={buildPlan === "free" ? "beginner" : buildPlan}
-        availableSites={plan.availableSites}
+        availableSitePackages={plan.availableSitePackages}
         isInternal={plan.isInternal}
       />
     </div>

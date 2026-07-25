@@ -12,7 +12,7 @@ import type { GeneratedFile } from "@/lib/generated-site";
 import type { PlanMeta, TemplateTokens } from "@/app/components/build/build-model";
 
 /** URL base de la app (para que el sitio lea su contenido editable). */
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://appddata.netlify.app").replace(/\/$/, "");
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://appddata.com").replace(/\/$/, "");
 const CONTENT_ENDPOINT = `${APP_URL}/api/public/site-content`;
 
 /** Lee el bridge de IMIN del repo para incrustarlo en el sitio generado. */
@@ -222,10 +222,18 @@ function fontStack(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+/** URL css2 de Google Fonts para las familias de titulo y cuerpo del sitio. */
+function googleFontsImport(tokens: TemplateTokens): string {
+  const families = Array.from(new Set([tokens.titleFont, tokens.bodyFont].filter(Boolean)));
+  if (families.length === 0) return "";
+  const fam = families.map((f) => `family=${f.replace(/\s+/g, "+")}:wght@400;600;700`).join("&");
+  return `@import url("https://fonts.googleapis.com/css2?${fam}&display=swap");\n`;
+}
+
 /** app/globals.css: Tailwind v4 + tema del sitio via @theme. */
 function globalsCss(tokens: TemplateTokens, accent: PlanMeta): string {
   const filter = tokens.grayscale ? "\n  filter: grayscale(1);" : "";
-  return `@import "tailwindcss";
+  return `${googleFontsImport(tokens)}@import "tailwindcss";
 
 @theme {
   --color-surface: ${tokens.surface};

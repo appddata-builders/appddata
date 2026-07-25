@@ -15,6 +15,7 @@ import {
   sitePlanFromProjectPlan,
   type PanelPlan,
   type ProjectPlan,
+  type AvailableSitePackages,
 } from "@/lib/plans";
 import { hasActiveImin } from "@/lib/imin-entitlements-server";
 import { isAdmin, type PanelSession } from "@/lib/require-panel-session";
@@ -31,6 +32,7 @@ export async function getProjectPlan(slug: string): Promise<ProjectPlan> {
 }
 
 export async function getPanelPlan(session: PanelSession): Promise<PanelPlan> {
+  const emptyPackages: AvailableSitePackages = { beginner: 0, super: 0, premium: 0 };
   if (isAdmin(session)) {
     return {
       projectSlug: null,
@@ -40,6 +42,7 @@ export async function getPanelPlan(session: PanelSession): Promise<PanelPlan> {
       hasImin: true,
       hasUnassignedSitePackage: true,
       availableSites: 0,
+      availableSitePackages: emptyPackages,
       pendingSitePlan: null,
       isInternal: true,
     };
@@ -54,6 +57,14 @@ export async function getPanelPlan(session: PanelSession): Promise<PanelPlan> {
     .where(and(eq(siteEntitlement.userId, session.user.id), isNull(siteEntitlement.projectSlug)))
     .orderBy(desc(siteEntitlement.createdAt));
   const availableSites = unassigned.length;
+  const availableSitePackages = unassigned.reduce<AvailableSitePackages>(
+    (counts, entitlement) => {
+      const sitePlan = sitePlanFromProjectPlan(normalizePlan(entitlement.plan));
+      if (sitePlan !== "free") counts[sitePlan] += 1;
+      return counts;
+    },
+    { beginner: 0, super: 0, premium: 0 },
+  );
   const availablePlan = normalizePlan(unassigned[0]?.plan);
   // El proximo sitio se construye con el plan del ticket que se va a consumir,
   // que es el mas antiguo (projects/route.ts los consume en orden asc). Como
@@ -75,6 +86,7 @@ export async function getPanelPlan(session: PanelSession): Promise<PanelPlan> {
       hasImin: iminActive || planHasImin(availablePlan),
       hasUnassignedSitePackage: availableSites > 0,
       availableSites,
+      availableSitePackages,
       pendingSitePlan,
       isInternal: false,
     };
@@ -95,6 +107,7 @@ export async function getPanelPlan(session: PanelSession): Promise<PanelPlan> {
     hasImin: iminActive || planHasImin(plan),
     hasUnassignedSitePackage: availableSites > 0,
     availableSites,
+    availableSitePackages,
     pendingSitePlan,
     isInternal: false,
   };

@@ -120,6 +120,26 @@ export function backgroundStyle(raw: string | undefined, fallback: string): CSSP
   return { backgroundColor: first, backgroundImage: "none" };
 }
 
+/**
+ * Tela de color/gradiente que se pone DELANTE de una imagen o video para tintarlos.
+ * Opacidad tope 50% para que el contenido se siga viendo. Devuelve undefined si el
+ * usuario no eligio color (asi no se dibuja ninguna tela).
+ */
+export function clothStyle(raw: string | undefined): CSSProperties | undefined {
+  if (!raw) return undefined;
+  const style = raw.startsWith("#")
+    ? { ...DEFAULT_STYLE, color: raw }
+    : parseStyle(raw);
+  if (!style.color) return undefined;
+  if (style.fill === "gradient") {
+    return {
+      opacity: 0.5,
+      backgroundImage: `linear-gradient(${gradientDirection[style.direction] ?? "to right"},${style.color},${style.color2 || style.color})`,
+    };
+  }
+  return { opacity: 0.5, backgroundColor: style.color };
+}
+
 /** Estilo de un boton (solido / gradiente / opaco), como objeto de estilo React. */
 export function buttonStyle(
   raw: string | undefined,

@@ -40,6 +40,7 @@ import {
 import {
   backgroundStyle,
   buttonStyle,
+  clothStyle,
   resolveIcon,
   safeImageUrl,
   textStyle,
@@ -216,7 +217,7 @@ export default function ImageText({ iid, title, body, image, reverse, bg, styles
   return (
     <Section style={bg}>
       <div className="${IMAGE_TEXT_CLASS.grid}">
-        <img data-imin-key={iid + ":image"} src={image} alt="" className={"${IMAGE_TEXT_CLASS.image} " + (reverse ? "md:order-2" : "")} />
+        <img data-imin-key={iid + ":image"} src={image} alt="" className={"${IMAGE_TEXT_CLASS.image} " + (reverse ? "@2xl:order-2" : "")} />
         <div>
           <h2 data-imin-key={iid + ":title"} className="${IMAGE_TEXT_CLASS.title}" style={styles?.title}>
             {title}
@@ -397,12 +398,15 @@ export default function Gallery({ images, bg }: { images: Img[]; bg?: CSSPropert
 }
 `;
 
-const BG_IMAGE = `type Props = { iid: string; image: string; caption?: string };
+const BG_IMAGE = `import type { CSSProperties } from "react";
 
-export default function BgImage({ iid, image, caption }: Props) {
+type Props = { iid: string; image: string; caption?: string; cloth?: CSSProperties };
+
+export default function BgImage({ iid, image, caption, cloth }: Props) {
   return (
     <section className="${BG_IMAGE_CLASS.section}">
       <img data-imin-key={iid + ":image"} src={image} alt="" className="${BG_IMAGE_CLASS.image}" />
+      {cloth ? <div className="${BG_IMAGE_CLASS.cloth}" style={cloth} /> : null}
       <div className="${BG_IMAGE_CLASS.overlay}">
         <p data-imin-key={iid + ":caption"} className="${BG_IMAGE_CLASS.caption}">{caption}</p>
       </div>
@@ -413,18 +417,36 @@ export default function BgImage({ iid, image, caption }: Props) {
 
 const BG_VIDEO = `import type { CSSProperties } from "react";
 
-import { Icon, Section } from "@/components/widgets/primitives";
+import { Icon } from "@/components/widgets/primitives";
 
-type Props = { iid: string; title?: string; icon: { glyph: string; icon?: string }; bg?: CSSProperties };
+type Props = { iid: string; title?: string; icon: { glyph: string; icon?: string }; video?: string; cloth?: CSSProperties; bg?: CSSProperties };
 
-export default function BgVideo({ iid, title, icon, bg }: Props) {
+function youTubeId(url: string): string | null {
+  const m = url.trim().match(/(?:youtube\\.com\\/(?:watch\\?v=|embed\\/|shorts\\/)|youtu\\.be\\/)([\\w-]{11})/);
+  return m ? m[1] : null;
+}
+
+export default function BgVideo({ iid, title, icon, video, cloth, bg }: Props) {
+  const yt = video ? youTubeId(video) : null;
   return (
-    <Section style={bg} className="text-white">
-      <div className="${BG_VIDEO_CLASS.inner}">
+    <section className="${BG_VIDEO_CLASS.section}" style={bg}>
+      {yt ? (
+        <iframe
+          className="${BG_VIDEO_CLASS.media}"
+          src={"https://www.youtube.com/embed/" + yt + "?rel=0"}
+          title="Video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      ) : video ? (
+        <video className="${BG_VIDEO_CLASS.media}" src={video} controls playsInline preload="metadata" />
+      ) : null}
+      {cloth ? <div className="${BG_VIDEO_CLASS.cloth}" style={cloth} /> : null}
+      <div className="${BG_VIDEO_CLASS.overlay} text-white">
         <Icon glyph={icon.glyph} icon={icon.icon} />
-        <h3 data-imin-key={iid + ":title"}>{title}</h3>
+        <h3 data-imin-key={iid + ":title"} className="pointer-events-auto [text-shadow:0_1px_10px_rgba(0,0,0,0.55)]">{title}</h3>
       </div>
-    </Section>
+    </section>
   );
 }
 `;
@@ -736,6 +758,7 @@ export const WIDGET_TEMPLATES: Record<WidgetId, WidgetTemplate> = {
       iid: ctx.iid,
       image: safeImageUrl(ctx.get("image")),
       caption: ctx.get("caption"),
+      cloth: clothStyle(ctx.content[`${ctx.iid}:background`]),
     }),
   },
   "bg-video": {
@@ -746,7 +769,9 @@ export const WIDGET_TEMPLATES: Record<WidgetId, WidgetTemplate> = {
       iid: ctx.iid,
       title: ctx.get("title"),
       icon: iconOf(ctx, "playIcon", "▶"),
-      bg: sectionBg(ctx),
+      video: ctx.get("video"),
+      cloth: clothStyle(ctx.content[`${ctx.iid}:background`]),
+      bg: { backgroundColor: "#020617" },
     }),
   },
   blog: {

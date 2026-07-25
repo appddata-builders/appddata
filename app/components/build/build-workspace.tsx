@@ -23,6 +23,7 @@ import {
   LuArrowLeftRight,
   LuCalendarClock,
   LuCheck,
+  LuChevronDown,
   LuChevronLeft,
   LuChevronRight,
   LuGripVertical,
@@ -36,6 +37,7 @@ import {
   LuMinus,
   LuMonitor,
   LuPanelTop,
+  LuPause,
   LuPencil,
   LuPlay,
   LuPlus,
@@ -45,11 +47,13 @@ import {
   LuSparkles,
   LuStar,
   LuTicket,
+  LuTrash2,
   LuUpload,
+  LuVideo,
   LuWrench,
   LuX,
 } from "react-icons/lu";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FaFacebookF, FaInstagram, FaLinkedinIn, FaYoutube } from "react-icons/fa6";
 
@@ -77,6 +81,8 @@ import {
   TEXT_BLOCK,
 } from "@/lib/react-site/widget-contract";
 import { cn } from "@/lib/utils";
+import { resolvePublicAssetUrl } from "@/lib/public-assets";
+import type { AvailableSitePackages } from "@/lib/plans";
 
 import {
   BUILD_PLANS,
@@ -88,6 +94,7 @@ import {
   defaultDoc,
   type Doc,
   emptyDoc,
+  fontStackOf,
   FOOTER_VARIANTS,
   type FooterVariant,
   type Instance,
@@ -107,6 +114,7 @@ import {
   TEMPLATE_ORDER,
   TEMPLATES,
   type TemplateTokens,
+  tokensWithFonts,
   type WidgetDef,
   WIDGET_DEFAULTS,
   WIDGETS_BY_ID,
@@ -115,6 +123,10 @@ import {
 } from "./build-model";
 
 const STORAGE_KEY = "appddata:build-workspace-v6";
+/** Ancho de diseno del preview: el sitio se renderiza a este ancho FIJO (como un
+ * viewport real) y se escala para caber en el panel, asi el preview es fiel al
+ * deploy (mismas container queries y cqw). */
+const PREVIEW_DESIGN_WIDTH: Record<"desktop" | "mobile", number> = { desktop: 1280, mobile: 390 };
 const PAGE_BY_ID = Object.fromEntries(PAGES.map((page) => [page.id, page])) as Record<
   PageId,
   (typeof PAGES)[number]
@@ -152,12 +164,12 @@ function readPersisted(): PersistedState | null {
 export default function BuildWorkspace({
   siteName,
   initialPlan,
-  availableSites,
+  availableSitePackages,
   isInternal,
 }: {
   siteName: string;
   initialPlan: BuildPlanId;
-  availableSites: number;
+  availableSitePackages: AvailableSitePackages;
   isInternal: boolean;
 }) {
   const [plan, setPlan] = useState<BuildPlanId>(initialPlan);
@@ -177,6 +189,12 @@ export default function BuildWorkspace({
   const [nameConfirmed, setNameConfirmed] = useState(false);
   const [createState, setCreateState] = useState<{ step: "input" | "valid" | "creating" | "done"; message?: string; slug?: string; url?: string; repoUrl?: string }>({ step: "input" });
   const previewRef = useRef<HTMLDivElement>(null);
+  // Frame escalado del preview: se mide el ancho disponible (stage) y la altura
+  // natural del frame para escalar el sitio (renderizado a ancho de diseno fijo).
+  const stageRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(1);
+  const [frameHeight, setFrameHeight] = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -214,13 +232,33 @@ export default function BuildWorkspace({
     );
   }, [plan, template, navMode, doc, content, hydrated]);
 
+  // Escala del frame: ancho disponible / ancho de diseno (solo reduce, nunca amplia).
+  useEffect(() => {
+    const stage = stageRef.current;
+    const frame = frameRef.current;
+    if (!stage || !frame) return;
+    const design = PREVIEW_DESIGN_WIDTH[device];
+    const recompute = () => {
+      setPreviewScale(Math.min(1, stage.clientWidth / design));
+      setFrameHeight(frame.offsetHeight);
+    };
+    recompute();
+    const observer = new ResizeObserver(recompute);
+    observer.observe(stage);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [device]);
+
   const accent = BUILD_PLANS[plan];
-  const tokens = TEMPLATES[template];
+  // Tokens del template con las fuentes efectivas (override del doc o default).
+  const tokens = tokensWithFonts(TEMPLATES[template], doc);
+  // Carga en el head las Google Fonts activas para que el preview las use.
+  useGoogleFontLink(googleFontsHref([tokens.titleFont, tokens.bodyFont]));
   const activeFull = doc.pages[activePage].length >= maxWidgetsFor(activePage);
 
   const validateNewProject = async (): Promise<boolean> => {
     setCreateState({ step: "creating", message: "Validando nombre..." });
-    const response = await fetch("/api/dashboard/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: projectName, validateOnly: true }) });
+    const response = await fetch("/api/dashboard/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: projectName, sitePlan: plan, validateOnly: true }) });
     const data = await response.json() as { error?: string; slug?: string };
     setCreateState(response.ok ? { step: "valid", slug: data.slug, message: "Nombre disponible." } : { step: "input", message: data.error ?? "No se pudo validar." });
     return response.ok;
@@ -233,13 +271,52 @@ export default function BuildWorkspace({
   };
 
   const createNewProject = async () => {
-    setCreateState((current) => ({ ...current, step: "creating", message: "Creando proyecto..." }));
-    const response = await fetch("/api/dashboard/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: projectName, document: { version: 1, plan, template, navMode, doc, content } }) });
-    const data = await response.json() as { error?: string; project?: { slug: string }; deployment?: { status: string; url?: string; message?: string }; repository?: { status: string; url?: string } };
-    if (!response.ok) { setCreateState({ step: "input", message: data.error ?? "No se pudo crear." }); return; }
-    const deploymentMessage = data.deployment?.status === "deployed" ? "publicado en Netlify" : data.deployment?.status === "configuration_required" ? "pendiente de NETLIFY_AUTH_TOKEN" : data.deployment?.message ?? "deploy pendiente";
-    const repositoryMessage = data.repository?.status === "created" ? "repositorio creado en GitHub" : "repositorio pendiente de GITHUB_TOKEN";
-    setCreateState({ step: "done", slug: data.project?.slug, url: data.deployment?.url, repoUrl: data.repository?.url, message: `Proyecto ${deploymentMessage} y ${repositoryMessage}.` });
+    setCreateState((current) => ({ ...current, step: "creating", message: "Validando y preparando…" }));
+    const response = await fetch("/api/dashboard/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: projectName, sitePlan: plan, document: { version: 1, plan, template, navMode, doc, content } }) });
+
+    // Errores tempranos (validacion/paquete/nombre) llegan como JSON con status != 2xx.
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!response.ok && !contentType.includes("ndjson")) {
+      const data = await response.json().catch(() => ({})) as { error?: string };
+      setCreateState({ step: "input", message: data.error ?? "No se pudo crear." });
+      return;
+    }
+
+    // Stream NDJSON: una linea JSON por fase (s3 / repo / deploy / saving / done / error).
+    type StreamEvent = { phase?: string; message?: string; error?: string; project?: { slug: string }; deployment?: { status: string; url?: string; message?: string }; repository?: { status: string; url?: string } };
+    const handleEvent = (event: StreamEvent) => {
+      if (event.phase === "error") {
+        setCreateState({ step: "input", message: event.error ?? "No se pudo crear." });
+      } else if (event.phase === "done") {
+        const deploymentMessage = event.deployment?.status === "deployed" ? "publicado en Netlify" : event.deployment?.status === "configuration_required" ? "pendiente de NETLIFY_AUTH_TOKEN" : event.deployment?.message ?? "deploy pendiente";
+        const repositoryMessage = event.repository?.status === "created" ? "repositorio creado en GitHub" : "repositorio pendiente de GITHUB_TOKEN";
+        setCreateState({ step: "done", slug: event.project?.slug, url: event.deployment?.url, repoUrl: event.repository?.url, message: `Proyecto ${deploymentMessage} y ${repositoryMessage}.` });
+      } else if (event.message) {
+        const message = event.message;
+        setCreateState((current) => ({ ...current, step: "creating", message }));
+      }
+    };
+
+    const reader = response.body?.getReader();
+    if (!reader) { setCreateState({ step: "input", message: "No se pudo crear." }); return; }
+    const decoder = new TextDecoder();
+    let buffer = "";
+    const flush = (chunk: string) => {
+      buffer += chunk;
+      let nl: number;
+      while ((nl = buffer.indexOf("\n")) >= 0) {
+        const line = buffer.slice(0, nl).trim();
+        buffer = buffer.slice(nl + 1);
+        if (line) { try { handleEvent(JSON.parse(line) as StreamEvent); } catch { /* linea parcial/no-JSON */ } }
+      }
+    };
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (value) flush(decoder.decode(value, { stream: true }));
+      if (done) break;
+    }
+    const rest = buffer.trim();
+    if (rest) { try { handleEvent(JSON.parse(rest) as StreamEvent); } catch { /* ignore */ } }
   };
 
   const commitContent = useCallback((key: string, value: string) => {
@@ -365,18 +442,28 @@ export default function BuildWorkspace({
   }
 
   const total = countInstances(doc);
-
-  // Indicador de la "moneda"/ticket: cada sitio disponible es una creacion que
-  // la compra habilito. Los internos (admins) no consumen tickets.
+  const selectablePlans = PLAN_ORDER.filter(
+    (id) => isInternal || availableSitePackages[id] > 0,
+  );
+  // Indicador de la "moneda"/ticket: una burbuja INDEPENDIENTE por paquete con
+  // websites disponibles (p. ej. "2 Websites Beginner", "1 Website Super").
+  // Los internos (admins) no consumen tickets.
   const ticketBadge = isInternal ? (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[0.68rem] font-semibold text-blue-700">
       <LuTicket className="h-3.5 w-3.5" /> Interno · sitios ilimitados
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f3c49f] bg-[#fff4e8] px-2.5 py-1 text-[0.68rem] font-semibold text-[#b85f28]">
-      <LuTicket className="h-3.5 w-3.5 text-[#df7a3a]" />
-      {availableSites} Website{availableSites === 1 ? "" : "s"}
-    </span>
+    <div className="flex flex-wrap items-center gap-1.5">
+      {PLAN_ORDER.filter((id) => availableSitePackages[id] > 0).map((id) => (
+        <span
+          key={id}
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#f3c49f] bg-[#fff4e8] px-2.5 py-1 text-[0.68rem] font-semibold text-[#b85f28]"
+        >
+          <LuTicket className="h-3.5 w-3.5 text-[#df7a3a]" />
+          {availableSitePackages[id]} Website{availableSitePackages[id] === 1 ? "" : "s"} {BUILD_PLANS[id].name}
+        </span>
+      ))}
+    </div>
   );
 
   // Gate de nombre: se muestra antes del lienzo. El acceso a la pagina ya exige
@@ -386,14 +473,41 @@ export default function BuildWorkspace({
     return (
       <div className="flex h-full flex-col items-center justify-center bg-slate-50 p-6">
         <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-4">
             <p className="text-base font-semibold text-slate-800">Nombra tu nuevo sitio</p>
-            {ticketBadge}
+            <div className="mt-2">{ticketBadge}</div>
           </div>
           <p className="text-xs leading-5 text-slate-500">
-            Antes de empezar a construir, elige el nombre del proyecto. Comprobamos que
-            este disponible; el sitio se crea y publica cuando termines de diseñarlo.
+            Elige qué paquete usar y el nombre del proyecto. Comprobamos que esté
+            disponible; el sitio se crea y publica cuando termines de diseñarlo.
           </p>
+          {selectablePlans.length > 1 ? (
+            <fieldset className="mt-4">
+              <legend className="text-xs font-medium text-slate-600">Paquete para este website</legend>
+              <div className="mt-1.5 grid grid-cols-3 gap-2">
+                {selectablePlans.map((id) => {
+                  const meta = BUILD_PLANS[id];
+                  const active = id === plan;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => selectPlan(id)}
+                      className={cn(
+                        "rounded-lg border px-2 py-2 text-xs font-semibold transition",
+                        active ? "text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300",
+                      )}
+                      style={active ? { borderColor: meta.accent, backgroundColor: meta.accent } : undefined}
+                    >
+                      <span className="block">{meta.name}</span>
+                      {!isInternal ? <span className={cn("mt-0.5 block text-[0.62rem]", active ? "text-white/80" : "text-slate-400")}>{availableSitePackages[id]} disponible{availableSitePackages[id] === 1 ? "" : "s"}</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          ) : null}
           <label className="mt-4 block text-xs font-medium text-slate-600">
             Nombre del proyecto
             <input
@@ -436,7 +550,7 @@ export default function BuildWorkspace({
           <div className="flex items-center gap-2">
             <span className="text-[0.62rem] uppercase tracking-[0.28em] text-slate-400">Plan</span>
             <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-0.5">
-              {PLAN_ORDER.filter((id) => id === initialPlan).map((id) => {
+              {selectablePlans.map((id) => {
                 const meta = BUILD_PLANS[id];
                 const active = id === plan;
                 return (
@@ -458,7 +572,7 @@ export default function BuildWorkspace({
           </div>
 
           <div className="ml-auto flex items-center gap-2">
-            <span className="hidden md:inline-flex">{ticketBadge}</span>
+            <span className="hidden md:block">{ticketBadge}</span>
             <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5">
               <button
                 type="button"
@@ -483,13 +597,13 @@ export default function BuildWorkspace({
                 <LuSmartphone className="h-3.5 w-3.5" />
               </button>
             </div>
-            <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex h-8 items-center gap-1.5 rounded-md bg-sky-600 px-2.5 text-[0.76rem] font-medium text-white transition hover:bg-sky-700"><LuPlus className="h-3.5 w-3.5" /><span className="hidden sm:inline">Crear y publicar</span></button>
+            <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[#df7a3a]/70 px-2.5 text-[0.76rem] font-medium text-white transition hover:bg-[#df7a3a] "><LuTicket className="h-3.5 w-3.5" /><span className="hidden sm:inline">Crear</span></button>
             <button
               type="button"
               onClick={restoreDefault}
               className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-[0.78rem] font-medium text-slate-700 transition hover:bg-slate-50"
             >
-              <LuSparkles className="h-3.5 w-3.5" />
+              <LuRotateCcw className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Restaurar</span>
             </button>
             <button
@@ -498,7 +612,7 @@ export default function BuildWorkspace({
               disabled={total === 0}
               className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[0.78rem] font-medium text-slate-500 transition hover:bg-slate-100 disabled:opacity-40"
             >
-              <LuRotateCcw className="h-3.5 w-3.5" />
+              <LuTrash2 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Vaciar</span>
             </button>
           </div>
@@ -534,7 +648,7 @@ export default function BuildWorkspace({
             {/* Plantillas */}
             <section>
               <PanelHeading>Plantilla</PanelHeading>
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-4 gap-1.5">
                 {TEMPLATE_ORDER.map((id) => {
                   const t = TEMPLATES[id];
                   const active = id === template;
@@ -543,25 +657,42 @@ export default function BuildWorkspace({
                       key={id}
                       type="button"
                       onClick={() => setTemplate(id)}
+                      title={`${t.name} — ${t.description}`}
                       className={cn(
-                        "rounded-lg border p-2 text-left transition",
+                        "flex flex-col items-center gap-1 rounded-lg px-1 py-2 transition",
                         active
                           ? "border-slate-900 ring-1 ring-slate-900"
                           : "border-slate-200 hover:border-slate-300",
                       )}
                     >
                       <TemplateSwatch tokens={t} />
-                      <span className="mt-1.5 flex items-center gap-1 text-[0.72rem] font-semibold text-slate-800">
+                      <span className="max-w-full truncate text-[0.6rem] font-semibold text-slate-700">
                         {t.name}
-                        {t.primary ? (
-                          <span className="rounded bg-slate-900 px-1 text-[0.5rem] font-medium uppercase tracking-wide text-white">
-                            Principal
-                          </span>
-                        ) : null}
                       </span>
                     </button>
                   );
                 })}
+              </div>
+            </section>
+
+            {/* Tipografia (Google Fonts) */}
+            <section>
+              <PanelHeading>Tipografia</PanelHeading>
+              <div className="space-y-1.5">
+                <FontField
+                  label="Titulos"
+                  value={tokens.titleFont}
+                  isDefault={!doc.titleFont}
+                  onCommit={(family) => setDoc((prev) => ({ ...prev, titleFont: family }))}
+                  onReset={() => setDoc((prev) => ({ ...prev, titleFont: undefined }))}
+                />
+                <FontField
+                  label="Cuerpo"
+                  value={tokens.bodyFont}
+                  isDefault={!doc.bodyFont}
+                  onCommit={(family) => setDoc((prev) => ({ ...prev, bodyFont: family }))}
+                  onReset={() => setDoc((prev) => ({ ...prev, bodyFont: undefined }))}
+                />
               </div>
             </section>
 
@@ -707,38 +838,51 @@ export default function BuildWorkspace({
           </aside>
 
           {/* ---------------------------- Lienzo --------------------------- */}
-          <main ref={previewRef} data-build-preview-scroll className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
-            <div
-              className={cn(
-                "mx-auto overflow-hidden rounded-2xl border border-slate-200 shadow-[0_20px_60px_rgba(15,23,42,0.12)] transition-[max-width] duration-300",
-                device === "desktop" ? "max-w-4xl" : "max-w-[390px]",
-              )}
-            >
-              <div className="flex items-center gap-1.5 border-b border-slate-200 bg-slate-100 px-3 py-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                <span className="ml-2 truncate rounded-md bg-white px-2 py-0.5 text-[0.62rem] text-slate-400">
-                  {projectName || siteName}
-                  {navMode === "multi" && activePage !== "home"
-                    ? `/${PAGE_BY_ID[activePage].anchor}`
-                    : ""}
-                </span>
-              </div>
+          <main ref={previewRef} data-build-preview-scroll className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6">
+            <div ref={stageRef} className="w-full">
+              {/* Caja de recorte al tamano ESCALADO: el frame interior va a ancho de diseno fijo. */}
+              <div
+                className="mx-auto overflow-hidden rounded-2xl border border-slate-200 shadow-[0_20px_60px_rgba(15,23,42,0.12)]"
+                style={{
+                  width: PREVIEW_DESIGN_WIDTH[device] * previewScale,
+                  height: frameHeight ? frameHeight * previewScale : undefined,
+                }}
+              >
+                <div
+                  ref={frameRef}
+                  style={{
+                    width: PREVIEW_DESIGN_WIDTH[device],
+                    transformOrigin: "top left",
+                    transform: `scale(${previewScale})`,
+                  }}
+                >
+                  <div className="flex items-center gap-1.5 border-b border-slate-200 bg-slate-100 px-3 py-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                    <span className="ml-2 truncate rounded-md bg-white px-2 py-0.5 text-[0.62rem] text-slate-400">
+                      {projectName || siteName}
+                      {navMode === "multi" && activePage !== "home"
+                        ? `/${PAGE_BY_ID[activePage].anchor}`
+                        : ""}
+                    </span>
+                  </div>
 
-              <SitePreview
-                doc={doc}
-                plan={plan}
-                tokens={tokens}
-                navMode={navMode}
-                activePage={activePage}
-                device={device}
-                content={content}
-                dragging={activeDrag !== null}
-                onCommit={commitContent}
-                onRemove={removeInstance}
-                onNavigate={selectPage}
-              />
+                  <SitePreview
+                    doc={doc}
+                    plan={plan}
+                    tokens={tokens}
+                    navMode={navMode}
+                    activePage={activePage}
+                    device={device}
+                    content={content}
+                    dragging={activeDrag !== null}
+                    onCommit={commitContent}
+                    onRemove={removeInstance}
+                    onNavigate={selectPage}
+                  />
+                </div>
+              </div>
             </div>
 
             <p className="mx-auto mt-4 max-w-4xl text-center text-[0.7rem] text-slate-400">
@@ -818,17 +962,196 @@ function FeatureRow({ ok, label }: { ok: boolean; label: string }) {
   );
 }
 
-function TemplateSwatch({ tokens }: { tokens: TemplateTokens }) {
+/* --------------------------- Tipografia (Google Fonts) ------------------------ */
+
+type FontEntry = { family: string; category: string };
+
+/** Construye el href css2 de Google Fonts para una o varias familias. */
+function googleFontsHref(families: string[], weights = "wght@400;600;700"): string {
+  const uniq = Array.from(new Set(families.map((f) => f.trim()).filter(Boolean)));
+  if (uniq.length === 0) return "";
+  // El endpoint css2 espera "+" para los espacios en el nombre de la familia.
+  const fam = uniq.map((f) => `family=${f.replace(/\s+/g, "+")}:${weights}`).join("&");
+  return `https://fonts.googleapis.com/css2?${fam}&display=swap`;
+}
+
+// Hrefs de fuentes ya insertados en el head (dedup por sesion).
+const injectedFontHrefs = new Set<string>();
+
+/** Inserta un <link> de Google Fonts en el head, deduplicado por href. */
+function useGoogleFontLink(href: string) {
+  useEffect(() => {
+    if (!href || injectedFontHrefs.has(href)) return;
+    injectedFontHrefs.add(href);
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.setAttribute("data-gfont", "1");
+    document.head.appendChild(link);
+  }, [href]);
+}
+
+// Cache a nivel de modulo: el catalogo se pide una sola vez por sesion.
+let fontCatalogCache: FontEntry[] | null = null;
+let fontCatalogPromise: Promise<FontEntry[]> | null = null;
+
+function loadFontCatalog(): Promise<FontEntry[]> {
+  if (fontCatalogCache) return Promise.resolve(fontCatalogCache);
+  if (!fontCatalogPromise) {
+    fontCatalogPromise = fetch("/api/fonts")
+      .then((r) => r.json())
+      .then((data: { fonts?: FontEntry[] }) => {
+        fontCatalogCache = data.fonts ?? [];
+        return fontCatalogCache;
+      })
+      .catch(() => {
+        fontCatalogCache = [];
+        return fontCatalogCache;
+      });
+  }
+  return fontCatalogPromise;
+}
+
+/** Fila de tipografia con selector buscable del catalogo de Google Fonts. */
+function FontField({
+  label,
+  value,
+  isDefault,
+  onCommit,
+  onReset,
+}: {
+  label: string;
+  value: string;
+  isDefault: boolean;
+  onCommit: (family: string) => void;
+  onReset: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [catalog, setCatalog] = useState<FontEntry[]>(fontCatalogCache ?? []);
+  const [query, setQuery] = useState("");
+  useBuildModalLock(open);
+
+  useEffect(() => {
+    if (open && catalog.length === 0) loadFontCatalog().then(setCatalog);
+  }, [open, catalog.length]);
+
+  // La fuente actual se carga para mostrar su nombre en su propia tipografia.
+  useGoogleFontLink(googleFontsHref([value]));
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = q ? catalog.filter((f) => f.family.toLowerCase().includes(q)) : catalog;
+    return list.slice(0, 60);
+  }, [catalog, query]);
+
+  // Carga las familias visibles para previsualizar cada nombre en su fuente.
+  useGoogleFontLink(googleFontsHref(results.map((f) => f.family), "wght@400"));
+
   return (
-    <div
-      className="flex h-9 w-full flex-col justify-between overflow-hidden rounded-md p-1"
-      style={{ backgroundColor: tokens.surface, border: `1px solid ${tokens.surfaceAlt}` }}
-    >
-      <div className="h-1 w-1/2 rounded-full" style={{ backgroundColor: tokens.ink }} />
-      <div className="space-y-0.5">
-        <div className="h-0.5 w-full rounded-full" style={{ backgroundColor: tokens.muted }} />
-        <div className="h-0.5 w-2/3 rounded-full" style={{ backgroundColor: tokens.muted }} />
+    <>
+      <div className="flex items-center gap-1.5">
+        <span className="w-12 shrink-0 text-[0.62rem] font-medium text-slate-500">{label}</span>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex min-w-0 flex-1 items-center justify-between gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-left transition hover:border-slate-300"
+        >
+          <span className="truncate text-[0.72rem] text-slate-800" style={{ fontFamily: fontStackOf(value, "sans") }}>
+            {value}
+          </span>
+          <LuChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+        </button>
+        {!isDefault ? (
+          <button
+            type="button"
+            onClick={onReset}
+            title="Volver al default del template"
+            className="shrink-0 text-[0.6rem] text-slate-400 underline"
+          >
+            Reset
+          </button>
+        ) : null}
       </div>
+
+      {open
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+              onWheel={(event) => event.preventDefault()}
+              onTouchMove={(event) => event.preventDefault()}
+            >
+              <button
+                type="button"
+                aria-label="Cerrar"
+                className="absolute inset-0 cursor-default bg-slate-950/70 backdrop-blur-[2px]"
+                onClick={() => setOpen(false)}
+              />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label={`Fuente de ${label}`}
+                className="relative z-10 flex max-h-[80vh] w-full max-w-[360px] flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-[0_30px_100px_rgba(15,23,42,0.45)]"
+              >
+                <p className="mb-2 text-[0.72rem] font-semibold text-slate-700">Fuente de {label.toLowerCase()}</p>
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Buscar en Google Fonts..."
+                  className="mb-2 w-full rounded-md border border-slate-200 px-2.5 py-1.5 text-[0.75rem] text-slate-700 outline-none focus:border-sky-400"
+                />
+                <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-1">
+                  {results.length === 0 ? (
+                    <p className="py-6 text-center text-[0.7rem] text-slate-400">
+                      {catalog.length === 0 ? "Cargando catalogo..." : "Sin resultados."}
+                    </p>
+                  ) : (
+                    results.map((f) => (
+                      <button
+                        key={f.family}
+                        type="button"
+                        onClick={() => {
+                          onCommit(f.family);
+                          setOpen(false);
+                        }}
+                        className={cn(
+                          "flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left transition hover:bg-slate-100",
+                          f.family === value ? "bg-sky-50 ring-1 ring-sky-200" : "",
+                        )}
+                      >
+                        <span
+                          className="truncate text-[0.9rem] text-slate-800"
+                          style={{ fontFamily: fontStackOf(f.family, f.category === "serif" ? "serif" : "sans") }}
+                        >
+                          {f.family}
+                        </span>
+                        <span className="shrink-0 text-[0.55rem] uppercase tracking-wide text-slate-400">{f.category}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
+/** Tres circulos con la paleta del template (fondo, tono medio, texto): un
+ * vistazo de "como pinta la web" antes de elegirla. */
+function TemplateSwatch({ tokens }: { tokens: TemplateTokens }) {
+  const palette = [tokens.surface, tokens.muted, tokens.ink];
+  return (
+    <div className="flex items-center justify-center gap-1">
+      {palette.map((color, i) => (
+        <span
+          key={i}
+          className="h-4 w-4 rounded-full ring-1 ring-inset ring-black/10"
+          style={{ backgroundColor: color }}
+        />
+      ))}
     </div>
   );
 }
@@ -1146,7 +1469,6 @@ function useBuildModalLock(open: boolean) {
 function EditableImage({ value, onCommit, className, style, fit = "cover", bgClass = "bg-slate-200" }: EditableImageProps) {
   const [open, setOpen] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   useBuildModalLock(open);
 
@@ -1221,26 +1543,6 @@ function EditableImage({ value, onCommit, className, style, fit = "cover", bgCla
               <p className="mt-1 text-[0.64rem] text-rose-600">{uploadError}</p>
             ) : null}
 
-            <p className="mb-1 mt-3 text-[0.64rem] text-slate-400">O pega una URL:</p>
-            <div className="flex gap-1.5">
-              <input
-                ref={inputRef}
-                defaultValue={value.startsWith("data:") ? "" : value}
-                placeholder="https://..."
-                className="min-w-0 flex-1 rounded-md border border-slate-200 px-2 py-1 text-[0.72rem] text-slate-700 outline-none focus:border-sky-400"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const next = inputRef.current?.value.trim();
-                  if (next) onCommit(next);
-                  setOpen(false);
-                }}
-                className="shrink-0 rounded-md border border-slate-200 px-2.5 py-1 text-[0.72rem] font-medium text-slate-700"
-              >
-                Usar
-              </button>
-            </div>
             <p className="mb-1 mt-3 text-[0.64rem] text-slate-400">O elige una:</p>
             <div className="grid grid-cols-3 gap-1.5">
               {STOCK_IMAGES.map((src) => (
@@ -1264,6 +1566,223 @@ function EditableImage({ value, onCommit, className, style, fit = "cover", bgCla
         document.body,
       ) : null}
     </>
+  );
+}
+
+/* ========================= Video editable ============================= */
+
+/** Extrae el id de un video de YouTube desde varias formas de URL; null si no lo es. */
+function parseYouTubeId(url: string): string | null {
+  const match = url
+    .trim()
+    .match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+  return match ? match[1] : null;
+}
+
+type EditableVideoProps = {
+  value: string;
+  defaultSrc: string;
+  onCommit: (next: string) => void;
+  className?: string;
+  videoRef?: React.RefObject<HTMLVideoElement | null>;
+  onPlayingChange?: (playing: boolean) => void;
+};
+
+/**
+ * Video del widget bg-video: reproduce mp4 (S3 por default) o embebe YouTube.
+ * Permite pegar un link de YouTube (se guarda), o subir un archivo local que se
+ * ve SOLO en la vista previa (no persiste: el bucket S3 es de solo lectura).
+ */
+function EditableVideo({ value, defaultSrc, onCommit, className, videoRef, onPlayingChange }: EditableVideoProps) {
+  const [open, setOpen] = useState(false);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [urlDraft, setUrlDraft] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  useBuildModalLock(open);
+
+  // Fuente efectiva: el archivo local (efimero) tiene prioridad sobre lo guardado.
+  const src = localPreview ?? value ?? defaultSrc;
+  const youtubeId = parseYouTubeId(src);
+
+  function onPickFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("video/")) return;
+    if (localPreview) URL.revokeObjectURL(localPreview);
+    setLocalPreview(URL.createObjectURL(file));
+    setOpen(false);
+  }
+
+  return (
+    <>
+      {youtubeId ? (
+        <iframe
+          className={className}
+          src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
+          title="Video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      ) : (
+        <video
+          ref={videoRef}
+          className={className}
+          src={src}
+          controls
+          playsInline
+          preload="metadata"
+          onPlay={() => onPlayingChange?.(true)}
+          onPause={() => onPlayingChange?.(false)}
+        />
+      )}
+
+      <button
+        type="button"
+        onClick={() => {
+          setUrlDraft(parseYouTubeId(value) ? value : "");
+          setOpen(true);
+        }}
+        className="absolute bottom-3 right-3 z-30 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[0.68rem] font-medium text-slate-800 shadow"
+      >
+        <LuVideo className="h-3.5 w-3.5" />
+        Cambiar video
+      </button>
+
+      {open ? createPortal(
+        <div
+          className="pointer-events-auto fixed inset-0 z-[10000] flex items-center justify-center overscroll-none p-4"
+          onWheel={(event) => event.preventDefault()}
+          onTouchMove={(event) => event.preventDefault()}
+        >
+          <button
+            type="button"
+            aria-label="Cerrar"
+            className="absolute inset-0 cursor-default bg-slate-950/70 backdrop-blur-[2px]"
+            onClick={() => setOpen(false)}
+          />
+          <div role="dialog" aria-modal="true" aria-label="Cambiar video" className="relative z-10 w-full max-w-[360px] rounded-xl border border-slate-200 bg-white p-4 text-left shadow-[0_30px_100px_rgba(15,23,42,0.45)]">
+            <p className="mb-1.5 text-[0.72rem] font-semibold text-slate-700">Cambiar video</p>
+
+            <input ref={fileRef} type="file" accept="video/*" hidden onChange={onPickFile} />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex w-full items-center justify-center gap-1.5 rounded-md bg-slate-900 py-1.5 text-[0.72rem] font-medium text-white transition hover:bg-slate-800"
+            >
+              <LuUpload className="h-3.5 w-3.5" />
+              Subir desde tu equipo
+            </button>
+            <p className="mt-1 text-[0.6rem] text-slate-400">El video subido se ve solo en la vista previa; no se publica.</p>
+
+            <p className="mb-1 mt-3 text-[0.64rem] text-slate-400">O pega un link de YouTube:</p>
+            <div className="flex gap-1.5">
+              <input
+                value={urlDraft}
+                onChange={(event) => setUrlDraft(event.target.value)}
+                placeholder="https://youtube.com/watch?v=..."
+                className="min-w-0 flex-1 rounded-md border border-slate-200 px-2 py-1 text-[0.72rem] text-slate-700 outline-none focus:border-sky-400"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const next = urlDraft.trim();
+                  if (parseYouTubeId(next)) {
+                    if (localPreview) URL.revokeObjectURL(localPreview);
+                    setLocalPreview(null);
+                    onCommit(next);
+                    setOpen(false);
+                  }
+                }}
+                className="shrink-0 rounded-md border border-slate-200 px-2.5 py-1 text-[0.72rem] font-medium text-slate-700"
+              >
+                Usar
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (localPreview) URL.revokeObjectURL(localPreview);
+                setLocalPreview(null);
+                onCommit(defaultSrc);
+                setOpen(false);
+              }}
+              className="mt-3 w-full rounded-md border border-slate-200 py-1.5 text-[0.7rem] font-medium text-slate-600 transition hover:bg-slate-50"
+            >
+              Usar el video por defecto
+            </button>
+          </div>
+        </div>,
+        document.body,
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * Widget de video de fondo en el preview: el video (mp4/YouTube) al fondo, la
+ * tela de gradiente encima (sin bloquear), y un boton central que reproduce/
+ * pausa el video de verdad. El titulo sigue editable. Para YouTube se ocultan
+ * los controles propios (el iframe trae los suyos).
+ */
+function BgVideoWidget({
+  videoValue,
+  onCommitVideo,
+  titleValue,
+  onCommitTitle,
+  cloth,
+  headingStyle,
+}: {
+  videoValue: string;
+  onCommitVideo: (next: string) => void;
+  titleValue: string;
+  onCommitTitle: TextCommit;
+  cloth?: React.CSSProperties;
+  headingStyle: React.CSSProperties;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const isYouTube = parseYouTubeId(videoValue) !== null;
+
+  const toggle = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) void v.play();
+    else v.pause();
+  };
+
+  return (
+    <section className={BG_VIDEO.section} style={{ backgroundColor: "#020617", color: "#fff" }}>
+      <EditableVideo
+        value={videoValue}
+        defaultSrc={WIDGET_DEFAULTS["bg-video"].video}
+        onCommit={onCommitVideo}
+        className={BG_VIDEO.media}
+        videoRef={videoRef}
+        onPlayingChange={setPlaying}
+      />
+      {cloth ? <div className={BG_VIDEO.cloth} style={cloth} /> : null}
+      <div className={BG_VIDEO.overlay}>
+        {!isYouTube ? (
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={playing ? "Pausar video" : "Reproducir video"}
+            className="pointer-events-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-white/90 text-slate-900 shadow-lg transition hover:bg-white"
+          >
+            {playing ? <LuPause className="h-6 w-6" /> : <LuPlay className="h-6 w-6 translate-x-0.5" />}
+          </button>
+        ) : null}
+        <EditableText
+          as="h3"
+          value={titleValue}
+          onCommit={onCommitTitle}
+          className="pointer-events-auto [text-shadow:0_1px_10px_rgba(0,0,0,0.55)]"
+          style={headingStyle}
+        />
+      </div>
+    </section>
   );
 }
 
@@ -1424,8 +1943,8 @@ function ButtonStyleEditor({ edit }: { edit: BtnEdit }) {
       >
         <LuPencil className="h-3 w-3" />
       </button>
-      {open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {open ? createPortal(
+        <div className="pointer-events-auto fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <button
             type="button"
             aria-label="Cerrar"
@@ -1443,7 +1962,8 @@ function ButtonStyleEditor({ edit }: { edit: BtnEdit }) {
               Listo
             </button>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );
@@ -1586,14 +2106,17 @@ function SitePreview(props: PreviewProps) {
                             <LuArrowLeftRight className="h-3.5 w-3.5" />
                           </button>
                         ) : null}
-                        {instance.widgetId !== "bg-image" ? (
-                          <BackgroundEditor
-                            title={`Fondo de ${WIDGETS_BY_ID[instance.widgetId].name}`}
-                            value={props.content[`${instance.iid}:background`] ?? ""}
-                            onChange={(background) => props.onCommit(`${instance.iid}:background`, background)}
-                            fallback={backgroundFallback}
-                          />
-                        ) : null}
+                        {(() => {
+                          const isMedia = instance.widgetId === "bg-image" || instance.widgetId === "bg-video";
+                          return (
+                            <BackgroundEditor
+                              title={isMedia ? "Tela de color (50%)" : `Fondo de ${WIDGETS_BY_ID[instance.widgetId].name}`}
+                              value={props.content[`${instance.iid}:background`] ?? ""}
+                              onChange={(background) => props.onCommit(`${instance.iid}:background`, background)}
+                              fallback={isMedia ? accent.accent : backgroundFallback}
+                            />
+                          );
+                        })()}
                         </>
                       }
                     >
@@ -1706,6 +2229,21 @@ function backgroundCss(raw: string | undefined, fallback: string): React.CSSProp
     return { backgroundColor: first, backgroundImage: `linear-gradient(${direction}, ${first}, ${second})` };
   }
   return { backgroundColor: first, backgroundImage: "none" };
+}
+
+/**
+ * Tela de color/gradiente que se pone DELANTE de imagen o video (opacidad tope
+ * 50%) para tintarlos con el juego de colores. undefined si no hay color elegido.
+ */
+function clothCss(raw: string | undefined): React.CSSProperties | undefined {
+  if (!raw) return undefined;
+  const value = parseBackgroundStyle(raw);
+  if (!value.color) return undefined;
+  if (value.fill === "gradient") {
+    const direction = gradientDirectionCss(value.direction);
+    return { opacity: 0.5, backgroundImage: `linear-gradient(${direction}, ${value.color}, ${value.color2 || value.color})` };
+  }
+  return { opacity: 0.5, backgroundColor: value.color };
 }
 
 function BackgroundEditor({ value, fallback, onChange, title }: { value: string; fallback: string; onChange: (value: string) => void; title: string }) {
@@ -1954,7 +2492,7 @@ function NavbarView({ doc, tokens, navMode, activePage, device, content, onCommi
     <span className="group/logo relative inline-flex shrink-0 items-center gap-1">
       {logoMode === "image" ? (
         <EditableImage
-          value={get(NAV_CONTENT.logo)}
+          value={resolvePublicAssetUrl(get(NAV_CONTENT.logo))}
           onCommit={(v) => onCommit(NAV_CONTENT.logo, v)}
           className="h-7 w-24 shrink-0"
           fit="contain"
@@ -2079,8 +2617,8 @@ function FooterSocialIcon({ index, content, onCommit, accent, usedIcons }: { ind
       >
         <Icon className="h-3.5 w-3.5" />
       </button>
-      {open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {open ? createPortal(
+        <div className="pointer-events-auto fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <button type="button" aria-label="Cerrar" className="absolute inset-0 bg-slate-950/45" onClick={() => setOpen(false)} />
           <div className="relative w-full max-w-[300px] rounded-xl border border-slate-200 bg-white p-3 text-slate-800 shadow-2xl">
             <p className="text-[0.72rem] font-semibold">Icono y enlace social</p>
@@ -2104,7 +2642,8 @@ function FooterSocialIcon({ index, content, onCommit, accent, usedIcons }: { ind
               <button type="button" onClick={() => setOpen(false)} className="flex-1 rounded-md bg-slate-900 py-1.5 text-[0.7rem] font-medium text-white">Listo</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );
@@ -2295,8 +2834,8 @@ function FooterMap({
         </button>
       </div>
 
-      {open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {open ? createPortal(
+        <div className="pointer-events-auto fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <button type="button" aria-label="Cerrar" className="absolute inset-0 cursor-default bg-slate-950/45" onClick={() => setOpen(false)} />
           <div className="relative w-full max-w-[320px] rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xl">
             <p className="mb-1.5 text-[0.72rem] font-semibold text-slate-700">Elige tu ubicacion</p>
@@ -2336,7 +2875,8 @@ function FooterMap({
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );
@@ -2402,7 +2942,7 @@ function SortableBlock({
 
 /* --------------------------- Widgets del body -------------------------- */
 
-function PageWidget({ instance, tokens, device, content, onCommit, accent }: ViewCtx & { instance: Instance }) {
+function PageWidget({ instance, tokens, content, onCommit, accent }: ViewCtx & { instance: Instance }) {
   const { widgetId, iid } = instance;
   const radius = tokens.radius;
   const get = (field: string) => content[`${iid}:${field}`] ?? WIDGET_DEFAULTS[widgetId][field] ?? "";
@@ -2416,7 +2956,6 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
     borderColor: hexAlpha(tokens.muted, CARD_BORDER_ALPHA),
     backgroundColor: hexAlpha(tokens.surfaceAlt, CARD_BG_ALPHA),
   };
-  const isMobile = device === "mobile";
   // Cada boton guarda su propio estilo (color / relleno) en content, por componente.
   const btnStyleOf = (field: string) => parseBtnStyle(content[`${iid}:${field}:style`]);
   const btnCssOf = (field: string) => buttonCss(btnStyleOf(field), accent, radius);
@@ -2480,7 +3019,7 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
       <section className={SECTION.outer} style={background(tokens.surface)}>
         <div className={SECTION.container}>
           <div className={IMAGE_TEXT.grid}>
-            <EditableImage value={get("image")} onCommit={set("image")} className={cn(IMAGE_TEXT.image, reverse && "md:order-2")} />
+            <EditableImage value={get("image")} onCommit={set("image")} className={cn(IMAGE_TEXT.image, reverse && "@2xl:order-2")} />
             <div>
               <EditableText as="h2" value={get("title")} onCommit={set("title")} className={IMAGE_TEXT.title} style={headingStyle} />
               <EditableText as="p" multiline value={get("body")} onCommit={set("body")} className={cn(IMAGE_TEXT.body)} style={{ color: tokens.muted }} />
@@ -2613,9 +3152,11 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
   }
 
   if (widgetId === "bg-image") {
+    const cloth = clothCss(content[`${iid}:background`]);
     return (
       <section className={BG_IMAGE.section}>
         <EditableImage value={get("image")} onCommit={set("image")} className={BG_IMAGE.image} />
+        {cloth ? <div className={BG_IMAGE.cloth} style={cloth} /> : null}
         <div className={BG_IMAGE.overlay}>
           <EditableText as="p" value={get("caption")} onCommit={set("caption")} className={BG_IMAGE.caption} />
         </div>
@@ -2625,16 +3166,14 @@ function PageWidget({ instance, tokens, device, content, onCommit, accent }: Vie
 
   if (widgetId === "bg-video") {
     return (
-      <section className={SECTION.outer} style={{ ...background("#020617"), color: "#fff" }}>
-        <div className={SECTION.container}>
-          <div className={BG_VIDEO.inner}>
-            <span className="mb-3 inline-block h-6 w-6" style={{ color: accent.accent }}>
-              <EditableIcon value={get("playIcon")} fallback="play" onCommit={set("playIcon")} className="h-6 w-6" />
-            </span>
-            <EditableText as="h3" value={get("title")} onCommit={set("title")} style={headingStyle} />
-          </div>
-        </div>
-      </section>
+      <BgVideoWidget
+        videoValue={get("video")}
+        onCommitVideo={(next) => onCommit(`${iid}:video`, next)}
+        titleValue={get("title")}
+        onCommitTitle={set("title")}
+        cloth={clothCss(content[`${iid}:background`])}
+        headingStyle={headingStyle}
+      />
     );
   }
 
@@ -2794,31 +3333,33 @@ function CarouselWidget({
   const go = (delta: number) => setIndex((i) => (i + delta + fields.length) % fields.length);
 
   return (
-    <section className="px-6 py-8" style={background}>
-      <div className="relative mx-auto max-w-3xl">
-        <EditableImage
-          key={field}
-          value={value}
-          onCommit={(v) => onCommit(`${iid}:${field}`, v)}
-          className="h-52 w-full"
-          style={{ borderRadius: tokens.radius }}
-        />
-        <button
-          type="button"
-          onClick={() => go(-1)}
-          aria-label="Slide anterior"
-          className="absolute left-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-700 shadow transition hover:bg-white"
-        >
-          <LuChevronLeft className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={() => go(1)}
-          aria-label="Slide siguiente"
-          className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-700 shadow transition hover:bg-white"
-        >
-          <LuChevronRight className="h-4 w-4" />
-        </button>
+    <section className={SECTION.outer} style={background}>
+      <div className={SECTION.container}>
+        <div className={CAROUSEL.frame}>
+          <EditableImage
+            key={field}
+            value={value}
+            onCommit={(v) => onCommit(`${iid}:${field}`, v)}
+            className={CAROUSEL.slide}
+          />
+          <button
+            type="button"
+            onClick={() => go(-1)}
+            aria-label="Slide anterior"
+            className="absolute left-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/80 text-2xl text-slate-900"
+          >
+            <LuChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => go(1)}
+            aria-label="Slide siguiente"
+            className="absolute right-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/80 text-2xl text-slate-900"
+          >
+            <LuChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+        {/* Puntos: ayuda de edicion del builder (el sitio real navega con los botones). */}
         <div className="mt-3 flex justify-center gap-1.5">
           {fields.map((_, i) => (
             <button
@@ -2827,13 +3368,10 @@ function CarouselWidget({
               onClick={() => setIndex(i)}
               aria-label={`Ir al slide ${i + 1}`}
               className="h-1.5 rounded-full transition-all"
-              style={{ width: i === index ? 18 : 6, backgroundColor: i === index ? accent.accent : `${tokens.muted}55` }}
+              style={{ width: i === index ? 18 : 6, backgroundColor: i === index ? accent.accent : hexAlpha(tokens.muted, 0.33) }}
             />
           ))}
         </div>
-        <p className="mt-1 text-center text-[0.62rem]" style={{ color: tokens.muted }}>
-          Slide {index + 1} de {fields.length} · da clic en la imagen para cambiarla
-        </p>
       </div>
     </section>
   );

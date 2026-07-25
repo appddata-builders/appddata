@@ -3,15 +3,17 @@
 import { AnimatePresence, motion, useScroll, useTransform, type MotionValue } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
+import { BRAND_PLANE_URL, IMIN_LOGO_URL } from "@/lib/public-assets";
+
 const imageCards = [
   {
     label: "Ajusta Imágenes",
     title: "Presencia dificil de superar.",
     description:
       "Cambia imagenes que se ajustan al momento que estas viviendo.",
-    imageSrc: "/IMIN.png",
+    imageSrc: IMIN_LOGO_URL,
     imageAlt: "Vista base del sitio appddata",
-    altImageSrc: "/brand-plane.png",
+    altImageSrc: BRAND_PLANE_URL,
     altImageAlt: "Vista editable del branding appddata",
     accent: "from-[#589bf9]/28 via-transparent to-cyan-300/10",
   },
@@ -21,7 +23,7 @@ const imageCards = [
     descriptionPrefix: "Cambia textos, ",
     descriptionAnimated: "colores e iconos",
     descriptionSuffix: " para adaptar el sitio web.",
-    imageSrc: "/IMIN.png",
+    imageSrc: IMIN_LOGO_URL,
     imageAlt: "Vista editable de IMIN para personalizar un sitio",
     accent: "from-cyan-300/22 via-transparent to-[#589bf9]/18",
   },

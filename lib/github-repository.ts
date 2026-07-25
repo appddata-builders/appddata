@@ -2,6 +2,7 @@ import type { GeneratedFile } from "@/lib/generated-site";
 
 type GitHubResult =
   | { status: "created"; id: number; owner: string; name: string; fullName: string; url: string; cloneUrl: string; private: boolean }
+  | { status: "name_taken"; message: string }
   | { status: "configuration_required" };
 
 const API_VERSION = "2026-03-10";
@@ -34,6 +35,8 @@ export async function createGitHubRepository(projectName: string, slug: string, 
   });
   if (!response.ok) {
     const detail = await githubError(response);
+    // 422 al crear = el repositorio con ese nombre ya existe (nombre en uso).
+    if (response.status === 422) return { status: "name_taken", message: detail };
     throw new Error(`GitHub no pudo crear el repositorio (${response.status}): ${detail}`);
   }
   const repository = await response.json() as {
@@ -64,6 +67,33 @@ export async function createGitHubRepository(projectName: string, slug: string, 
     cloneUrl: repository.clone_url,
     private: repository.private,
   };
+}
+
+/**
+ * Borra un repositorio (para limpiar el repo huerfano si el sitio de Netlify no
+ * se pudo crear). Best-effort: requiere el scope `delete_repo` en el token; si
+ * falla, no rompe el flujo. Devuelve true si se borro.
+ */
+export async function deleteGitHubRepository(owner: string, name: string): Promise<boolean> {
+  const token = process.env.GITHUB_TOKEN?.trim();
+  if (!token) return false;
+  try {
+    const response = await fetch(
+      `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`,
+      {
+        method: "DELETE",
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "Appddata site generator",
+          "X-GitHub-Api-Version": API_VERSION,
+        },
+      },
+    );
+    return response.ok; // 204 al borrar
+  } catch {
+    return false;
+  }
 }
 
 type GhHeaders = Record<string, string>;
