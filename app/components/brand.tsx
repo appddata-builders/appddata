@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 
+import { BRAND_PLANE_URL } from "@/lib/public-assets";
+
 type BrandSize = "sm" | "md" | "lg";
 
 type BrandProps = {
@@ -41,7 +43,7 @@ export default function Brand({
     <div className={`flex items-center ${className}`.trim()}>
       <div className={`relative shrink-0 ${styles.plane} ${planeClassName}`.trim()}>
         <motion.img
-          src="/brand-plane.png"
+          src={BRAND_PLANE_URL}
           alt="appddata"
           className="h-full w-full object-contain backface-hidden transform-[translateZ(0)]"
           loading="eager"

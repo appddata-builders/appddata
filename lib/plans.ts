@@ -9,6 +9,8 @@
 import type { SitePlan } from "@/lib/site-packages";
 
 export type ProjectPlan = "free" | "beginner" | "super" | "premium" | "imin";
+export type PurchasableSitePlan = Exclude<SitePlan, "free">;
+export type AvailableSitePackages = Record<PurchasableSitePlan, number>;
 
 export const PLAN_LABELS: Record<ProjectPlan, string> = {
   free: "Free",
@@ -30,6 +32,8 @@ export type PanelPlan = {
   hasUnassignedSitePackage: boolean;
   /** Cuántos sitios puede crear ahora mismo (tickets/monedas sin consumir). */
   availableSites: number;
+  /** Inventario de tickets sin consumir, separado por paquete contratado. */
+  availableSitePackages: AvailableSitePackages;
   /**
    * Plan del ticket que se consumira al crear el proximo sitio. El builder debe
    * abrir con las especificaciones de ESTE plan (el contratado para el sitio

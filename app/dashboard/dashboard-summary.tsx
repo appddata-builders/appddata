@@ -46,12 +46,15 @@ export default function DashboardSummary({ plan }: { plan: PanelPlan }) {
               <IminMark className="h-7 w-7" />
             </span>
           ) : null}
-          {plan.availableSites > 0 ? (
-            <span className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#f3c49f] bg-[#fff4e8] px-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#b85f28]">
-              <LuTicket className="h-3.5 w-3.5 text-[#df7a3a]" aria-hidden="true" />
-              {plan.availableSites} Website{plan.availableSites === 1 ? "" : "s"}
-            </span>
-          ) : null}
+          {SITE_PACKAGES.map((sitePackage) => {
+            const count = plan.availableSitePackages[sitePackage.id];
+            return count > 0 ? (
+              <span key={sitePackage.id} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#f3c49f] bg-[#fff4e8] px-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#b85f28]">
+                <LuTicket className="h-3.5 w-3.5 text-[#df7a3a]" aria-hidden="true" />
+                {count} Website{count === 1 ? "" : "s"} {sitePackage.name}
+              </span>
+            ) : null;
+          })}
         </div>
         <h1 className="mt-5 text-2xl font-semibold tracking-[-0.03em] text-slate-900 sm:text-3xl">
           {plan.hasUnassignedSitePackage ? (

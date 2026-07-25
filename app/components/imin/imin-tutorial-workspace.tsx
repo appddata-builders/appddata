@@ -1,6 +1,6 @@
 "use client";
 
-import { LuCalendarClock, LuChevronDown, LuChevronUp, LuExternalLink, LuImagePlay, LuLayoutGrid, LuLoaderCircle, LuMonitor, LuMousePointer2, LuPalette, LuPlus, LuRotateCcw, LuSmartphone, LuTrash2, LuType } from "react-icons/lu";
+import { LuCalendarClock, LuExternalLink, LuImagePlay, LuLoaderCircle, LuMonitor, LuMousePointer2, LuPalette, LuRotateCcw, LuSmartphone, LuType } from "react-icons/lu";
 import {
   useCallback,
   useEffect,
@@ -108,13 +108,12 @@ import {
 import { TbEngine, TbManualGearbox } from "react-icons/tb";
 
 import { Badge } from "@/app/components/ui/badge";
-import { CONTACT_WIDGET_IDS, WIDGETS, type WidgetId } from "@/app/components/build/build-model";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_SITE_URL = "https://refautomex.com";
 const DEFAULT_EDITS_ENDPOINT = "/api/dashboard/imin/edits";
 
-type EditorMode = "navigate" | "text" | "media" | "style" | "widgets";
+type EditorMode = "navigate" | "text" | "media" | "style";
 // El bridge distingue imagen de primer plano, fondo y video.
 type MediaKind = "image" | "background" | "video";
 // Relleno solido o degradado de dos colores.
@@ -188,10 +187,7 @@ const modeOptions: { id: EditorMode; label: string; icon: typeof LuType }[] = [
   { id: "text", label: "Editar textos", icon: LuType },
   { id: "media", label: "Editar medios", icon: LuImagePlay },
   { id: "style", label: "Colores e iconos", icon: LuPalette },
-  { id: "widgets", label: "Widgets", icon: LuLayoutGrid },
 ];
-
-type IminWidget = { id: string; type: WidgetId };
 
 // Catalogo de iconos para reemplazar en el sitio. Todo sale de react-icons
 // para que el trazo sea consistente con lo que ya usa el proyecto.
@@ -514,9 +510,7 @@ export function IminWorkspace({
   const [libTotal, setLibTotal] = useState(0);
   const [libLimit, setLibLimit] = useState(0);
   const [libLoading, setLibLoading] = useState(false);
-  const [widgets, setWidgets] = useState<IminWidget[]>([]);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
-  const availableWidgets = WIDGETS.filter((widget) => !CONTACT_WIDGET_IDS.includes(widget.id));
   const renewalDays = accessExpiresAt
     ? Math.max(0, Math.ceil((new Date(accessExpiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
     : null;
@@ -575,8 +569,6 @@ export function IminWorkspace({
       .then((data: { edits?: StoredEdit[] }) => {
         if (!cancelled) {
           savedEditsRef.current = data.edits ?? [];
-          const widgetEdit = savedEditsRef.current.find((edit) => edit.type === "set-widgets");
-          if (widgetEdit && Array.isArray(widgetEdit.widgets)) setWidgets((widgetEdit.widgets as IminWidget[]).slice(0, 4));
         }
       })
       .catch(() => {
@@ -619,13 +611,6 @@ export function IminWorkspace({
     setPreviewStatus("loading");
     setBridgeReady(false);
     setReloadNonce((n) => n + 1);
-  };
-
-  const applyWidgets = (next: IminWidget[]) => {
-    const valid = next.slice(0, 4);
-    setWidgets(valid);
-    post({ type: "set-widgets", selector: "__imin_widgets__", widgets: valid });
-    setHasChanges(true);
   };
 
   const handleSave = async () => {
@@ -905,8 +890,6 @@ export function IminWorkspace({
         ? "Modo edición de medios: la navegación esta pausada. Haz clic en una imagen o video para reemplazarlo (los videos solo aceptan mp4)."
         : mode === "style"
           ? "Modo colores e iconos: la navegación esta pausada. Haz clic en un icono para cambiarlo o en cualquier elemento para pintar su color."
-          : mode === "widgets"
-            ? "Agrega, ordena o elimina secciones administradas dentro del sitio real."
           : "Navegación activa: haz clic en cualquier parte del sitio para interactuar con el.";
 
   const workspaceSectionDescription =
@@ -916,8 +899,6 @@ export function IminWorkspace({
         ? "Reemplaza imágenes, fondos y videos."
       : mode === "style"
           ? "Personaliza colores, degradados e iconos."
-          : mode === "widgets"
-            ? "Agrega y organiza secciones del sitio."
           : "Explora e interactúa con el sitio.";
 
   return (
@@ -966,7 +947,7 @@ export function IminWorkspace({
               variant === "panel" && "p-0.5",
             )}
           >
-            {modeOptions.filter((option) => variant === "panel" || option.id !== "widgets").map((option) => {
+            {modeOptions.map((option) => {
               const Icon = option.icon;
               const active = mode === option.id;
 
@@ -1100,73 +1081,6 @@ export function IminWorkspace({
           <p className="my-3 text-center text-[0.68rem] uppercase tracking-[0.2em] text-slate-500">
             {modeHelpText}
           </p>
-        ) : null}
-        {mode === "widgets" ? (
-          <div className="mb-2 grid max-h-72 shrink-0 gap-3 overflow-hidden rounded-xl border border-slate-200 bg-white p-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(17rem,0.65fr)]">
-            <div className="min-h-0 overflow-y-auto pr-1">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-slate-500">Agregar una sección</p>
-                  <p className="mt-0.5 text-[0.68rem] text-slate-400">Elige un bloque; aparecerá al final del sitio.</p>
-                </div>
-                <span className="shrink-0 rounded-full bg-blue-50 px-2 py-1 text-[0.62rem] font-semibold text-blue-600">{widgets.length}/4 usadas</span>
-              </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {availableWidgets.map((widget) => {
-                  const Icon = widget.icon;
-                  return (
-                    <button
-                      key={widget.id}
-                      type="button"
-                      disabled={widgets.length >= 4}
-                      onClick={() => applyWidgets([...widgets, { id: `${widget.id}-${Date.now().toString(36)}`, type: widget.id }])}
-                      className="group flex min-w-0 items-start gap-2.5 rounded-xl border border-slate-200 p-2.5 text-left transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50/60 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:translate-y-0"
-                    >
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600 transition group-hover:bg-white group-hover:text-blue-600">
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-semibold text-slate-700">{widget.name}</span>
-                        <span className="mt-0.5 block line-clamp-2 text-[0.65rem] leading-4 text-slate-400">{widget.description}</span>
-                      </span>
-                      <LuPlus className="mt-1 h-3.5 w-3.5 shrink-0 text-blue-500" />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="min-h-0 overflow-y-auto border-t border-slate-100 pt-3 lg:border-l lg:border-t-0 lg:pl-3 lg:pt-0">
-              <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-slate-500">Orden de las secciones</p>
-              {widgets.length === 0 ? (
-                <div className="grid min-h-28 place-items-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-center">
-                  <div>
-                    <LuLayoutGrid className="mx-auto h-5 w-5 text-slate-300" />
-                    <p className="mt-2 text-xs font-medium text-slate-500">Tu sitio todavía no tiene secciones IMIN.</p>
-                    <p className="mt-1 text-[0.65rem] text-slate-400">Selecciona una tarjeta para agregarla.</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {widgets.map((widget, index) => {
-                    const definition = WIDGETS.find((item) => item.id === widget.type);
-                    const Icon = definition?.icon ?? LuLayoutGrid;
-                    return (
-                      <div key={widget.id} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-2.5 py-2 text-xs text-slate-600">
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white text-blue-600 ring-1 ring-slate-200"><Icon className="h-3.5 w-3.5" /></span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium text-slate-700">{definition?.name ?? widget.type}</span>
-                          <span className="text-[0.62rem] text-slate-400">Posición {index + 1}</span>
-                        </span>
-                        <button type="button" disabled={index === 0} onClick={() => { const next = [...widgets]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; applyWidgets(next); }} className="rounded-md p-1 text-slate-400 transition hover:bg-white hover:text-slate-700 disabled:opacity-20" aria-label={`Subir ${definition?.name ?? widget.type}`}><LuChevronUp className="h-3.5 w-3.5" /></button>
-                        <button type="button" disabled={index === widgets.length - 1} onClick={() => { const next = [...widgets]; [next[index], next[index + 1]] = [next[index + 1], next[index]]; applyWidgets(next); }} className="rounded-md p-1 text-slate-400 transition hover:bg-white hover:text-slate-700 disabled:opacity-20" aria-label={`Bajar ${definition?.name ?? widget.type}`}><LuChevronDown className="h-3.5 w-3.5" /></button>
-                        <button type="button" onClick={() => applyWidgets(widgets.filter((item) => item.id !== widget.id))} className="rounded-md p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600" aria-label={`Eliminar ${definition?.name ?? widget.type}`}><LuTrash2 className="h-3.5 w-3.5" /></button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
         ) : null}
         <div
           className={cn(

@@ -54,10 +54,7 @@
 
   // Origenes del editor aceptados cuando el sitio no configura los suyos.
   var DEFAULT_PARENT_ORIGINS = [
-    // 1) Pruebas: el editor IMIN corriendo en tu localhost.
-    "http://localhost:3000",
-    // 2) Produccion: donde este desplegado el editor IMIN.
-    "https://appddata.netlify.app",
+    "https://appddata.com",
   ];
 
   // Cada sitio puede declarar los suyos sin tocar este archivo, de dos formas:

@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { BRAND_PLANE_URL } from "@/lib/public-assets";
+
 export default function NotFound() {
   return (
     <main className="app-min-h-screen relative isolate flex items-center overflow-hidden bg-[#f8fbff] px-4 pb-12 pt-28 text-slate-900 sm:px-6 sm:pt-32">
@@ -26,7 +28,7 @@ export default function NotFound() {
             <span className="relative h-[25px] w-[52px] shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/brand-plane.png"
+                src={BRAND_PLANE_URL}
                 alt=""
                 className="h-full w-full object-contain"
                 decoding="async"

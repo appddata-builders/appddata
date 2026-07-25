@@ -12,6 +12,7 @@ import {
   type TemplateId,
   type WidgetId,
 } from "@/app/components/build/build-model";
+import { isBrandPlaneAsset, resolvePublicAssetUrl } from "@/lib/public-assets";
 
 type Content = Record<string, string>;
 type SavedDocument = { version?: number; plan?: BuildPlanId; template?: TemplateId; navMode?: NavMode; doc?: Doc; content?: Content };
@@ -81,8 +82,8 @@ function documentHtml(name: string, doc: Doc, content: Content, navMode: NavMode
   const href = (id: PageId) => navMode === "single" ? `#${anchors[id]}` : id === "home" ? "/" : `/${id}/`;
   const links = PAGES.map((page) => `<a href="${href(page.id)}"${page.id === only ? ' aria-current="page"' : ""}>${esc(pageLabel(doc, page.id))}</a>`).join("");
   const cta = doc.navbarVariant === "cta" ? `<a class="button nav-cta" style="${buttonStyle(content[`${NAV_CONTENT.cta}:style`], accent, tokens.radius)}" href="${href("contact")}">${esc(getChrome(NAV_CONTENT.cta))}</a>` : "";
-  const logoValue = getChrome(NAV_CONTENT.logo);
-  const logo = logoValue && logoValue !== "/brand-plane.png" ? `<img class="logo" src="${safeImageUrl(logoValue)}" alt="${attr(name)}">` : `<strong>${esc(name)}</strong>`;
+  const logoValue = resolvePublicAssetUrl(getChrome(NAV_CONTENT.logo));
+  const logo = logoValue && !isBrandPlaneAsset(logoValue) ? `<img class="logo" src="${safeImageUrl(logoValue)}" alt="${attr(name)}">` : `<strong>${esc(name)}</strong>`;
   const body = pages.map((page) => `<main id="${anchors[page.id]}" class="page">${(doc.pages[page.id] ?? []).map((instance) => renderWidget(instance.iid, instance.widgetId, content, tokens, accent)).join("")}</main>`).join("");
   const mapQuery = encodeURIComponent(getChrome(NAV_CONTENT.mapQuery));
   const footerBg = backgroundStyle(content[NAV_CONTENT.footerBg], tokens.footerBg);

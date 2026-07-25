@@ -20,6 +20,7 @@ import {
 } from "react-icons/lu";
 import type { ComponentType } from "react";
 
+import { BRAND_PLANE_URL, publicAssetUrl } from "@/lib/public-assets";
 import { getSitePackage } from "@/lib/site-packages";
 
 export type BuildPlanId = "beginner" | "super" | "premium";
@@ -202,6 +203,9 @@ export type Instance = { iid: string; widgetId: WidgetId };
 export type Doc = {
   navbarVariant: NavbarVariant;
   footerVariant: FooterVariant;
+  /** Overrides de tipografia (familia Google) para todo el sitio; si faltan se usa el default del template. */
+  titleFont?: string;
+  bodyFont?: string;
   pages: Record<PageId, Instance[]>;
 };
 
@@ -269,6 +273,9 @@ export type TemplateTokens = {
   titleFamily: string;
   titleWeight: number;
   bodyFamily: string;
+  /** Nombre plano de la familia Google Fonts por default (titulos / cuerpo). */
+  titleFont: string;
+  bodyFont: string;
   surface: string;
   surfaceAlt: string;
   ink: string;
@@ -282,148 +289,202 @@ export type TemplateTokens = {
   grayscale?: boolean;
 };
 
-const SANS = "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
-const SERIF = "'Iowan Old Style', Georgia, 'Times New Roman', serif";
+const SANS_FALLBACK = "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
+const SERIF_FALLBACK = "'Iowan Old Style', Georgia, 'Times New Roman', serif";
+
+/** Construye un stack CSS a partir de una familia Google + fallback del sistema. */
+export function fontStackOf(name: string, kind: "sans" | "serif"): string {
+  return `"${name}", ${kind === "serif" ? SERIF_FALLBACK : SANS_FALLBACK}`;
+}
+
+/**
+ * Fuentes efectivas de un documento: usa el override del usuario (doc) si existe,
+ * si no el default del template. Compartido por el preview y el generador.
+ */
+export function effectiveFonts(
+  tokens: TemplateTokens,
+  doc?: { titleFont?: string; bodyFont?: string },
+): { title: string; body: string; titleStack: string; bodyStack: string } {
+  const title = doc?.titleFont?.trim() || tokens.titleFont;
+  const body = doc?.bodyFont?.trim() || tokens.bodyFont;
+  const titleIsSerif = title === tokens.titleFont ? tokens.titleFamily.includes("serif") : false;
+  const bodyIsSerif = body === tokens.bodyFont ? tokens.bodyFamily.includes("serif") : false;
+  return {
+    title,
+    body,
+    titleStack: fontStackOf(title, titleIsSerif ? "serif" : "sans"),
+    bodyStack: fontStackOf(body, bodyIsSerif ? "serif" : "sans"),
+  };
+}
+
+/** Devuelve una copia de los tokens con las fuentes efectivas aplicadas. */
+export function tokensWithFonts(
+  tokens: TemplateTokens,
+  doc?: { titleFont?: string; bodyFont?: string },
+): TemplateTokens {
+  const fonts = effectiveFonts(tokens, doc);
+  return {
+    ...tokens,
+    titleFont: fonts.title,
+    bodyFont: fonts.body,
+    titleFamily: fonts.titleStack,
+    bodyFamily: fonts.bodyStack,
+  };
+}
 
 export const TEMPLATES: Record<TemplateId, TemplateTokens> = {
   aurora: {
     id: "aurora",
     name: "Aurora",
-    description: "Clara, redondeada y centrada. La principal.",
+    description: "Clara y redondeada, paleta Nord. La principal.",
     primary: true,
     radius: 16,
     heroAlign: "center",
     navUppercase: false,
     navLetter: "0.01em",
-    titleFamily: SANS,
+    titleFamily: fontStackOf("Inter", "sans"),
     titleWeight: 600,
-    bodyFamily: SANS,
+    bodyFamily: fontStackOf("Inter", "sans"),
+    titleFont: "Inter",
+    bodyFont: "Inter",
     surface: "#ffffff",
-    surfaceAlt: "#f6f8fb",
-    ink: "#0f172a",
-    muted: "#64748b",
+    surfaceAlt: "#eceff4",
+    ink: "#2e3440",
+    muted: "#4c566a",
     navBg: "#ffffff",
-    navInk: "#0f172a",
-    footerBg: "#0f172a",
-    footerInk: "#e2e8f0",
+    navInk: "#2e3440",
+    footerBg: "#2e3440",
+    footerInk: "#d8dee9",
     dark: false,
   },
   editorial: {
     id: "editorial",
     name: "Editorial",
-    description: "Titulares serif alineados a la izquierda.",
+    description: "Serif a la izquierda, paleta Solarized Light.",
     radius: 4,
     heroAlign: "left",
     navUppercase: false,
     navLetter: "0.02em",
-    titleFamily: SERIF,
+    titleFamily: fontStackOf("Playfair Display", "serif"),
     titleWeight: 600,
-    bodyFamily: SERIF,
-    surface: "#faf7f2",
-    surfaceAlt: "#f2ede4",
-    ink: "#26211b",
-    muted: "#6f6558",
-    navBg: "#faf7f2",
-    navInk: "#26211b",
-    footerBg: "#26211b",
-    footerInk: "#efe9df",
+    bodyFamily: fontStackOf("Lora", "serif"),
+    titleFont: "Playfair Display",
+    bodyFont: "Lora",
+    surface: "#fdf6e3",
+    surfaceAlt: "#eee8d5",
+    ink: "#073642",
+    muted: "#657b83",
+    navBg: "#fdf6e3",
+    navInk: "#073642",
+    footerBg: "#073642",
+    footerInk: "#eee8d5",
     dark: false,
   },
   studio: {
     id: "studio",
     name: "Studio",
-    description: "Shell oscuro y navegacion en mayusculas.",
+    description: "Oscuro en mayusculas, paleta Nord Polar Night.",
     radius: 12,
     heroAlign: "left",
     navUppercase: true,
     navLetter: "0.16em",
-    titleFamily: SANS,
+    titleFamily: fontStackOf("Space Grotesk", "sans"),
     titleWeight: 700,
-    bodyFamily: SANS,
-    surface: "#0f1115",
-    surfaceAlt: "#171a21",
-    ink: "#e7eaf0",
-    muted: "#98a2b3",
-    navBg: "#0b0d11",
-    navInk: "#e7eaf0",
-    footerBg: "#07090c",
-    footerInk: "#c7cdd8",
+    bodyFamily: fontStackOf("Inter", "sans"),
+    titleFont: "Space Grotesk",
+    bodyFont: "Inter",
+    surface: "#2e3440",
+    surfaceAlt: "#3b4252",
+    ink: "#eceff4",
+    muted: "#81899b",
+    navBg: "#272b35",
+    navInk: "#eceff4",
+    footerBg: "#242933",
+    footerInk: "#d8dee9",
     dark: true,
   },
   neon: {
     id: "neon",
     name: "Neon",
-    description: "Oscuro y vibrante, esquinas muy redondeadas.",
+    description: "Oscuro y vibrante con esquinas muy redondeadas, paleta Dracula.",
     radius: 22,
     heroAlign: "center",
     navUppercase: true,
     navLetter: "0.14em",
-    titleFamily: SANS,
+    titleFamily: fontStackOf("Sora", "sans"),
     titleWeight: 800,
-    bodyFamily: SANS,
-    surface: "#0a0a14",
-    surfaceAlt: "#12122a",
-    ink: "#f4f4ff",
-    muted: "#9a9ac4",
-    navBg: "#0a0a14",
-    navInk: "#f4f4ff",
-    footerBg: "#06060f",
-    footerInk: "#cfcff0",
+    bodyFamily: fontStackOf("Inter", "sans"),
+    titleFont: "Sora",
+    bodyFont: "Inter",
+    surface: "#282a36",
+    surfaceAlt: "#343746",
+    ink: "#f8f8f2",
+    muted: "#8b93c4",
+    navBg: "#21222c",
+    navInk: "#f8f8f2",
+    footerBg: "#191a21",
+    footerInk: "#f8f8f2",
     dark: true,
   },
   sunset: {
     id: "sunset",
     name: "Sunset",
-    description: "Calida y luminosa, tonos arena.",
+    description: "Calida y luminosa, paleta Gruvbox Light.",
     radius: 18,
     heroAlign: "center",
     navUppercase: false,
     navLetter: "0.02em",
-    titleFamily: SANS,
+    titleFamily: fontStackOf("Poppins", "sans"),
     titleWeight: 700,
-    bodyFamily: SANS,
-    surface: "#fff7f0",
-    surfaceAlt: "#ffe9db",
-    ink: "#3a241a",
-    muted: "#9a7b6a",
-    navBg: "#fff7f0",
-    navInk: "#3a241a",
-    footerBg: "#3a241a",
-    footerInk: "#f6e6da",
+    bodyFamily: fontStackOf("Nunito Sans", "sans"),
+    titleFont: "Poppins",
+    bodyFont: "Nunito Sans",
+    surface: "#fbf1c7",
+    surfaceAlt: "#f2e5bc",
+    ink: "#3c3836",
+    muted: "#7c6f64",
+    navBg: "#fbf1c7",
+    navInk: "#3c3836",
+    footerBg: "#3c3836",
+    footerInk: "#ebdbb2",
     dark: false,
   },
   mono: {
     id: "mono",
     name: "Mono",
-    description: "Blanco y negro, minimal y de esquinas rectas.",
+    description: "Blanco y negro minimal, escala Neutral.",
     radius: 2,
     heroAlign: "left",
     navUppercase: true,
     navLetter: "0.2em",
-    titleFamily: SANS,
+    titleFamily: fontStackOf("Archivo", "sans"),
     titleWeight: 700,
-    bodyFamily: SANS,
+    bodyFamily: fontStackOf("Inter", "sans"),
+    titleFont: "Archivo",
+    bodyFont: "Inter",
     surface: "#ffffff",
-    surfaceAlt: "#f4f4f5",
-    ink: "#111111",
-    muted: "#71717a",
+    surfaceAlt: "#f5f5f5",
+    ink: "#0a0a0a",
+    muted: "#737373",
     navBg: "#ffffff",
-    navInk: "#111111",
-    footerBg: "#111111",
-    footerInk: "#e4e4e7",
+    navInk: "#0a0a0a",
+    footerBg: "#0a0a0a",
+    footerInk: "#f5f5f5",
     dark: false,
   },
   grises: {
     id: "grises",
     name: "Grises",
-    description: "Escala de grises: todo el sitio en blanco y negro.",
+    description: "Todo el sitio en escala de grises, paleta Zinc.",
     radius: 10,
     heroAlign: "center",
     navUppercase: false,
     navLetter: "0.04em",
-    titleFamily: SANS,
+    titleFamily: fontStackOf("Inter", "sans"),
     titleWeight: 700,
-    bodyFamily: SANS,
+    bodyFamily: fontStackOf("Inter", "sans"),
+    titleFont: "Inter",
+    bodyFont: "Inter",
     surface: "#f4f4f5",
     surfaceAlt: "#e4e4e7",
     ink: "#27272a",
@@ -438,22 +499,24 @@ export const TEMPLATES: Record<TemplateId, TemplateTokens> = {
   botanic: {
     id: "botanic",
     name: "Botanic",
-    description: "Verdes naturales con titulos serif.",
+    description: "Verdes naturales con titulos serif, paleta Everforest.",
     radius: 14,
     heroAlign: "left",
     navUppercase: false,
     navLetter: "0.02em",
-    titleFamily: SERIF,
+    titleFamily: fontStackOf("Fraunces", "serif"),
     titleWeight: 600,
-    bodyFamily: SANS,
-    surface: "#f5f7f0",
-    surfaceAlt: "#e9efe0",
-    ink: "#1f2a1a",
-    muted: "#5f6b53",
-    navBg: "#f5f7f0",
-    navInk: "#1f2a1a",
-    footerBg: "#1f2a1a",
-    footerInk: "#e6ecdc",
+    bodyFamily: fontStackOf("Nunito Sans", "sans"),
+    titleFont: "Fraunces",
+    bodyFont: "Nunito Sans",
+    surface: "#f4f6ec",
+    surfaceAlt: "#e7eed7",
+    ink: "#2e3d29",
+    muted: "#5f6f56",
+    navBg: "#f4f6ec",
+    navInk: "#2e3d29",
+    footerBg: "#2e3d29",
+    footerInk: "#e7eed7",
     dark: false,
   },
 };
@@ -472,19 +535,23 @@ export const TEMPLATE_ORDER: TemplateId[] = [
 /* --------------------------- Contenido editable ------------------------ */
 
 /** Logo por defecto de Appddata (editable en el navbar). */
-export const DEFAULT_LOGO = "/brand-plane.png";
+export const DEFAULT_LOGO = BRAND_PLANE_URL;
 
-export const heroImage =
-  "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1600&q=80";
-
+/**
+ * Imágenes base de los templates (alojadas en S3, bucket `appddata`).
+ * Son las únicas fotos que se ofrecen al llenar imágenes desde el pop-up de Build,
+ * junto con la opción de subir una desde el equipo. Ver `public_s3/appddata_build/`.
+ */
 export const STOCK_IMAGES = [
-  heroImage,
-  "https://images.unsplash.com/photo-1511556820780-d912e42b4980?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=1200&q=80",
+  publicAssetUrl("appddata_build/background-1.jpg"),
+  publicAssetUrl("appddata_build/background-2.jpg"),
+  publicAssetUrl("appddata_build/background-3.jpg"),
+  publicAssetUrl("appddata_build/background-4.jpg"),
+  publicAssetUrl("appddata_build/background-5.jpg"),
+  publicAssetUrl("appddata_build/background-6.jpg"),
 ];
+
+export const heroImage = STOCK_IMAGES[0];
 
 /** Claves fijas de contenido para navbar y footer (independientes de la variante). */
 export const NAV_CONTENT = {
@@ -591,7 +658,10 @@ export const WIDGET_DEFAULTS: Record<WidgetId, Record<string, string>> = {
     g6: STOCK_IMAGES[5],
   },
   "bg-image": { image: STOCK_IMAGES[0], caption: "Seccion con imagen de fondo" },
-  "bg-video": { title: "LuVideo de fondo" },
+  "bg-video": {
+    title: "Video de fondo",
+    video: publicAssetUrl("appddata_build/video-preview.mp4"),
+  },
   blog: {
     title: "Ultimas entradas",
     p1t: "Titulo del articulo uno",

@@ -9,17 +9,15 @@ import {
   NAV_CONTENT_DEFAULTS,
   PAGES,
   pageLabel,
-  type BuildPlanId,
   type Doc,
   type NavMode,
   type PageId,
   type TemplateTokens,
 } from "@/app/components/build/build-model";
 import type { GeneratedFile } from "@/lib/generated-site";
+import { resolvePublicAssetUrl } from "@/lib/public-assets";
 import { backgroundStyle, safeImageUrl, safeUrl, SOCIAL_GLYPHS, type Content } from "@/lib/react-site/content";
 import { toJsLiteral } from "@/lib/react-site/serialize";
-
-const DEFAULT_LOGO = "/brand-plane.png";
 
 function chromeReader(content: Content) {
   return (key: string): string => content[key] ?? NAV_CONTENT_DEFAULTS[key] ?? "";
@@ -45,12 +43,11 @@ export function navbarFile(name: string, doc: Doc, content: Content, navMode: Na
   const links = PAGES.map((page) => ({ href: hrefFor(page.id, navMode), label: pageLabel(doc, page.id) }));
   const cta = doc.navbarVariant === "cta" ? { href: contactHref(navMode), label: getChrome(NAV_CONTENT.cta) } : null;
 
-  // El logo puede ser imagen o texto (la marca). En modo imagen solo se usa un
-  // <img> si hay una imagen real subida; si sigue el placeholder por defecto, se
-  // cae a texto para no romper el sitio con una imagen inexistente.
+  // El logo puede ser imagen o texto (la marca). En modo imagen se usa un <img>
+  // con el logo del cliente o, si no cambio nada, el brand-plane por default de S3.
   const logoMode = getChrome(NAV_CONTENT.logoMode) === "image" ? "image" : "text";
-  const logoValue = getChrome(NAV_CONTENT.logo);
-  const logoUrl = logoMode === "image" && logoValue && logoValue !== DEFAULT_LOGO ? safeImageUrl(logoValue) : "";
+  const logoValue = resolvePublicAssetUrl(getChrome(NAV_CONTENT.logo));
+  const logoUrl = logoMode === "image" && logoValue ? safeImageUrl(logoValue) : "";
   const brandText = JSON.stringify(getChrome(NAV_CONTENT.brand) || name);
   const logo = logoUrl
     ? `<img data-imin-key="${NAV_CONTENT.logo}" src=${JSON.stringify(logoUrl)} alt={${brandText}} className="h-9 w-auto object-contain" />`
