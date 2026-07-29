@@ -6,10 +6,10 @@ import Link from "next/link";
 import IminMark from "@/app/components/imin/imin-mark";
 
 const FEATURES = [
-  "Editor de textos del sitio, sin tocar codigo ni esperar despliegues",
-  "Tutorial interactivo IMIN configurable desde el panel",
-  "Iconos y bloques de contenido administrables",
-  "Cambios publicados al instante en tu sitio",
+  "Edita textos, imágenes, iconos y colores sin tocar código",
+  "Publica cambios sin reconstruir ni desplegar nuevamente el sitio",
+  "Administra desde IMIN todos los sitios vinculados a tu cuenta",
+  "Prueba la experiencia antes de contratar un periodo de acceso",
 ];
 
 const IMIN_TIERS: {
@@ -18,13 +18,14 @@ const IMIN_TIERS: {
   price: string;
   suffix: string;
   description: string;
+  equivalent?: string;
   saving?: string;
   featured?: boolean;
 }[] = [
-  { id: "trial", name: "Prueba gratis", price: "$0", suffix: "3 días", description: "Conoce todas las herramientas de IMIN sin costo." },
-  { id: "monthly", name: "Mensual", price: "$149", suffix: "MXN", description: "Flexibilidad mes a mes." },
-  { id: "six-months", name: "6 meses", price: "$845", suffix: "MXN", description: "Un pago por seis meses.", saving: "Ahorras $49 MXN", featured: true },
-  { id: "annual", name: "Anual", price: "$1,599", suffix: "MXN", description: "Un año completo de IMIN.", saving: "Ahorras $189 MXN" },
+  { id: "trial", name: "Prueba gratis", price: "$0", suffix: "por 3 días", description: "Conoce las herramientas de IMIN antes de contratar." },
+  { id: "monthly", name: "30 días", price: "$149", suffix: "MXN", description: "Acceso completo durante 30 días." },
+  { id: "six-months", name: "6 meses", price: "$845", suffix: "MXN", description: "Acceso completo durante seis meses.", equivalent: "Equivale a $141 MXN al mes", saving: "Ahorras $49 MXN", featured: true },
+  { id: "annual", name: "1 año", price: "$1,599", suffix: "MXN", description: "Acceso completo durante un año.", equivalent: "Equivale a $133 MXN al mes", saving: "Ahorras $189 MXN" },
 ];
 
 /**
@@ -32,8 +33,15 @@ const IMIN_TIERS: {
  * El bloqueo real esta en el server component que la renderiza: esto es solo
  * la parte de venta.
  */
-export function IminUpgrade({ isFree, hasUsedTrial }: { isFree: boolean; hasUsedTrial: boolean }) {
-  const availableTiers = hasUsedTrial ? IMIN_TIERS.filter((tier) => tier.id !== "trial") : IMIN_TIERS;
+export function IminUpgrade({ isFree, hasUsedTrial, canStartTrial }: {
+  isFree: boolean;
+  hasUsedTrial: boolean;
+  canStartTrial: boolean;
+}) {
+  const availableTiers =
+    hasUsedTrial || !canStartTrial
+      ? IMIN_TIERS.filter((tier) => tier.id !== "trial")
+      : IMIN_TIERS;
 
   return (
     <div className="mx-auto w-full max-w-5xl">
@@ -44,9 +52,9 @@ export function IminUpgrade({ isFree, hasUsedTrial }: { isFree: boolean; hasUsed
               <LuLock className="h-5 w-5 text-slate-500" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg font-semibold text-slate-900">IMIN no esta incluido en tu plan</h1>
+              <h1 className="text-lg font-semibold text-slate-900">Mantén tu sitio actualizado con IMIN</h1>
               <p className="mt-1 text-sm leading-6 text-slate-600">
-                Contrata el paquete IMIN para administrar el contenido de tu sitio desde aqui.
+                Edita el contenido de tus sitios desde aquí, sin tocar código ni esperar un nuevo despliegue.
               </p>
             </div>
           </div>
@@ -69,9 +77,11 @@ export function IminUpgrade({ isFree, hasUsedTrial }: { isFree: boolean; hasUsed
         </ul>
 
         <div className="border-t border-slate-100 bg-slate-50 p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">¡Suscríbete para desbloquear IMIN!</p>
-          <h2 className="mt-1 text-xl font-semibold text-slate-900">Elige IMIN</h2>
-          <p className="mt-1 text-sm text-slate-500">Cancela cuando quieras y edita tu sitio sin precupaciones.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">Elige tu periodo de acceso</p>
+          <h2 className="mt-1 text-xl font-semibold text-slate-900">Activa IMIN cuando lo necesites</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Realiza un solo pago por el periodo elegido. No se generan cargos recurrentes automáticos.
+          </p>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {availableTiers.map((tier) => (
@@ -84,6 +94,7 @@ export function IminUpgrade({ isFree, hasUsedTrial }: { isFree: boolean; hasUsed
                   <span className="text-xs text-slate-500">{tier.suffix}</span>
                 </p>
                 <p className="mt-2 text-xs leading-5 text-slate-500">{tier.description}</p>
+                {tier.equivalent ? <p className="mt-2 text-xs font-medium text-slate-700">{tier.equivalent}</p> : null}
                 {tier.saving ? <p className="mt-1 text-xs font-semibold text-emerald-600 py-3">{tier.saving}</p> : null}
                 <form
                   action={tier.id === "trial" ? "/api/dashboard/imin/trial" : "/api/stripe/imin-checkout"}
@@ -92,7 +103,7 @@ export function IminUpgrade({ isFree, hasUsedTrial }: { isFree: boolean; hasUsed
                 >
                   {tier.id === "trial" ? null : <input type="hidden" name="tier" value={tier.id} />}
                   <button type="submit" className="inline-flex h-9 w-full items-center justify-center rounded-lg bg-slate-900 px-3 text-sm font-medium text-white transition hover:bg-slate-800">
-                    {tier.id === "trial" ? "Probar gratis" : "Suscribirme"}
+                    {tier.id === "trial" ? "Probar gratis" : "Activar acceso"}
                   </button>
                 </form>
               </article>
@@ -101,7 +112,7 @@ export function IminUpgrade({ isFree, hasUsedTrial }: { isFree: boolean; hasUsed
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Link href={isFree ? "/dashboard" : "/imin"} className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-4 text-sm text-slate-700 transition hover:bg-slate-100">
-              {isFree ? "Volver a Planes" : "Ver demostración IMIN"}
+              {isFree ? "Volver a planes" : "Ver demostración IMIN"}
             </Link>
             <p className="text-xs text-slate-500">Disfruta de los beneficios de Appddata.</p>
           </div>

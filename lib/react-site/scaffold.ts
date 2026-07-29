@@ -210,7 +210,7 @@ El texto y las imagenes viven en las paginas de \`app/\` (se pasan como props a
 cada componente). La estructura y el estilo de cada seccion viven en su
 componente dentro de \`components/widgets/\`.
 
-## Deploy
+## Publicación
 
 El repositorio esta pensado para desplegarse en Netlify (build \`npm run build\`).
 Cada push reconstruye el sitio.

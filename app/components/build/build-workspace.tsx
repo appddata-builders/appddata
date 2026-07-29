@@ -460,7 +460,7 @@ export default function BuildWorkspace({
           className="inline-flex items-center gap-1.5 rounded-full border border-[#f3c49f] bg-[#fff4e8] px-2.5 py-1 text-[0.68rem] font-semibold text-[#b85f28]"
         >
           <LuTicket className="h-3.5 w-3.5 text-[#df7a3a]" />
-          {availableSitePackages[id]} Website{availableSitePackages[id] === 1 ? "" : "s"} {BUILD_PLANS[id].name}
+          {availableSitePackages[id]} {availableSitePackages[id] === 1 ? "sitio" : "sitios"} {BUILD_PLANS[id].name}
         </span>
       ))}
     </div>
@@ -699,7 +699,7 @@ export default function BuildWorkspace({
             {/* Navegacion */}
             {/* Navbar */}
             <section>
-              <PanelHeading>Navbar</PanelHeading>
+              <PanelHeading>Barra de navegación</PanelHeading>
               <div className="grid grid-cols-2 gap-1.5">
                 {NAVBAR_VARIANTS.map((variant) => (
                   <ThumbCard
@@ -716,7 +716,7 @@ export default function BuildWorkspace({
             </section>
 
             <section>
-              <PanelHeading>Footer</PanelHeading>
+              <PanelHeading>Pie de página</PanelHeading>
               <div className="grid grid-cols-2 gap-1.5">
                 {FOOTER_VARIANTS.map((variant) => (
                   <ThumbCard
@@ -783,18 +783,18 @@ export default function BuildWorkspace({
                 })}
               </div>
               <p className="mt-1.5 px-1 text-[0.62rem] leading-4 text-slate-400">
-                Home, About, Productos y la pagina especial vienen en todos los paquetes.
+                Inicio, Nosotros, Productos y la página especial vienen en todos los paquetes.
               </p>
             </section>
 
             {/* Widgets del body */}
             <section>
               <PanelHeading>
-                {activePage === "contact" ? "Widget de Contact · 1 especial" : "Widgets · arrastralos al body"}
+                {activePage === "contact" ? "Bloque de Contacto · 1 especial" : "Bloques · arrástralos al contenido"}
               </PanelHeading>
               {activePage === "contact" ? (
                 <p className="mb-1.5 rounded-lg bg-slate-50 px-2 py-1.5 text-[0.66rem] leading-4 text-slate-500">
-                  Contact admite un contenido especializado: formulario, FAQ, blog, testimonios o promociones.
+                  Contacto admite un contenido especializado: formulario, preguntas frecuentes, blog, testimonios o promociones.
                 </p>
               ) : null}
               {activeFull && activePage !== "contact" ? (
@@ -941,7 +941,7 @@ function PackageCard({ plan }: { plan: (typeof BUILD_PLANS)[BuildPlanId] }) {
         Paquete {plan.name}
       </span>
       <ul className="mt-2 space-y-1 text-[0.7rem] text-slate-600">
-        <FeatureRow ok label="Home, About, Productos, Contact + Footer" />
+        <FeatureRow ok label="Inicio, Nosotros, Productos, Contacto y pie de página" />
         <FeatureRow ok={plan.imin} label={plan.iminLabel} />
         <FeatureRow ok label={plan.soporte} />
       </ul>
@@ -2190,7 +2190,7 @@ function PageZone({
       </SortableContext>
       {overFull ? (
         <p className="bg-amber-50 py-1 text-center text-[0.62rem] font-medium text-amber-700">
-          {max === 1 ? "Contact lleva solo 1 widget (reemplaza el actual)" : `Maximo ${max} widgets por pagina`}
+          {max === 1 ? "Contacto lleva solo 1 bloque (reemplaza el actual)" : `Máximo ${max} bloques por página`}
         </p>
       ) : null}
     </div>
@@ -2779,7 +2779,7 @@ function FooterView({ doc, tokens, device, content, onCommit, onNavigate, accent
         </div>
       ) : null}
 
-      <p className="mt-4 text-[0.6rem] opacity-50">© 2026 · Hecho con Appddata Build</p>
+      <p className="mt-4 text-[0.6rem] opacity-50">© 2026 · Hecho con el Constructor Appddata</p>
     </footer>
   );
 }

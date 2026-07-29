@@ -9,6 +9,7 @@ import { hasUsedIminTrial, iminAccessExpiry } from "@/lib/imin-entitlements-serv
 import { ensureProjectAccessSchema } from "@/lib/project-access-server";
 import { requirePanelSession } from "@/lib/require-panel-session";
 
+import { IminNoSite } from "./imin-no-site";
 import { IminUpgrade } from "./imin-upgrade";
 
 /** URL publica del sitio generado del proyecto (Netlify), si existe. */
@@ -38,8 +39,17 @@ export default async function DashboardIminPage() {
   if (!session) redirect("/account/login?siguiente=%2Fdashboard%2Fimin");
 
   const plan = await getPanelPlan(session);
+  if (!plan.projectSlug) {
+    return <IminNoSite hasUnassignedSitePackage={plan.hasUnassignedSitePackage} />;
+  }
   if (!plan.hasImin) {
-    return <IminUpgrade isFree={plan.sitePlan === "free"} hasUsedTrial={await hasUsedIminTrial(session.user.id)} />;
+    return (
+      <IminUpgrade
+        isFree={plan.sitePlan === "free"}
+        hasUsedTrial={await hasUsedIminTrial(session.user.id)}
+        canStartTrial={!plan.hasUnassignedSitePackage}
+      />
+    );
   }
   const iminExpiresAt = await iminAccessExpiry(session.user.id);
 

@@ -5,7 +5,8 @@ import { getPanelPlan } from "@/lib/plans-server";
 import { requirePanelSession } from "@/lib/require-panel-session";
 
 /**
- * Appddata Build: armador de sitios de una sola hoja (Navbar, Body, Footer).
+ * Constructor Appddata: armador de sitios de una sola hoja
+ * (barra de navegación, contenido y pie de página).
  *
  * Toma la idea general del editor IMIN pero es una hoja en blanco: el usuario
  * enciende widgets populares (carrusel, tiers, video/imagen de fondo) y ve la

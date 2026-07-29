@@ -16,8 +16,8 @@ import Brand from "./brand";
 
 const navItems = [
   { label: "IMIN", href: "/imin", icon: FaRegEdit },
-  { label: "ABOUT", href: "/about", icon: TfiWrite },
-  { label: "PRODUCTS", href: "/products", icon: AiFillProduct },
+  { label: "NOSOTROS", href: "/about", icon: TfiWrite },
+  { label: "PRODUCTOS", href: "/products", icon: AiFillProduct },
 ];
 
 type NavbarContentProps = {
@@ -65,7 +65,7 @@ function NavbarContent({ pathname, accountName, accountEmail }: NavbarContentPro
         <div className="flex items-center gap-3 sm:gap-4">
           <button
             type="button"
-            aria-label={isOpen ? "Close menu" : "Open menu"}
+            aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
             aria-expanded={isOpen}
             onClick={() => setOpenPathname((current) => (current === pathname ? null : pathname))}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-800 transition-colors hover:bg-slate-100 sm:h-11 sm:w-11"

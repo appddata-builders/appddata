@@ -13,8 +13,8 @@ export type PurchasableSitePlan = Exclude<SitePlan, "free">;
 export type AvailableSitePackages = Record<PurchasableSitePlan, number>;
 
 export const PLAN_LABELS: Record<ProjectPlan, string> = {
-  free: "Free",
-  beginner: "Beginners",
+  free: "Gratis",
+  beginner: "Beginner",
   super: "Super",
   premium: "Premium",
   imin: "IMIN",
