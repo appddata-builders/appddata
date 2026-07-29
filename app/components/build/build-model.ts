@@ -54,7 +54,7 @@ function planFrom(
     id,
     name: pkg?.name ?? id,
     price: pkg?.price ?? "",
-    description: pkg?.description ?? "",
+    description: pkg?.idealFor ?? "",
     imin,
     iminLabel,
     soporte,
@@ -86,10 +86,10 @@ export const BUILD_PLANS: Record<BuildPlanId, PlanMeta> = {
 export type PageId = "home" | "about" | "productos" | "contact";
 
 export const PAGES: { id: PageId; label: string; anchor: string }[] = [
-  { id: "home", label: "Home", anchor: "inicio" },
-  { id: "about", label: "About", anchor: "nosotros" },
+  { id: "home", label: "Inicio", anchor: "inicio" },
+  { id: "about", label: "Nosotros", anchor: "nosotros" },
   { id: "productos", label: "Productos", anchor: "productos" },
-  { id: "contact", label: "Contact", anchor: "contacto" },
+  { id: "contact", label: "Contacto", anchor: "contacto" },
 ];
 
 export type NavMode = "single" | "multi";
@@ -122,23 +122,23 @@ export type WidgetDef = {
 };
 
 export const WIDGETS: WidgetDef[] = [
-  { id: "hero", name: "Encabezado / Hero", description: "Titulo grande con subtitulo y boton.", icon: LuType },
+  { id: "hero", name: "Encabezado principal", description: "Título grande con subtítulo y botón.", icon: LuType },
   { id: "features", name: "Beneficios", description: "Tres puntos con icono y texto.", icon: LuLayers },
   { id: "image-text", name: "Imagen + texto", description: "Imagen a un lado y contenido al otro.", icon: LuSquareStack },
   { id: "text-block", name: "Bloque de texto", description: "Titulo y parrafo editable.", icon: LuLayoutList },
-  { id: "product-tiers", name: "Tiers de productos", description: "Tres tarjetas de planes o productos.", icon: LuLayers },
+  { id: "product-tiers", name: "Niveles de productos", description: "Tres tarjetas de planes o productos.", icon: LuLayers },
   { id: "services", name: "Servicios", description: "Tarjetas para tus servicios especializados.", icon: LuWrench },
   { id: "stats", name: "Metricas", description: "Cifras clave de tu negocio.", icon: LuStar },
-  { id: "cta-banner", name: "Franja CTA", description: "Llamado a la accion a todo lo ancho.", icon: LuMegaphone },
-  { id: "carousel", name: "Carrusel", description: "Slider de imagenes con navegacion.", icon: LuGalleryHorizontalEnd },
+  { id: "cta-banner", name: "Franja de llamada a la acción", description: "Llamado a la acción a todo lo ancho.", icon: LuMegaphone },
+  { id: "carousel", name: "Carrusel", description: "Secuencia de imágenes con navegación.", icon: LuGalleryHorizontalEnd },
   { id: "gallery", name: "Galeria", description: "Cuadricula de imagenes.", icon: LuImages },
   { id: "bg-image", name: "Fondo con imagen", description: "Seccion con imagen de fondo.", icon: LuImage },
   { id: "bg-video", name: "Fondo con video", description: "Seccion inmersiva con video.", icon: LuVideo },
   { id: "blog", name: "Blog", description: "Tarjetas de entradas o noticias.", icon: LuNewspaper },
-  { id: "promos", name: "Promotions", description: "Ofertas con descuento destacado.", icon: LuBadgePercent },
-  { id: "testimonials", name: "Testimony", description: "Citas de clientes satisfechos.", icon: LuQuote },
-  { id: "faq", name: "FAQs", description: "Lista de preguntas y respuestas.", icon: LuCircleHelp },
-  { id: "contact", name: "Contact", description: "Datos de contacto y formulario.", icon: LuMailOpen },
+  { id: "promos", name: "Promociones", description: "Ofertas con descuento destacado.", icon: LuBadgePercent },
+  { id: "testimonials", name: "Testimonios", description: "Citas de clientes satisfechos.", icon: LuQuote },
+  { id: "faq", name: "Preguntas frecuentes", description: "Lista de preguntas y respuestas.", icon: LuCircleHelp },
+  { id: "contact", name: "Contacto", description: "Datos de contacto y formulario.", icon: LuMailOpen },
 ];
 
 export const WIDGETS_BY_ID: Record<WidgetId, WidgetDef> = WIDGETS.reduce(
@@ -168,7 +168,7 @@ export function pageLabel(doc: Doc, page: PageId): string {
   if (page !== "contact") return PAGES.find((item) => item.id === page)?.label ?? page;
 
   const selectedWidget = doc.pages.contact[0];
-  return selectedWidget ? WIDGETS_BY_ID[selectedWidget.widgetId].name : "Contact";
+  return selectedWidget ? WIDGETS_BY_ID[selectedWidget.widgetId].name : "Contacto";
 }
 
 /* -------------------- Variantes de navbar y footer --------------------- */
@@ -179,7 +179,7 @@ export const NAVBAR_VARIANTS: { id: NavbarVariant; name: string; hint: string }[
   { id: "standard", name: "Clasico", hint: "Logo izquierda, enlaces derecha." },
   { id: "cta", name: "Con login", hint: "Logo, enlaces y acceso para iniciar sesion." },
   { id: "centered", name: "Centrado", hint: "Logo arriba, enlaces centrados." },
-  { id: "minimal", name: "Minimal", hint: "Solo logo y menu." },
+  { id: "minimal", name: "Mínima", hint: "Solo logotipo y menú." },
 ];
 
 export type FooterVariant = "simple" | "social" | "columns" | "newsletter" | "map";
@@ -188,7 +188,7 @@ export const FOOTER_VARIANTS: { id: FooterVariant; name: string; hint: string }[
   { id: "simple", name: "Simple", hint: "Marca, redes y aviso." },
   { id: "social", name: "Redes", hint: "Redes centradas y aviso." },
   { id: "columns", name: "Columnas", hint: "Enlaces en columnas y redes." },
-  { id: "newsletter", name: "Newsletter", hint: "Columnas, suscripcion y redes." },
+  { id: "newsletter", name: "Boletín", hint: "Columnas, suscripción y redes." },
   { id: "map", name: "Mapa", hint: "Google Maps + columnas y redes." },
 ];
 
@@ -610,7 +610,7 @@ export const WIDGET_DEFAULTS: Record<WidgetId, Record<string, string>> = {
   },
   "image-text": {
     title: "Quienes somos",
-    body: "Combina una imagen con un mensaje claro. Ideal para la seccion About.",
+    body: "Combina una imagen con un mensaje claro. Ideal para la sección Nosotros.",
     image: STOCK_IMAGES[1],
     layout: "image-left",
   },

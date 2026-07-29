@@ -1,3 +1,5 @@
+"use client";
+
 import IminTutorialWorkspace from "./imin-tutorial-workspace";
 
 export default function IminTutorial() {

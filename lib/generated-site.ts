@@ -26,7 +26,7 @@ export type GeneratedFile = {
   encoding?: "utf8" | "base64";
 };
 
-const pageNames: Record<PageId, string> = { home: "Home", about: "About", productos: "Productos", contact: "Contact" };
+const pageNames: Record<PageId, string> = { home: "Inicio", about: "Nosotros", productos: "Productos", contact: "Contacto" };
 const anchors: Record<PageId, string> = { home: "inicio", about: "nosotros", productos: "productos", contact: "contacto" };
 const gradientDirection: Record<string, string> = { right: "to right", br: "135deg", bottom: "to bottom", bl: "225deg", left: "to left", tl: "315deg", top: "to top", tr: "45deg" };
 
@@ -38,8 +38,8 @@ const parse = <T>(raw: string | undefined, fallback: T): T => { try { return raw
 
 function pageLabel(doc: Doc, page: PageId) {
   if (page !== "contact") return pageNames[page];
-  const names: Partial<Record<WidgetId, string>> = { contact: "Contact", faq: "FAQs", blog: "Blog", testimonials: "Testimony", promos: "Promotions" };
-  return names[doc.pages.contact?.[0]?.widgetId] ?? "Contact";
+  const names: Partial<Record<WidgetId, string>> = { contact: "Contacto", faq: "Preguntas frecuentes", blog: "Blog", testimonials: "Testimonios", promos: "Promociones" };
+  return names[doc.pages.contact?.[0]?.widgetId] ?? "Contacto";
 }
 
 function sanitizeSvg(value: string) {

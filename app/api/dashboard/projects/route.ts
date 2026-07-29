@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     (item) => sitePlanFromProjectPlan(normalizePlan(item.plan)) === selectedPlan,
   );
   if (!entitlement && session.user.role !== "admin") {
-    return NextResponse.json({ error: `No tienes websites ${selectedPlan} disponibles.` }, { status: 403 });
+    return NextResponse.json({ error: `No tienes sitios del paquete ${selectedPlan} disponibles.` }, { status: 403 });
   }
   const existing = await db.select({ id: project.id }).from(project).where(eq(project.slug, validation.slug)).limit(1);
   if (existing.length > 0) return NextResponse.json({ error: "Ya existe un proyecto con ese nombre.", slug: validation.slug }, { status: 409 });
@@ -95,8 +95,8 @@ export async function POST(request: Request) {
           return fail(`El nombre "${validation.name}" ya esta en uso. Elige otro nombre e intentalo de nuevo.`, { code: "name_in_use", field: "name" });
         }
 
-        // 3) Website en Netlify enlazado al repo.
-        emit({ phase: "deploy", message: "Creando website en Netlify…" });
+        // 3) Sitio en Netlify enlazado al repositorio.
+        emit({ phase: "deploy", message: "Creando sitio en Netlify…" });
         let deployment: Awaited<ReturnType<typeof deployNetlifySite>> | { status: "configuration_required" };
         try {
           deployment =

@@ -54,14 +54,14 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Plan activo", icon: LuLayoutDashboard },
-  { href: "/dashboard/build", label: "Appddata Build", icon: LuTicket },
+  { href: "/dashboard/build", label: "Constructor Appddata", icon: LuTicket },
   { href: "/dashboard/imin", label: "IMIN", icon: IminMark, requiresImin: true },
   { href: "/dashboard/analiticas", label: "Analiticas", icon: LuChartColumn, disabled: true },
   { href: "/dashboard/dominios", label: "Dominios", icon: LuGlobe, disabled: true },
   { href: "/dashboard/integraciones", label: "Integraciones", icon: LuPlug, disabled: true },
   { href: "/dashboard/seguridad", label: "Seguridad", icon: LuShieldCheck, disabled: true },
   { href: "/dashboard/requerimientos", label: "Requerimientos", icon: LuMessageSquarePlus },
-  { href: "/dashboard/databases", label: "Databases", icon: LuDatabase, requiresRoot: true },
+  { href: "/dashboard/databases", label: "Bases de datos", icon: LuDatabase, requiresRoot: true },
 ];
 
 const configItems: NavItem[] = [
@@ -123,6 +123,10 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
   function renderNavLink(item: NavItem) {
     if (item.href === "/dashboard/build" && !plan.isInternal && !plan.hasUnassignedSitePackage) return null;
     if (item.requiresRoot && !isRoot) return null;
+    // IMIN solo tiene sentido con un sitio que gestionar: en tier gratuito se
+    // oculta; en cuanto hay un paquete de sitio contratado aparece con candado
+    // (suscripcion a contratar) hasta que se active IMIN.
+    if (item.requiresImin && !plan.hasImin && plan.sitePlan === "free") return null;
     const isPackageLink = item.href === "/dashboard";
     const displayLabel = isPackageLink ? PLAN_LABELS[plan.sitePlan] : item.label;
     const active =

@@ -151,7 +151,7 @@ export const palettePresets: Record<
     },
   },
   oceano: {
-    label: "Oceano",
+    label: "Océano",
     description: "Azules profundos y cian para sitios tecnologicos de alto contraste.",
     swatches: ["#e8f7fb", "#0f3950", "#31c4d8"],
     colors: {
@@ -258,17 +258,17 @@ export const tutorialTabs: {
       {
         id: "texto",
         label: "Texto",
-        description: "Edita titulares, subtitulos y mensajes clave del home.",
+        description: "Edita titulares, subtítulos y mensajes clave del inicio.",
       },
       {
         id: "imagenes",
-        label: "Imagenes",
-        description: "Inserta o sustituye visuales dentro del body.",
+        label: "Imágenes",
+        description: "Inserta o sustituye elementos visuales dentro del contenido.",
       },
       {
         id: "iconos",
         label: "Iconos",
-        description: "Agrega micro-soportes visuales para beneficios o features.",
+        description: "Agrega apoyos visuales para beneficios o características.",
       },
     ],
   },
@@ -288,7 +288,7 @@ export const tutorialTabs: {
       },
       {
         id: "oceano",
-        label: "Oceano",
+        label: "Océano",
         description: palettePresets.oceano.description,
       },
       {
@@ -310,7 +310,7 @@ export const tutorialTabs: {
       {
         id: "resumen",
         label: "Resumen",
-        description: "Revisa el home listo para publicarse.",
+        description: "Revisa el inicio listo para publicarse.",
       },
     ],
   },
@@ -351,19 +351,19 @@ export const defaultHomeIcons: HomeIconMap = {
 export const defaultHomeTexts: HomeTextMap = {
   "nav-el-1": "Inicio",
   "nav-el-2": "Producto",
-  "nav-el-3": "Galeria",
+  "nav-el-3": "Galería",
   "nav-el-4": "Contacto",
   "nav-cta-1": "Solicitar demo",
-  "hero-el-1": "Body",
-  "hero-el-2": "Edita el home del cliente desde una sola pagina.",
-  "hero-el-3": "Aqui viven el hero, el contenido central y todo lo que agregues con las herramientas activas.",
-  "body-el-1": "Body del home",
+  "hero-el-1": "Contenido",
+  "hero-el-2": "Edita el inicio del cliente desde una sola página.",
+  "hero-el-3": "Aquí viven el encabezado, el contenido central y todo lo que agregues con las herramientas activas.",
+  "body-el-1": "Contenido de Inicio",
   "body-el-2": "Contenido principal del sitio",
-  "body-el-3": "La estructura base del home se mantiene ordenada mientras IMIN permite anadir recursos puntuales desde tabs muy claros.",
-  "body-el-4": "Explicacion del producto",
-  "body-el-5": "Un body simple para editar texto, imagenes y multimedia.",
-  "footer-el-1": "Footer",
-  "footer-el-2": "Redes, contacto y cierre del home.",
+  "body-el-3": "La estructura base de Inicio se mantiene ordenada mientras IMIN permite añadir recursos puntuales desde pestañas muy claras.",
+  "body-el-4": "Explicación del producto",
+  "body-el-5": "Un contenido sencillo para editar textos, imágenes y multimedia.",
+  "footer-el-1": "Pie de página",
+  "footer-el-2": "Redes, contacto y cierre del inicio.",
 };
 
 export function getDefaultTool(tab: TutorialTab): TutorialTool {

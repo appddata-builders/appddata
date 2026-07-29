@@ -57,7 +57,7 @@ const services: { title: string; description: string; icon: IconType }[] = [
   },
   {
     title: "CRM operativo",
-    description: "Contactos, pipeline, servicios y bookings en un sistema claro.",
+    description: "Contactos, embudo de ventas, servicios y reservaciones en un sistema claro.",
     icon: FiDatabase,
   },
   {

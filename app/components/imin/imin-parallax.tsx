@@ -8,9 +8,9 @@ import { BRAND_PLANE_URL, IMIN_LOGO_URL } from "@/lib/public-assets";
 const imageCards = [
   {
     label: "Ajusta Imágenes",
-    title: "Presencia dificil de superar.",
+    title: "Una imagen siempre vigente.",
     description:
-      "Cambia imagenes que se ajustan al momento que estas viviendo.",
+      "Cambia imágenes para reflejar promociones, temporadas y nuevas etapas de tu negocio.",
     imageSrc: IMIN_LOGO_URL,
     imageAlt: "Vista base del sitio appddata",
     altImageSrc: BRAND_PLANE_URL,
@@ -171,7 +171,7 @@ function ParallaxCard({ card, y, rotate, className = "" }: ParallaxCardProps) {
                 <div className="h-2.5 w-16 rounded-full bg-slate-100" />
               </div>
               <div className="rounded-full border border-[#589bf9]/18 bg-[#589bf9]/10 px-3 py-1 text-[0.56rem] uppercase tracking-[0.26em] text-[#0C6CC6]">
-                ! Adquierelo !
+                Edita con IMIN
               </div>
             </div>
 
@@ -261,15 +261,15 @@ export default function IminParallax() {
     <section ref={sectionRef} className="relative w-full max-w-6xl px-4 py-16 sm:px-6 mb-12">
       <div className="max-w-3xl">
         <p className="text-[0.68rem] uppercase tracking-[0.42em] text-[#0E7EE6] font-bold">
-          UN CAMBIO REAL Y VISUAL
+          CAMBIOS REALES, SIN CÓDIGO
         </p>
         <h2 className="mt-4 text-3xl font-light tracking-[0.08em] text-[#111827] sm:text-5xl">
-          Adquiere la mensualidad de IMIN
+          Mantén tu sitio actualizado sin depender de un desarrollador
         </h2>
         <p className="mt-6 max-w-2xl text-sm leading-7 tracking-[0.04em] text-slate-700 sm:text-base">
-          Con IMIN puedes intervenir el aspecto del sitio sin rehacerlo:
-          actualizar textos, mover tono visual y renovar la presentacion para
-          que cada cliente conserve una web actualizada durante su mensualidad.
+          Con IMIN puedes actualizar contenido y presentación sin rehacer el sitio.
+          Selecciona lo que quieres cambiar, guarda y continúa operando con una
+          página vigente durante todo tu periodo de acceso.
         </p>
       </div>
 

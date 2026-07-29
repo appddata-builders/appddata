@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { iminEntitlement } from "@/db/schema";
 import { ensureIminEntitlementSchema, hasUsedIminTrial } from "@/lib/imin-entitlements-server";
+import { getPanelPlan } from "@/lib/plans-server";
 import { requirePanelSession } from "@/lib/require-panel-session";
 
 const TRIAL_DAYS = 3;
@@ -19,6 +20,12 @@ export async function POST(request: Request) {
   if (!session) {
     back.pathname = "/account/login";
     back.searchParams.set("siguiente", "/dashboard/imin");
+    return NextResponse.redirect(back, 303);
+  }
+
+  const plan = await getPanelPlan(session);
+  if (!plan.projectSlug || plan.hasUnassignedSitePackage) {
+    back.searchParams.set("imin", "trial-requires-site");
     return NextResponse.redirect(back, 303);
   }
 
