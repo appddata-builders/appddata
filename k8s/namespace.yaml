@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: appddata
+  labels:
+    project: appddata
+    managed-by: makefile
