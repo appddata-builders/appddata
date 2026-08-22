@@ -26,6 +26,7 @@ export const verification = table("verification");
 export const siteEntitlement = table("siteEntitlement");
 export const iminEntitlement = table("iminEntitlement");
 export const accountSubscription = table("accountSubscription");
+export const billingPeriod = table("billingPeriod");
 export const userProject = table("userProject");
 export const project = table("project");
 export const projectText = table("projectText");

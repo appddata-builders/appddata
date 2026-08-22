@@ -177,6 +177,49 @@ export const userProject = sqliteTable(
   ],
 );
 
+/**
+ * Periodo de facturacion CERRADO.
+ *
+ * Es el libro mayor del cobro: mientras el mes corre, el monto es un estimado
+ * que se mueve todos los dias y no es exigible. Al cerrar el mes se congela
+ * aqui con el tipo de cambio y el margen que estaban vigentes, y solo entonces
+ * existe una deuda. Nada de esto se recalcula despues: una factura emitida no
+ * cambia aunque cambien los precios.
+ */
+export const billingPeriod = sqliteTable(
+  "billing_period",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    projectSlug: text("project_slug").notNull(),
+    /** Mes cerrado, en formato YYYY-MM. */
+    period: text("period").notNull(),
+    baseCents: integer("base_cents").notNull(),
+    computeCents: integer("compute_cents").notNull(),
+    databaseCents: integer("database_cents").notNull(),
+    platformCents: integer("platform_cents").notNull(),
+    subtotalCents: integer("subtotal_cents").notNull(),
+    stripeFeeCents: integer("stripe_fee_cents").notNull(),
+    taxCents: integer("tax_cents").notNull().default(0),
+    totalCents: integer("total_cents").notNull(),
+    /** Tipo de cambio y margen vigentes al cierre, para poder auditar. */
+    fxRate: text("fx_rate").notNull(),
+    margin: text("margin").notNull(),
+    /** closed | issued | paid | void */
+    status: text("status").notNull().default("closed"),
+    stripeInvoiceId: text("stripe_invoice_id"),
+    hostedInvoiceUrl: text("hosted_invoice_url"),
+    closedAt: integer("closed_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`).notNull(),
+    issuedAt: integer("issued_at", { mode: "timestamp_ms" }),
+    paidAt: integer("paid_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("billing_period_user_id_idx").on(table.userId),
+    uniqueIndex("billing_period_user_slug_period_uidx").on(table.userId, table.projectSlug, table.period),
+  ],
+);
+
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),

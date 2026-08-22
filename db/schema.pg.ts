@@ -7,7 +7,7 @@
  * agregala tambien alla o el switch de driver dejara de cuadrar.
  */
 import { relations } from "drizzle-orm";
-import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -242,3 +242,34 @@ export const projectTextRelations = relations(projectText, ({ one }) => ({
     references: [project.id],
   }),
 }));
+
+/** Ver la nota en db/auth-schema.ts: es el libro mayor de periodos cerrados. */
+export const billingPeriod = pgTable(
+  "billing_period",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    projectSlug: text("project_slug").notNull(),
+    period: text("period").notNull(),
+    baseCents: integer("base_cents").notNull(),
+    computeCents: integer("compute_cents").notNull(),
+    databaseCents: integer("database_cents").notNull(),
+    platformCents: integer("platform_cents").notNull(),
+    subtotalCents: integer("subtotal_cents").notNull(),
+    stripeFeeCents: integer("stripe_fee_cents").notNull(),
+    taxCents: integer("tax_cents").notNull().default(0),
+    totalCents: integer("total_cents").notNull(),
+    fxRate: text("fx_rate").notNull(),
+    margin: text("margin").notNull(),
+    status: text("status").notNull().default("closed"),
+    stripeInvoiceId: text("stripe_invoice_id"),
+    hostedInvoiceUrl: text("hosted_invoice_url"),
+    closedAt: timestamp("closed_at", { precision: 3, mode: "date" }).notNull().defaultNow(),
+    issuedAt: timestamp("issued_at", { precision: 3, mode: "date" }),
+    paidAt: timestamp("paid_at", { precision: 3, mode: "date" }),
+  },
+  (table) => [
+    index("billing_period_user_id_idx").on(table.userId),
+    uniqueIndex("billing_period_user_slug_period_uidx").on(table.userId, table.projectSlug, table.period),
+  ],
+);

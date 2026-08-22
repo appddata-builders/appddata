@@ -60,22 +60,56 @@ export default async function DashboardCatchAllPage({ params }: DashboardCatchAl
   const key = (resolved.segments ?? []).join("/");
   if (key === "") {
     const session = await requirePanelSession();
-    if (session) return <DashboardSummary plan={await getPanelPlan(session)} />;
+    if (session) {
+      const [plan, sites, infra] = await Promise.all([
+        getPanelPlan(session),
+        getAccountSites(session),
+        // Una sola lectura: alimenta el cobro del cliente y, si es root, el
+        // panel interno. El costo crudo de DigitalOcean nunca sale de aqui.
+        getInfraConsoleCached(),
+      ]);
+      const billing = buildAccountBilling(sites, infra);
+      return (
+        <DashboardSummary
+          plan={plan}
+          sites={sites}
+          billing={billing}
+          infra={isRoot(session) ? infra : null}
+        />
+      );
+    }
   }
   if (key === "configuracion/pagos") {
     const session = await requirePanelSession();
     if (session) {
-      const [plan, subscriptions, upcomingCharges] = await Promise.all([
+      const [plan, subscriptions, upcomingCharges, sites, infra] = await Promise.all([
         getPanelPlan(session),
         getAccountSubscriptions(session.user.id),
         getUpcomingAccountCharges(session.user.id),
+        getAccountSites(session),
+        getInfraConsoleCached(),
       ]);
+      // Mismo calculo que el resumen: pagos no puede mostrar otro numero.
+      const billing = buildAccountBilling(sites, infra);
       return (
         <section className="mx-auto w-full max-w-5xl space-y-5">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Configuración</p>
             <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-900">Pagos y servicios</h1>
-            <p className="mt-2 text-sm text-slate-600">Administra las suscripciones y compras asociadas a tu cuenta.</p>
+            <p className="mt-2 text-sm text-slate-600">Regulariza tu cuenta y administra las suscripciones asociadas.</p>
+          </div>
+          <AccountBillingCard billing={billing} infra={isRoot(session) ? infra : null} />
+
+          {/* Las suscripciones son recurrencias contratadas aparte: su total no
+              se mezcla con el consumo mensual del sitio. */}
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Suscripciones</p>
+            <h2 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-slate-900">
+              Servicios contratados aparte
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Se cobran de forma independiente al consumo mensual de tus sitios.
+            </p>
           </div>
           <AccountSubscriptions
             hasPlan={plan.sitePlan !== "free"}
@@ -124,11 +158,15 @@ export default async function DashboardCatchAllPage({ params }: DashboardCatchAl
     </section>
   );
 }
+import AccountBillingCard from "@/app/dashboard/account-billing";
 import DashboardSummary from "@/app/dashboard/dashboard-summary";
 import { AccountSubscriptions } from "@/app/dashboard/account-subscriptions";
 import { AccountSettings } from "@/app/dashboard/account-settings";
 import { SiteRequirements } from "@/app/dashboard/site-requirements";
+import { getAccountSites } from "@/lib/account-summary-server";
 import { getAccountSubscriptions, getUpcomingAccountCharges } from "@/lib/account-subscriptions-server";
 import { getPanelPlan } from "@/lib/plans-server";
-import { requirePanelSession } from "@/lib/require-panel-session";
+import { buildAccountBilling } from "@/lib/account-billing-server";
+import { getInfraConsoleCached } from "@/lib/infra-console-server";
+import { isRoot, requirePanelSession } from "@/lib/require-panel-session";
 import { getRequirementProjects } from "@/lib/site-requirements-server";
