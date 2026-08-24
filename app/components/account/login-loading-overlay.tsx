@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import { Spinner } from "@/app/components/ui/spinner";
+import { useT } from "@/lib/text/text-provider";
 
 /**
  * Tapa la pantalla mientras se resuelve el login. Sin esto, entre el server
@@ -15,6 +16,7 @@ export function LoginLoadingOverlay(props: {
   active: boolean;
   onConnectionTimeout: () => void;
 }) {
+  const t = useT();
   const activeRef = useRef(props.active);
   const timeoutRef = useRef(props.onConnectionTimeout);
 
@@ -42,7 +44,7 @@ export function LoginLoadingOverlay(props: {
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-white px-8">
       <Spinner className="size-10 text-blue-600" />
       <p className="text-center text-[0.72rem] uppercase tracking-[0.3em] text-slate-500">
-        Entrando al panel
+        {t("es.account.login.overlay")}
       </p>
     </div>
   );

@@ -2,25 +2,23 @@
 
 import { motion } from "framer-motion";
 
-const aboutPoints = [
-  {
-    title: "Contrata tu paquete",
-    description:
-      "Construyamos un sitio web a tu medida, el diseño de tu marca es el punto de partida, no el limite. Elige el paquete que se adapte a tus necesidades y presupuesto. ¡Mejora tu sitio en cualquier momento!",
-  },
-  {
-    title: "Asesoramiento personalizado",
-    description:
-      "Nos aseguraremos de que tu sitio web refleje la esencia de tu marca y cumpla con tus objetivos. Nuestro equipo de expertos te guiará en cada paso del proceso, desde el diseño hasta la implementación.",
-  },
-  {
-    title: "Escala con IMIN",
-    description:
-      "Despues del lanzamiento puedes seguir editando textos, imagenes y contenido sin friccion, escalar tu sitio web nunca fue tan facil.",
-  },
+import { useT } from "@/lib/text/text-provider";
+
+const aboutPointKeys = [
+  "es.home.about.points.1",
+  "es.home.about.points.2",
+  "es.home.about.points.3",
+];
+
+const aboutHighlightKeys = [
+  "es.home.about.highlights.1",
+  "es.home.about.highlights.2",
+  "es.home.about.highlights.3",
 ];
 
 export default function HomeAbout() {
+  const t = useT();
+
   return (
     <motion.section
       id="about"
@@ -37,47 +35,38 @@ export default function HomeAbout() {
         <div className="grid gap-8 px-5 py-8 sm:px-8 sm:py-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
           <div>
             <p className="text-[0.7rem] uppercase tracking-[0.45em] text-[#0C6CC6] font-extrabold">
-              A TU MANERA
+              {t("es.home.about.eyebrow")}
             </p>
             <h2 className="mt-4 max-w-[12ch] text-3xl font-light tracking-[0.08em] text-[#111827] sm:text-5xl">
-              Somos tu Destino Digital.
+              {t("es.home.about.title")}
             </h2>
             <p className="mt-6 max-w-2xl text-sm leading-7 tracking-[0.04em] text-slate-700 sm:text-base">
-              Enfoque en el pequeño detalle, impacto en el resultado. Sitios web a tu medida, sin complicaciones ni plantillas predefinidas. Diseñamos y construimos tu presencia digital con identidad propia, cuidando cada aspecto para que refleje la esencia de tu marca.
+              {t("es.home.about.description")}
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[1.6rem] border border-[#589bf9]/16 bg-[#589bf9]/6 px-4 py-4">
-                <p className="text-[0.62rem] uppercase tracking-[0.38em] text-[#0E7EE6]">
-                  Enfoque
-                </p>
-                <p className="mt-3 text-lg font-light tracking-[0.08em] text-[#111827]">
-                  Crecer tu marca y acompañarte en el vuelo.
-                </p>
-              </div>
-              <div className="rounded-[1.6rem] border border-slate-200/14 bg-[#589bf9]/6 px-4 py-4">
-                <p className="text-[0.62rem] uppercase tracking-[0.38em] text-[#0E7EE6]">
-                  Creación
-                </p>
-                <p className="mt-3 text-lg font-light tracking-[0.08em] text-[#111827]">
-                  Productos digitales que tienen intención.
-                </p>
-              </div>
-              <div className="rounded-[1.6rem] border border-slate-200/14 bg-[#589bf9]/6 px-4 py-4">
-                <p className="text-[0.62rem] uppercase tracking-[0.38em] text-[#0E7EE6]">
-                  Presencia
-                </p>
-                <p className="mt-3 text-lg font-light tracking-[0.08em] text-[#111827]">
-                  Obten crecimiento y resultados reales.
-                </p>
-              </div>
+              {aboutHighlightKeys.map((highlightKey, index) => (
+                <div
+                  key={highlightKey}
+                  className={`rounded-[1.6rem] border bg-[#589bf9]/6 px-4 py-4 ${
+                    index === 0 ? "border-[#589bf9]/16" : "border-slate-200/14"
+                  }`}
+                >
+                  <p className="text-[0.62rem] uppercase tracking-[0.38em] text-[#0E7EE6]">
+                    {t(`${highlightKey}.label`)}
+                  </p>
+                  <p className="mt-3 text-lg font-light tracking-[0.08em] text-[#111827]">
+                    {t(`${highlightKey}.value`)}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
 
           <div className="grid gap-4">
-            {aboutPoints.map((point, index) => (
+            {aboutPointKeys.map((pointKey, index) => (
               <motion.article
-                key={point.title}
+                key={pointKey}
                 initial={{ opacity: 0, x: 24, filter: "blur(12px)" }}
                 whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                 viewport={{ amount: 0.45 }}
@@ -92,10 +81,10 @@ export default function HomeAbout() {
                   {index + 1}
                 </p>
                 <h3 className="mt-3 text-xl font-light tracking-[0.08em] text-[#111827]">
-                  {point.title}
+                  {t(`${pointKey}.title`)}
                 </h3>
                 <p className="mt-3 text-sm leading-7 tracking-[0.04em] text-slate-700">
-                  {point.description}
+                  {t(`${pointKey}.description`)}
                 </p>
               </motion.article>
             ))}

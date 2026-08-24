@@ -3,6 +3,7 @@
 import { LuCalendarDays, LuCreditCard, LuReceiptText } from "react-icons/lu";
 
 import type { AccountSubscriptionKind } from "@/lib/account-subscriptions-server";
+import { useT } from "@/lib/text/text-provider";
 
 type SubscriptionSummary = { kind: AccountSubscriptionKind; status: string };
 type UpcomingCharge = {
@@ -18,10 +19,12 @@ export function AccountSubscriptions({ hasPlan, subscriptions, upcomingCharges }
   subscriptions: SubscriptionSummary[];
   upcomingCharges: UpcomingCharge[];
 }) {
+  const t = useT();
+
   if (!hasPlan) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
-        Contrata primero un paquete para habilitar los servicios de infraestructura y soporte.
+        {t("es.dashboard.subscriptions.noPlan")}
       </div>
     );
   }
@@ -36,8 +39,8 @@ export function AccountSubscriptions({ hasPlan, subscriptions, upcomingCharges }
             <LuReceiptText className="h-5 w-5" aria-hidden="true" />
           </span>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Próximo cobro</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">Resumen del siguiente ciclo</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("es.dashboard.subscriptions.eyebrow")}</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">{t("es.dashboard.subscriptions.title")}</h2>
           </div>
         </div>
         {upcomingCharges.length > 0 ? (
@@ -47,31 +50,48 @@ export function AccountSubscriptions({ hasPlan, subscriptions, upcomingCharges }
                 <div key={charge.kind} className="grid gap-2 px-5 py-4 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-6">
                   <div>
                     <p className="text-sm font-medium text-slate-900">{charge.label}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">{charge.kind === "cloud-server" ? "Infraestructura para proyectos con base de datos" : "Servicio opcional"}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {charge.kind === "cloud-server"
+                        ? t("es.dashboard.subscriptions.charge.cloud")
+                        : t("es.dashboard.subscriptions.charge.optional")}
+                    </p>
                   </div>
                   <p className="flex items-center gap-1.5 text-xs text-slate-500">
                     <LuCalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-                    {charge.chargeAt ? new Intl.DateTimeFormat("es-MX", { dateStyle: "medium" }).format(new Date(charge.chargeAt)) : "Fecha por confirmar"}
+                    {charge.chargeAt ? new Intl.DateTimeFormat("es-MX", { dateStyle: "medium" }).format(new Date(charge.chargeAt)) : t("es.dashboard.subscriptions.dateTbd")}
                   </p>
                   <p className="text-sm font-semibold text-slate-900">{formatMoney(charge.amount, charge.currency)}</p>
                 </div>
               ))}
             </div>
             <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-5 py-4">
-              <span className="text-sm font-semibold text-slate-700">Total estimado</span>
+              <span className="text-sm font-semibold text-slate-700">{t("es.dashboard.subscriptions.total")}</span>
               <span className="text-lg font-bold text-slate-950">{formatMoney(total, upcomingCharges[0]?.currency ?? "MXN")}</span>
             </div>
           </>
         ) : (
-          <p className="px-5 py-6 text-sm text-slate-500">No hay cargos recurrentes programados para el siguiente ciclo.</p>
+          <p className="px-5 py-6 text-sm text-slate-500">{t("es.dashboard.subscriptions.empty")}</p>
         )}
       </section>
 
       <section>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Servicios disponibles</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("es.dashboard.subscriptions.services")}</p>
         <div className="grid gap-4 lg:grid-cols-2">
-          <SubscriptionCard kind="cloud-server" title="Servidor de base de datos" description="Infraestructura administrada para proyectos que almacenan datos." required active={active("cloud-server")} status={status("cloud-server")} />
-          <SubscriptionCard kind="technical-support" title="Soporte técnico" description="Un solo pago habilita 5 sesiones para incidencias, mantenimiento y ajustes técnicos." active={active("technical-support")} status={status("technical-support")} />
+          <SubscriptionCard
+            kind="cloud-server"
+            title={t("es.dashboard.subscriptions.cloud.title")}
+            description={t("es.dashboard.subscriptions.cloud.description")}
+            required
+            active={active("cloud-server")}
+            status={status("cloud-server")}
+          />
+          <SubscriptionCard
+            kind="technical-support"
+            title={t("es.dashboard.subscriptions.support.title")}
+            description={t("es.dashboard.subscriptions.support.description")}
+            active={active("technical-support")}
+            status={status("technical-support")}
+          />
         </div>
       </section>
     </div>
@@ -90,32 +110,43 @@ function SubscriptionCard({ kind, title, description, required = false, active, 
   active: boolean;
   status?: string;
 }) {
+  const t = useT();
   const isRecurring = kind === "cloud-server";
   return (
     <article className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#0C6CC6]">
-            {isRecurring ? "Suscripción recurrente" : "Pago único · 5 sesiones"}
+            {isRecurring
+              ? t("es.dashboard.subscriptions.card.recurring")
+              : t("es.dashboard.subscriptions.card.oneTime")}
           </p>
           <h2 className="mt-2 text-lg font-semibold text-slate-900">{title}</h2>
         </div>
         <span className={`rounded-full px-2.5 py-1 text-[0.65rem] font-semibold ${active ? "bg-emerald-50 text-emerald-700" : required ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
-          {active ? "Activa" : required ? "Requerida si usa BD" : "Opcional"}
+          {active
+            ? t("es.dashboard.subscriptions.card.active")
+            : required
+              ? t("es.dashboard.subscriptions.card.required")
+              : t("es.dashboard.subscriptions.card.optional")}
         </span>
       </div>
       <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
-      {status && !active ? <p className="mt-2 text-xs text-amber-700">Estado en Stripe: {status}</p> : null}
+      {status && !active ? <p className="mt-2 text-xs text-amber-700">{t("es.dashboard.subscriptions.card.stripeStatus", { status })}</p> : null}
       {active ? (
         <p className="mt-auto pt-5 text-sm font-medium text-emerald-700">
-          {isRecurring ? "Suscripción vinculada con Stripe" : "Paquete de 5 sesiones habilitado"}
+          {isRecurring
+            ? t("es.dashboard.subscriptions.card.linked")
+            : t("es.dashboard.subscriptions.card.sessionsEnabled")}
         </p>
       ) : (
         <form action="/api/stripe/account-subscription" method="post" className="mt-auto pt-5">
           <input type="hidden" name="kind" value={kind} />
           <button type="submit" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#0C6CC6] px-4 text-sm font-medium text-white transition hover:bg-[#0a5aa6]">
             <LuCreditCard className="h-4 w-4" aria-hidden="true" />
-            {isRecurring ? "Suscribirme" : "Comprar 5 sesiones"}
+            {isRecurring
+              ? t("es.dashboard.subscriptions.card.subscribe")
+              : t("es.dashboard.subscriptions.card.buySessions")}
           </button>
         </form>
       )}

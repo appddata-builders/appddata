@@ -14,9 +14,7 @@ import { Label } from "@/app/components/ui/label";
 import { Separator } from "@/app/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
 import { signInWithIdentifier } from "@/lib/sign-in-by-display-id";
-
-const CONNECTION_ERROR = "Problemas de conexion. Vuelve a intentarlo en un momento.";
-const DISABLED_ERROR = "Tu cuenta esta inhabilitada. Contacta al equipo de Appddata.";
+import { useT } from "@/lib/text/text-provider";
 
 function nextUrl(): string {
   const params = new URLSearchParams(window.location.search);
@@ -40,6 +38,9 @@ async function waitForSessionUser() {
 }
 
 export default function AccountLoginPage() {
+  const t = useT();
+  const connectionError = t("es.account.login.error.connection");
+  const disabledError = t("es.account.login.error.disabled");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -56,8 +57,8 @@ export default function AccountLoginPage() {
     }
     redirectingRef.current = false;
     setOverlayActive(false);
-    setMessage(CONNECTION_ERROR);
-  }, []);
+    setMessage(connectionError);
+  }, [connectionError]);
 
   // Si ya hay sesion viva, no tiene sentido mostrar el formulario.
   useEffect(() => {
@@ -69,11 +70,11 @@ export default function AccountLoginPage() {
 
       const params = new URLSearchParams(window.location.search);
       if (params.get("inhabilitado") === "1") {
-        setMessage(DISABLED_ERROR);
+        setMessage(disabledError);
         return;
       }
       if (params.get("motivo") === "comprar-paquete") {
-        setMessage("Para adquirir un paquete primero debes ingresar a una cuenta.");
+        setMessage(t("es.account.login.error.needAccount"));
       }
       if (params.get("sesionCerrada") === "1") return;
 
@@ -81,7 +82,7 @@ export default function AccountLoginPage() {
       if (user == null) return;
       if (user.enabled === false) {
         await authClient.signOut();
-        if (!cancelled) setMessage(DISABLED_ERROR);
+        if (!cancelled) setMessage(disabledError);
         return;
       }
       window.location.href = nextUrl();
@@ -92,7 +93,7 @@ export default function AccountLoginPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [disabledError, t]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -112,7 +113,7 @@ export default function AccountLoginPage() {
     if (user == null) {
       redirectingRef.current = false;
       setOverlayActive(false);
-      setMessage(CONNECTION_ERROR);
+      setMessage(connectionError);
       return;
     }
 
@@ -120,7 +121,7 @@ export default function AccountLoginPage() {
       await authClient.signOut();
       redirectingRef.current = false;
       setOverlayActive(false);
-      setMessage(DISABLED_ERROR);
+      setMessage(disabledError);
       return;
     }
 
@@ -134,34 +135,34 @@ export default function AccountLoginPage() {
         <div className="app-min-h-screen-nav-offset mx-auto flex w-full max-w-md items-center justify-center pt-24 sm:pt-28">
           <Card className="w-full border-slate-200">
             <CardHeader className="text-center">
-              <CardTitle className="text-xl">Iniciar sesion</CardTitle>
+              <CardTitle className="text-xl">{t("es.account.login.title")}</CardTitle>
               <CardDescription>
-                Usa tu correo o tu ID de usuario (AP) para acceder al panel interno.
+                {t("es.account.login.description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <form className="space-y-4" onSubmit={onSubmit}>
                 <div className="space-y-2">
-                  <Label htmlFor="identifier">Correo o ID</Label>
+                  <Label htmlFor="identifier">{t("es.account.login.field.identifier")}</Label>
                   <Input
                     id="identifier"
                     type="text"
                     autoComplete="username"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="tu@email.com o AP0001"
+                    placeholder={t("es.account.login.placeholder.identifier")}
                     required
                     disabled={overlayActive}
                   />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
-                    <Label htmlFor="password">Contrasena</Label>
+                    <Label htmlFor="password">{t("es.account.login.field.password")}</Label>
                     <Link
                       href="/account/forgot-password"
                       className="text-[0.65rem] uppercase tracking-[0.22em] text-muted-foreground transition hover:text-foreground"
                     >
-                      Olvidaste tu contrasena?
+                      {t("es.account.login.forgot")}
                     </Link>
                   </div>
                   <div className="relative">
@@ -171,7 +172,7 @@ export default function AccountLoginPage() {
                       autoComplete="current-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="********"
+                      placeholder={t("es.account.login.placeholder.password")}
                       required
                       disabled={overlayActive}
                       className="pr-10"
@@ -180,7 +181,7 @@ export default function AccountLoginPage() {
                       type="button"
                       onClick={() => setPasswordVisible((v) => !v)}
                       className="absolute right-0 top-0 flex h-full w-10 items-center justify-center text-muted-foreground transition hover:text-foreground"
-                      aria-label={passwordVisible ? "Ocultar contrasena" : "Mostrar contrasena"}
+                      aria-label={passwordVisible ? t("es.account.login.hidePassword") : t("es.account.login.showPassword")}
                       disabled={overlayActive}
                     >
                       {passwordVisible ? <LuEyeOff className="h-4 w-4" /> : <LuEye className="h-4 w-4" />}
@@ -189,17 +190,17 @@ export default function AccountLoginPage() {
                 </div>
                 {message ? <p className="text-sm text-destructive">{message}</p> : null}
                 <Button type="submit" className="w-full" disabled={overlayActive}>
-                  {overlayActive ? "Entrando..." : "Iniciar sesion"}
+                  {overlayActive ? t("es.account.login.submitting") : t("es.account.login.submit")}
                 </Button>
               </form>
 
               <p className="text-center text-sm text-muted-foreground">
-                No tienes una cuenta?{" "}
+                {t("es.account.login.noAccount")}{" "}
                 <Link
                   href="/account/register"
                   className="font-medium underline-offset-4 hover:underline text-[#1877F2]"
                 >
-                  Crear cuenta
+                  {t("es.account.login.register")}
                 </Link>
               </p>
 
@@ -208,22 +209,22 @@ export default function AccountLoginPage() {
                   <Separator />
                 </div>
                 <div className="relative flex justify-center text-[0.65rem] uppercase tracking-[0.28em]">
-                  <span className="bg-card px-3 text-muted-foreground">o continua con</span>
+                  <span className="bg-card px-3 text-muted-foreground">{t("es.account.login.continueWith")}</span>
                 </div>
               </div>
 
               <div className="grid gap-3">
                 <Button type="button" variant="outline" className="relative w-full" disabled>
                   <FcGoogle className="absolute left-4 h-5 w-5" />
-                  <span>Google</span>
+                  <span>{t("es.account.login.provider.google")}</span>
                 </Button>
                 <Button type="button" variant="outline" className="relative w-full" disabled>
                   <FaApple className="absolute left-4 h-5 w-5 text-[#111827]" />
-                  <span>Apple</span>
+                  <span>{t("es.account.login.provider.apple")}</span>
                 </Button>
                 <Button type="button" variant="outline" className="relative w-full" disabled>
                   <FaFacebook className="absolute left-4 h-5 w-5 text-[#1877F2]" />
-                  <span>Facebook</span>
+                  <span>{t("es.account.login.provider.facebook")}</span>
                 </Button>
               </div>
 
@@ -231,7 +232,7 @@ export default function AccountLoginPage() {
                 href="/account"
                 className="block text-center text-[0.72rem] uppercase tracking-[0.3em] text-slate-600 transition hover:text-slate-700"
               >
-                Opciones de Cuenta
+                {t("es.account.login.options")}
               </Link>
             </CardContent>
           </Card>

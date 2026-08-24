@@ -1,18 +1,10 @@
 "use client";
 
 import { motion, type Variants } from "framer-motion";
-import Brand from "./brand";
 
-const tailLetters = [
-  { letter: "a", className: "text-[#589bf9]" },
-  { letter: "p", className: "text-[#589bf9]" },
-  { letter: "p", className: "text-[#589bf9]" },
-  { letter: "d", className: "text-[#8a8b8c]" },
-  { letter: "d", className: "text-[#8a8b8c]" },
-  { letter: "a", className: "text-[#8a8b8c]" },
-  { letter: "t", className: "text-[#8a8b8c]" },
-  { letter: "a", className: "text-[#8a8b8c]" },
-];
+import { useT } from "@/lib/text/text-provider";
+
+import Brand from "./brand";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -42,6 +34,13 @@ const letterVariants: Variants = {
 };
 
 export default function Loader() {
+  const t = useT();
+  // Mismo nombre de marca que pinta <Brand>, pero animado letra por letra.
+  const brandLetters = [
+    ...[...t("es.brand.lead")].map((letter) => ({ letter, className: "text-[#589bf9]" })),
+    ...[...t("es.brand.tail")].map((letter) => ({ letter, className: "text-[#8a8b8c]" })),
+  ];
+
   return (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-100"
@@ -87,7 +86,7 @@ export default function Loader() {
                   initial="hidden"
                   animate="visible"
                 >
-                  {tailLetters.map(({ letter, className }, index) => (
+                  {brandLetters.map(({ letter, className }, index) => (
                     <motion.span
                       key={`${letter}-${index}`}
                       variants={letterVariants}

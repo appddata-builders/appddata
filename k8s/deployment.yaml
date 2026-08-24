@@ -29,6 +29,8 @@ spec:
           env:
             - name: NODE_OPTIONS
               value: --max-old-space-size=256
+            - name: ADMIN_DATABASE_HOST
+              value: postgres-0
 
           envFrom:
             - secretRef:

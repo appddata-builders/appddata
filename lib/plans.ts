@@ -12,12 +12,17 @@ export type ProjectPlan = "free" | "beginner" | "super" | "premium" | "imin";
 export type PurchasableSitePlan = Exclude<SitePlan, "free">;
 export type AvailableSitePackages = Record<PurchasableSitePlan, number>;
 
-export const PLAN_LABELS: Record<ProjectPlan, string> = {
-  free: "Gratis",
-  beginner: "Beginner",
-  super: "Super",
-  premium: "Premium",
-  imin: "IMIN",
+/**
+ * Clave de `hydrate` con el nombre visible de cada paquete. El nombre en si
+ * vive en lib/hydrate/fallback.appddata.json y lo resuelve `t()` en el
+ * componente; aqui solo se declara donde buscarlo.
+ */
+export const PLAN_LABEL_KEYS: Record<ProjectPlan, string> = {
+  free: "es.packages.free.name",
+  beginner: "es.packages.beginner.name",
+  super: "es.packages.super.name",
+  premium: "es.packages.premium.name",
+  imin: "es.packages.imin.name",
 };
 
 export type PanelPlan = {

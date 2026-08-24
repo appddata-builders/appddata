@@ -15,7 +15,8 @@ import type { AccountSite } from "@/lib/account-summary-server";
 import type { AccountBilling } from "@/lib/account-billing-server";
 import type { InfraConsole } from "@/lib/infra-console-server";
 import type { PanelPlan } from "@/lib/plans";
-import { getSitePackage, SITE_PACKAGES } from "@/lib/site-packages";
+import { getSitePackage, SITE_PACKAGES, sitePackageKey } from "@/lib/site-packages";
+import { useT } from "@/lib/text/text-provider";
 
 type DashboardSummaryProps = {
   plan: PanelPlan;
@@ -45,6 +46,7 @@ function siteDomain(site: AccountSite): string {
  * resumen, con la accion al lado.
  */
 function PendingPackageAlert({ availableSites }: { availableSites: number }) {
+  const t = useT();
   const count = Math.max(availableSites, 1);
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-[#f3c49f] bg-[#fff8f1] p-4 sm:flex-row sm:items-center">
@@ -54,10 +56,12 @@ function PendingPackageAlert({ availableSites }: { availableSites: number }) {
         </span>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-[#8a4718]">
-            {count === 1 ? "Tienes 1 sitio por construir" : `Tienes ${count} sitios por construir`}
+            {count === 1
+              ? t("es.dashboard.summary.pending.one")
+              : t("es.dashboard.summary.pending.many", { count })}
           </p>
           <p className="mt-0.5 text-xs leading-5 text-[#a3673a]">
-            El pago fue confirmado. Abre el Constructor Appddata para crear y vincular lo que incluye tu compra.
+            {t("es.dashboard.summary.pending.description")}
           </p>
         </div>
       </div>
@@ -66,7 +70,7 @@ function PendingPackageAlert({ availableSites }: { availableSites: number }) {
         className="inline-flex h-9 w-full shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#df7a3a] px-3.5 text-sm font-medium text-white transition hover:bg-[#c96a2f] sm:w-auto"
       >
         <LuHammer className="h-4 w-4" aria-hidden="true" />
-        Construir
+        {t("es.dashboard.summary.pending.action")}
       </Link>
     </div>
   );
@@ -87,6 +91,7 @@ export default function DashboardSummary({
   billing,
   infra,
 }: DashboardSummaryProps) {
+  const t = useT();
   const activePackage = getSitePackage(plan.sitePlan);
   const publishedSites = sites.filter((site) => site.url);
 
@@ -96,15 +101,17 @@ export default function DashboardSummary({
 
       {activePackage || plan.hasUnassignedSitePackage || sites.length > 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
-          <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Resumen de cuenta</p>
+          <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">{t("es.dashboard.summary.eyebrow")}</p>
           <h1 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-900 sm:text-2xl">
             {activePackage ? (
               <>
-                Tu sitio esta en el paquete{" "}
-                <SitePackageName plan={activePackage.id}>{activePackage.name}</SitePackageName>
+                {t("es.dashboard.summary.title")}{" "}
+                <SitePackageName plan={activePackage.id}>
+                  {t(sitePackageKey(activePackage.id, "name"))}
+                </SitePackageName>
               </>
             ) : (
-              "Tu cuenta Appddata"
+              t("es.dashboard.summary.titleNoPackage")
             )}
           </h1>
 
@@ -116,14 +123,14 @@ export default function DashboardSummary({
             >
               <SitePackageIcon plan={activePackage?.id ?? "free"} className="h-3.5 w-3.5" />
               <SitePackageName plan={activePackage?.id ?? "free"}>
-                {activePackage?.name ?? "Gratis"}
+                {t(sitePackageKey(activePackage?.id ?? "free", "name"))}
               </SitePackageName>
             </span>
             {plan.hasImin ? (
               <span
                 className="inline-grid h-9 w-9 place-items-center rounded-full border border-amber-200 bg-amber-50"
-                title="IMIN incluido"
-                aria-label="IMIN incluido"
+                title={t("es.dashboard.summary.iminIncluded")}
+                aria-label={t("es.dashboard.summary.iminIncluded")}
               >
                 <IminMark className="h-7 w-7" />
               </span>
@@ -136,36 +143,50 @@ export default function DashboardSummary({
                   className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#f3c49f] bg-[#fff4e8] px-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#b85f28]"
                 >
                   <LuTicket className="h-3.5 w-3.5 text-[#df7a3a]" aria-hidden="true" />
-                  {count} {count === 1 ? "sitio" : "sitios"} {sitePackage.name}
+                  {t(count === 1 ? "es.dashboard.summary.ticket.one" : "es.dashboard.summary.ticket.many", {
+                    count,
+                    name: t(sitePackageKey(sitePackage.id, "name")),
+                  })}
                 </span>
               ) : null;
             })}
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <SummaryBlock label="Paquete">
+            <SummaryBlock label={t("es.dashboard.summary.package.label")}>
               <p className="text-2xl font-semibold tabular-nums tracking-[-0.03em] text-slate-900">
-                {activePackage?.name ?? "Sin paquete"}
+                {activePackage
+                  ? t(sitePackageKey(activePackage.id, "name"))
+                  : t("es.dashboard.summary.package.none")}
               </p>
               <p className="mt-1 text-xs leading-5 text-slate-500">
                 {activePackage
-                  ? activePackage.capacity
-                  : "Elige un paquete para publicar tu primer sitio."}
+                  ? t(sitePackageKey(activePackage.id, "capacity"))
+                  : t("es.dashboard.summary.package.hint")}
               </p>
               {plan.availableSites > 0 ? (
                 <p className="mt-2 text-xs font-medium text-[#b85f28]">
-                  {plan.availableSites} {plan.availableSites === 1 ? "sitio disponible" : "sitios disponibles"} por
-                  construir
+                  {t(
+                    plan.availableSites === 1
+                      ? "es.dashboard.summary.package.available.one"
+                      : "es.dashboard.summary.package.available.many",
+                    { count: plan.availableSites },
+                  )}
                 </p>
               ) : null}
             </SummaryBlock>
 
-            <SummaryBlock label="Sitios">
+            <SummaryBlock label={t("es.dashboard.summary.sites.label")}>
               <p className="text-2xl font-semibold tabular-nums tracking-[-0.03em] text-slate-900">{sites.length}</p>
               <p className="mt-1 text-xs leading-5 text-slate-500">
                 {sites.length === 0
-                  ? "Todavia no has creado sitios."
-                  : `${publishedSites.length} ${publishedSites.length === 1 ? "publicado" : "publicados"}`}
+                  ? t("es.dashboard.summary.sites.empty")
+                  : t(
+                      publishedSites.length === 1
+                        ? "es.dashboard.summary.sites.published.one"
+                        : "es.dashboard.summary.sites.published.many",
+                      { count: publishedSites.length },
+                    )}
               </p>
               {sites.length > 0 ? (
                 <ul className="mt-2.5 space-y-1.5">
@@ -188,12 +209,16 @@ export default function DashboardSummary({
                         <span className="truncate text-slate-500">{siteDomain(site)}</span>
                       )}
                       <span className="ml-auto shrink-0 text-[0.65rem] uppercase tracking-[0.12em] text-slate-400">
-                        {site.url ? "Publicado" : "Sin vincular"}
+                        {site.url
+                          ? t("es.dashboard.summary.sites.state.published")
+                          : t("es.dashboard.summary.sites.state.unlinked")}
                       </span>
                     </li>
                   ))}
                   {sites.length > 3 ? (
-                    <li className="text-xs text-slate-400">y {sites.length - 3} mas</li>
+                    <li className="text-xs text-slate-400">
+                      {t("es.dashboard.summary.sites.more", { count: sites.length - 3 })}
+                    </li>
                   ) : null}
                 </ul>
               ) : null}

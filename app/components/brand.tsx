@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 
 import { BRAND_PLANE_URL } from "@/lib/public-assets";
+import { useT } from "@/lib/text/text-provider";
 
 type BrandSize = "sm" | "md" | "lg";
 
@@ -37,14 +38,19 @@ export default function Brand({
   textContent,
   size = "md",
 }: BrandProps) {
+  const t = useT();
   const styles = sizeStyles[size];
+  // La marca se pinta letra por letra para poder animarla, pero el nombre sale
+  // de `hydrate`: se parte en las dos mitades que llevan color propio.
+  const brandLead = [...t("es.brand.lead")];
+  const brandTail = [...t("es.brand.tail")];
 
   return (
     <div className={`flex items-center ${className}`.trim()}>
       <div className={`relative shrink-0 ${styles.plane} ${planeClassName}`.trim()}>
         <motion.img
           src={BRAND_PLANE_URL}
-          alt="appddata"
+          alt={t("es.brand.alt")}
           className="h-full w-full object-contain backface-hidden transform-[translateZ(0)]"
           loading="eager"
           decoding="async"
@@ -57,14 +63,16 @@ export default function Brand({
       >
         {textContent ?? (
           <>
-            <span className="inline-block text-[#589bf9]">a</span>
-            <span className="inline-block text-[#589bf9]">p</span>
-            <span className="inline-block text-[#589bf9]">p</span>
-            <span className="inline-block text-[#8a8b8c]">d</span>
-            <span className="inline-block text-[#8a8b8c]">d</span>
-            <span className="inline-block text-[#8a8b8c]">a</span>
-            <span className="inline-block text-[#8a8b8c]">t</span>
-            <span className="inline-block text-[#8a8b8c]">a</span>
+            {brandLead.map((letter, index) => (
+              <span key={`lead-${index}`} className="inline-block text-[#589bf9]">
+                {letter}
+              </span>
+            ))}
+            {brandTail.map((letter, index) => (
+              <span key={`tail-${index}`} className="inline-block text-[#8a8b8c]">
+                {letter}
+              </span>
+            ))}
           </>
         )}
       </div>

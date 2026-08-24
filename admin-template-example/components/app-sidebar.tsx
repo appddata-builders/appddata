@@ -77,30 +77,14 @@ const crmNavItems = [
 
 const secondaryNavItems = [
   {
-    title: "Analiticas",
-    url: "/dashboard/analiticas",
-    icon: BarChart3,
-    badge: "Beta",
-  },
-  {
     title: "Dominios",
     url: "/dashboard/dominios",
     icon: Globe,
   },
   {
-    title: "Integraciones",
-    url: "/dashboard/integraciones",
-    icon: Plug,
-  },
-  {
     title: "Seguridad",
     url: "/dashboard/seguridad",
     icon: Shield,
-  },
-  {
-    title: "Agentes",
-    url: "/dashboard/agentes",
-    icon: Bot,
   },
   {
     title: "Automatizaciones",

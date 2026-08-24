@@ -11,8 +11,10 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Separator } from "@/app/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
+import { useT } from "@/lib/text/text-provider";
 
 export default function AccountRegisterPage() {
+  const t = useT();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -26,11 +28,11 @@ export default function AccountRegisterPage() {
     e.preventDefault();
     setMessage(null);
     if (password !== confirmPassword) {
-      setMessage("Las contrasenas no coinciden.");
+      setMessage(t("es.account.register.error.mismatch"));
       return;
     }
     if (!terms) {
-      setMessage("Debes aceptar los terminos para continuar.");
+      setMessage(t("es.account.register.error.terms"));
       return;
     }
     setLoading(true);
@@ -45,7 +47,7 @@ export default function AccountRegisterPage() {
     });
     setLoading(false);
     if (res.error) {
-      setMessage(res.error.message ?? "No se pudo crear la cuenta.");
+      setMessage(res.error.message ?? t("es.account.register.error.failed"));
       return;
     }
     window.location.href = siguiente;
@@ -56,68 +58,68 @@ export default function AccountRegisterPage() {
       <div className="app-min-h-screen-nav-offset mx-auto flex w-full max-w-md items-center justify-center pt-24 sm:pt-28">
         <Card className="w-full border-slate-200">
           <CardHeader className="text-center">
-            <CardTitle className="text-xl">Crear cuenta</CardTitle>
+            <CardTitle className="text-xl">{t("es.account.register.title")}</CardTitle>
             <CardDescription>
-              Completa el formulario para registrarte en el panel interno.
+              {t("es.account.register.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <form className="space-y-4" onSubmit={onSubmit}>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">Nombre</Label>
+                  <Label htmlFor="firstName">{t("es.account.register.field.firstName")}</Label>
                   <Input
                     id="firstName"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="Juan"
+                    placeholder={t("es.account.register.placeholder.firstName")}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Apellido</Label>
+                  <Label htmlFor="lastName">{t("es.account.register.field.lastName")}</Label>
                   <Input
                     id="lastName"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Perez"
+                    placeholder={t("es.account.register.placeholder.lastName")}
                     required
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Correo electronico</Label>
+                <Label htmlFor="email">{t("es.account.register.field.email")}</Label>
                 <Input
                   id="email"
                   type="email"
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@email.com"
+                  placeholder={t("es.account.register.placeholder.email")}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Contrasena</Label>
+                <Label htmlFor="password">{t("es.account.register.field.password")}</Label>
                 <Input
                   id="password"
                   type="password"
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="********"
+                  placeholder={t("es.account.register.placeholder.password")}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar contrasena</Label>
+                <Label htmlFor="confirmPassword">{t("es.account.register.field.confirmPassword")}</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="********"
+                  placeholder={t("es.account.register.placeholder.password")}
                   required
                 />
               </div>
@@ -131,7 +133,7 @@ export default function AccountRegisterPage() {
                   className="mt-2 h-4 w-4 rounded border border-border bg-slate-50 text-primary"
                 />
                 <label htmlFor="terms" className="text-sm leading-relaxed text-muted-foreground">
-                  Acepto los terminos y condiciones y la politica de privacidad.
+                  {t("es.account.register.terms")}
                 </label>
               </div>
 
@@ -140,7 +142,7 @@ export default function AccountRegisterPage() {
               ) : null}
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Enviando..." : "Crear cuenta"}
+                {loading ? t("es.account.register.submitting") : t("es.account.register.submit")}
               </Button>
             </form>
 
@@ -149,32 +151,32 @@ export default function AccountRegisterPage() {
                 <Separator />
               </div>
               <div className="relative flex justify-center text-[0.65rem] uppercase tracking-[0.28em]">
-                <span className="bg-card px-3 text-muted-foreground">o registrate con</span>
+                <span className="bg-card px-3 text-muted-foreground">{t("es.account.register.continueWith")}</span>
               </div>
             </div>
 
             <div className="grid gap-3">
               <Button type="button" variant="outline" className="relative w-full" disabled>
                 <FcGoogle className="absolute left-4 h-5 w-5" />
-                <span>Google</span>
+                <span>{t("es.account.login.provider.google")}</span>
               </Button>
               <Button type="button" variant="outline" className="relative w-full" disabled>
                 <FaApple className="absolute left-4 h-5 w-5 text-[#111827]" />
-                <span>Apple</span>
+                <span>{t("es.account.login.provider.apple")}</span>
               </Button>
               <Button type="button" variant="outline" className="relative w-full" disabled>
                 <FaFacebook className="absolute left-4 h-5 w-5 text-[#1877F2]" />
-                <span>Facebook</span>
+                <span>{t("es.account.login.provider.facebook")}</span>
               </Button>
             </div>
 
             <p className="text-center text-sm text-muted-foreground">
-              Ya tienes una cuenta?{" "}
+              {t("es.account.register.haveAccount")}{" "}
               <Link
                 href="/account/login"
                 className="font-medium text-foreground underline-offset-4 hover:underline"
               >
-                Iniciar sesion
+                {t("es.account.register.login")}
               </Link>
             </p>
 
@@ -182,7 +184,7 @@ export default function AccountRegisterPage() {
               href="/account"
               className="block text-center text-[0.72rem] uppercase tracking-[0.3em] text-slate-600 transition hover:text-slate-700"
             >
-              Volver a cuenta
+              {t("es.account.register.back")}
             </Link>
           </CardContent>
         </Card>

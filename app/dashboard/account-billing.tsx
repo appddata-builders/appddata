@@ -8,6 +8,7 @@ import { seriesColor } from "@/app/components/charts/chart-tokens";
 import InfraPanel from "@/app/dashboard/infra-panel";
 import type { AccountBilling } from "@/lib/account-billing-server";
 import type { InfraConsole } from "@/lib/infra-console-server";
+import { useT } from "@/lib/text/text-provider";
 
 function money(cents: number): string {
   return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(cents / 100);
@@ -48,6 +49,7 @@ export default function AccountBillingCard({
    */
   infra?: InfraConsole | null;
 }) {
+  const t = useT();
   const multiple = billing.projects.length > 1;
   const [selected, setSelected] = useState<string>(multiple ? ALL : (billing.projects[0]?.slug ?? ALL));
 
@@ -80,29 +82,31 @@ export default function AccountBillingCard({
 
   // Las pistas nombran el pod que genera el cargo, no solo el concepto.
   const podLabel = project
-    ? project.podNames.join(", ") || "sin pods medidos"
-    : billing.projects.flatMap((item) => item.podNames).join(", ") || "sin pods medidos";
+    ? project.podNames.join(", ") || t("es.dashboard.billing.noPods")
+    : billing.projects.flatMap((item) => item.podNames).join(", ") || t("es.dashboard.billing.noPods");
   const computeHint = podLabel;
   // El peso del esquema solo se menciona cuando de verdad se pudo medir: un
   // cero significa que el nombre no empato, no que la base este vacia.
-  const databasePods = billing.databasePods.join(", ") || "postgres";
+  const databasePods = billing.databasePods.join(", ") || t("es.dashboard.billing.defaultDatabasePod");
   const databaseHint =
-    project && project.schemaBytes > 0 ? `${databasePods} · esquema ${bytes(project.schemaBytes)}` : databasePods;
+    project && project.schemaBytes > 0
+      ? t("es.dashboard.billing.schemaHint", { pods: databasePods, size: bytes(project.schemaBytes) })
+      : databasePods;
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Facturacion</p>
-          <h2 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-slate-900">Cobro mensual</h2>
+          <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">{t("es.dashboard.billing.eyebrow")}</p>
+          <h2 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-slate-900">{t("es.dashboard.billing.title")}</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Estimado del mes en curso. Se cobra al cierre, cuando el consumo queda en firme.
+            {t("es.dashboard.billing.description")}
           </p>
         </div>
       </div>
 
       {multiple ? (
-        <div role="group" aria-label="Dominio" className="mt-4 flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-0.5">
+        <div role="group" aria-label={t("es.dashboard.billing.domain")} className="mt-4 flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-0.5">
           <button
             type="button"
             onClick={() => setSelected(ALL)}
@@ -111,7 +115,7 @@ export default function AccountBillingCard({
               selected === ALL ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
-            Todos ({billing.projects.length})
+            {t("es.dashboard.billing.all", { count: billing.projects.length })}
           </button>
           {billing.projects.map((item) => (
             <button
@@ -138,7 +142,9 @@ export default function AccountBillingCard({
 
       <p className="mt-5 text-3xl font-semibold tabular-nums tracking-[-0.03em] text-slate-900">{money(view.total)}</p>
       <p className="mt-1 text-xs text-slate-500">
-        {project ? `Estimado mensual de ${domainLabel(project)}` : `Estimado mensual sumando ${view.domains} dominios`}
+        {project
+          ? t("es.dashboard.billing.estimate.one", { domain: domainLabel(project) })
+          : t("es.dashboard.billing.estimate.many", { count: view.domains })}
       </p>
 
       {/* Todo lo que forma el cargo va DENTRO de la grafica, comision incluida:
@@ -147,43 +153,46 @@ export default function AccountBillingCard({
         <CompositionBar
           segments={[
             {
-              label: "Administracion de aplicativo",
+              label: t("es.dashboard.billing.segment.base"),
               value: view.base,
               color: seriesColor(0),
               hint:
                 view.domains === 1
-                  ? "Disponibilidad del sitio"
-                  : `Disponibilidad de ${view.domains} sitios x ${money(15000)}`,
+                  ? t("es.dashboard.billing.segment.base.hintOne")
+                  : t("es.dashboard.billing.segment.base.hintMany", {
+                      count: view.domains,
+                      price: money(15000),
+                    }),
             },
             {
-              label: "Computo del proyecto",
+              label: t("es.dashboard.billing.segment.compute"),
               value: view.compute,
               color: seriesColor(1),
               hint: computeHint,
             },
             {
-              label: "Base de datos",
+              label: t("es.dashboard.billing.segment.database"),
               value: view.database,
               color: seriesColor(2),
               hint: databaseHint,
             },
             {
-              label: "Red y seguridad",
+              label: t("es.dashboard.billing.segment.platform"),
               value: view.platform,
               color: seriesColor(3),
-              hint: "Plataforma cloud, balanceo, CDN y monitoreo",
+              hint: t("es.dashboard.billing.segment.platform.hint"),
             },
             {
-              label: "Comision de pago",
+              label: t("es.dashboard.billing.segment.fee"),
               value: view.fee,
               color: seriesColor(4),
-              hint: "Procesamiento con tarjeta",
+              hint: t("es.dashboard.billing.segment.fee.hint"),
             },
             {
-              label: "IVA 16%",
+              label: t("es.dashboard.billing.segment.tax"),
               value: view.tax,
               color: seriesColor(5),
-              hint: "Impuesto trasladado sobre el subtotal",
+              hint: t("es.dashboard.billing.segment.tax.hint"),
             },
           ]}
           formatValue={money}
@@ -208,12 +217,12 @@ export default function AccountBillingCard({
       ) : null}
 
       <div className="mt-4 flex items-baseline justify-between gap-3 border-t border-slate-100 pt-3">
-        <span className="text-sm text-slate-600">Subtotal antes de IVA</span>
+        <span className="text-sm text-slate-600">{t("es.dashboard.billing.subtotal")}</span>
         <span className="text-sm font-semibold tabular-nums text-slate-900">{money(view.subtotal)}</span>
       </div>
 
       <p className="mt-4 text-xs text-slate-400">
-        Tipo de cambio: {billing.fxRate.toFixed(4)}
+        {t("es.dashboard.billing.fxRate", { rate: billing.fxRate.toFixed(4) })}
       </p>
 
       {/* El detalle interno describe UN dominio. En "Todos" no hay un sujeto

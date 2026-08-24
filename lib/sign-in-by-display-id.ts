@@ -7,11 +7,13 @@ import { getDb } from "@/db";
 import * as schema from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { findUserByDisplayId } from "@/lib/display-id";
+import { getT } from "@/lib/text/server-text";
 
 export type SignInResult = { ok: true } | { ok: false; error: string };
 
-const GENERIC_ERROR = "Correo, ID o contrasena incorrectos.";
-const DISABLED_ERROR = "Tu cuenta esta inhabilitada. Contacta al equipo de Appddata.";
+/** Los mensajes salen de `hydrate`; aqui solo se nombran las claves. */
+const GENERIC_ERROR_KEY = "es.account.login.error.generic";
+const DISABLED_ERROR_KEY = "es.account.login.error.disabled";
 
 /**
  * Traduce lo que escribio la persona (correo o display ID) al correo con el
@@ -48,14 +50,16 @@ export async function signInWithIdentifier(
   identifierRaw: string,
   password: string,
 ): Promise<SignInResult> {
+  const t = await getT();
+
   if (identifierRaw.trim() === "" || password === "") {
-    return { ok: false, error: GENERIC_ERROR };
+    return { ok: false, error: t(GENERIC_ERROR_KEY) };
   }
 
   const resolved = await resolveEmailForLogin(identifierRaw);
-  if (resolved.disabled) return { ok: false, error: DISABLED_ERROR };
+  if (resolved.disabled) return { ok: false, error: t(DISABLED_ERROR_KEY) };
   if (resolved.email == null || resolved.email === "") {
-    return { ok: false, error: GENERIC_ERROR };
+    return { ok: false, error: t(GENERIC_ERROR_KEY) };
   }
 
   try {
@@ -65,6 +69,6 @@ export async function signInWithIdentifier(
     });
     return { ok: true };
   } catch {
-    return { ok: false, error: GENERIC_ERROR };
+    return { ok: false, error: t(GENERIC_ERROR_KEY) };
   }
 }

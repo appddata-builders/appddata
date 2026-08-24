@@ -108,6 +108,7 @@ import {
 import { TbEngine, TbManualGearbox } from "react-icons/tb";
 
 import { Badge } from "@/app/components/ui/badge";
+import { useT } from "@/lib/text/text-provider";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_SITE_URL = "https://refautomex.com";
@@ -129,15 +130,15 @@ type GradientDirection =
   | "bottom-left"
   | "bottom-right";
 
-const GRADIENT_DIRECTIONS: { value: GradientDirection; label: string }[] = [
-  { value: "left", label: "← Izquierda" },
-  { value: "right", label: "Derecha →" },
-  { value: "top", label: "↑ Arriba" },
-  { value: "bottom", label: "Abajo ↓" },
-  { value: "top-left", label: "↖ Esq. sup. izq." },
-  { value: "top-right", label: "Esq. sup. der. ↗" },
-  { value: "bottom-left", label: "↙ Esq. inf. izq." },
-  { value: "bottom-right", label: "Esq. inf. der. ↘" },
+const GRADIENT_DIRECTIONS: { value: GradientDirection; labelKey: string }[] = [
+  { value: "left", labelKey: "es.imin.editor.gradient.left" },
+  { value: "right", labelKey: "es.imin.editor.gradient.right" },
+  { value: "top", labelKey: "es.imin.editor.gradient.top" },
+  { value: "bottom", labelKey: "es.imin.editor.gradient.bottom" },
+  { value: "top-left", labelKey: "es.imin.editor.gradient.topLeft" },
+  { value: "top-right", labelKey: "es.imin.editor.gradient.topRight" },
+  { value: "bottom-left", labelKey: "es.imin.editor.gradient.bottomLeft" },
+  { value: "bottom-right", labelKey: "es.imin.editor.gradient.bottomRight" },
 ];
 
 function gradientCssDirection(direction: GradientDirection): string {
@@ -182,11 +183,11 @@ type StyleEditor =
 type TextTab = "description" | "color";
 type TextEditor = { selector: string; value: string; key?: string } | null;
 
-const modeOptions: { id: EditorMode; label: string; icon: typeof LuType }[] = [
-  { id: "navigate", label: "Navegar", icon: LuMousePointer2 },
-  { id: "text", label: "Editar textos", icon: LuType },
-  { id: "media", label: "Editar medios", icon: LuImagePlay },
-  { id: "style", label: "Colores e iconos", icon: LuPalette },
+const modeOptions: { id: EditorMode; labelKey: string; icon: typeof LuType }[] = [
+  { id: "navigate", labelKey: "es.imin.editor.mode.navigate", icon: LuMousePointer2 },
+  { id: "text", labelKey: "es.imin.editor.mode.text", icon: LuType },
+  { id: "media", labelKey: "es.imin.editor.mode.media", icon: LuImagePlay },
+  { id: "style", labelKey: "es.imin.editor.mode.style", icon: LuPalette },
 ];
 
 // Catalogo de iconos para reemplazar en el sitio. Todo sale de react-icons
@@ -470,11 +471,12 @@ export function IminWorkspace({
   siteOptions = [],
   onSiteChange,
   editsEndpoint = DEFAULT_EDITS_ENDPOINT,
-  demoTitle = "Demostración IMIN",
-  demoDescription = "Tutorial de edición de refautomex.com. Demostrativo.",
+  demoTitle,
+  demoDescription,
   accessExpiresAt = null,
   accessIncludedInPlan = false,
 }: IminWorkspaceProps = {}) {
+  const t = useT();
   const targetOrigin = new URL(siteUrl).origin;
   const canSave = variant === "panel" && typeof projectSlug === "string" && projectSlug !== "";
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -623,7 +625,7 @@ export function IminWorkspace({
         headers: { "Content-LuType": "application/json" },
         body: JSON.stringify({ slug: projectSlug, edits }),
       });
-      if (!res.ok) throw new Error("no se pudo guardar");
+      if (!res.ok) throw new Error(t("es.imin.editor.error.save"));
 
       const merged = new Map(savedEditsRef.current.map((edit) => [editKey(edit), edit]));
       for (const edit of edits) merged.set(editKey(edit), edit);
@@ -738,8 +740,8 @@ export function IminWorkspace({
     if (!isValidFileForKind(file, pending.kind)) {
       window.alert(
         pending.kind === "video"
-          ? "Solo se permiten videos en formato mp4."
-          : "El archivo seleccionado no es una imagen valida.",
+          ? t("es.imin.editor.error.video")
+          : t("es.imin.editor.error.image"),
       );
       return;
     }
@@ -883,23 +885,9 @@ export function IminWorkspace({
     setStyleEditor(null);
   };
 
-  const modeHelpText =
-    mode === "text"
-      ? "Modo edición de textos: la navegación esta pausada. Haz clic sobre un texto existente para editarlo."
-      : mode === "media"
-        ? "Modo edición de medios: la navegación esta pausada. Haz clic en una imagen o video para reemplazarlo (los videos solo aceptan mp4)."
-        : mode === "style"
-          ? "Modo colores e iconos: la navegación esta pausada. Haz clic en un icono para cambiarlo o en cualquier elemento para pintar su color."
-          : "Navegación activa: haz clic en cualquier parte del sitio para interactuar con el.";
-
-  const workspaceSectionDescription =
-    mode === "text"
-      ? "Edita textos, tipografía y color."
-      : mode === "media"
-        ? "Reemplaza imágenes, fondos y videos."
-      : mode === "style"
-          ? "Personaliza colores, degradados e iconos."
-          : "Explora e interactúa con el sitio.";
+  // Ambas cadenas siguen al modo activo: se arma la clave y `t` la resuelve.
+  const modeHelpText = t(`es.imin.editor.help.${mode}`);
+  const workspaceSectionDescription = t(`es.imin.editor.section.${mode}`);
 
   return (
     <div
@@ -919,10 +907,10 @@ export function IminWorkspace({
       {variant === "demo" ? (
         <>
           <p className="text-center text-3xl my-3 font-semibold text-amber-400">
-            {demoTitle}
+            {demoTitle ?? t("es.imin.editor.demo.title")}
           </p>
           <p className="mb-3 text-center text-sm text-slate-500 text-bold">
-            {demoDescription}
+            {demoDescription ?? t("es.imin.editor.demo.description")}
           </p>
         </>
       ) : null}
@@ -965,7 +953,7 @@ export function IminWorkspace({
                   )}
                 >
                   <Icon className="h-3 w-3 pr-1 text-blue-300" />
-                  {option.label}
+                  {t(option.labelKey)}
                 </button>
               );
             })}
@@ -988,22 +976,33 @@ export function IminWorkspace({
             {variant === "panel" ? (
               <span
                 className="hidden h-7 shrink-0 items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 text-[0.68rem] font-medium text-amber-700 md:inline-flex"
-                title={accessExpiresAt ? `Vigencia hasta ${new Intl.DateTimeFormat("es-MX", { dateStyle: "long" }).format(new Date(accessExpiresAt))}` : undefined}
+                title={
+                  accessExpiresAt
+                    ? t("es.imin.editor.access.validUntil", {
+                        date: new Intl.DateTimeFormat("es-MX", { dateStyle: "long" }).format(new Date(accessExpiresAt)),
+                      })
+                    : undefined
+                }
               >
                 <LuCalendarClock className="h-3.5 w-3.5" aria-hidden="true" />
                 {renewalDays != null
-                  ? `Renovación en ${renewalDays} día${renewalDays === 1 ? "" : "s"}`
+                  ? t(
+                      renewalDays === 1
+                        ? "es.imin.editor.access.renewal.one"
+                        : "es.imin.editor.access.renewal.many",
+                      { count: renewalDays },
+                    )
                   : accessIncludedInPlan
-                    ? "Incluido en tu plan"
-                    : "Vigencia activa"}
+                    ? t("es.imin.editor.access.included")
+                    : t("es.imin.editor.access.active")}
               </span>
             ) : null}
             <div className="inline-flex h-7 shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5">
               <button
                 type="button"
                 onClick={() => setDevice("desktop")}
-                aria-label="Vista normal"
-                title="Vista normal"
+                aria-label={t("es.imin.editor.device.desktop")}
+                title={t("es.imin.editor.device.desktop")}
                 className={cn("grid w-7 place-items-center rounded-md transition", device === "desktop" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-700")}
               >
                 <LuMonitor className="h-3.5 w-3.5" />
@@ -1011,8 +1010,8 @@ export function IminWorkspace({
               <button
                 type="button"
                 onClick={() => setDevice("mobile")}
-                aria-label="Vista móvil"
-                title="Vista móvil"
+                aria-label={t("es.imin.editor.device.mobile")}
+                title={t("es.imin.editor.device.mobile")}
                 className={cn("grid w-7 place-items-center rounded-md transition", device === "mobile" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-700")}
               >
                 <LuSmartphone className="h-3.5 w-3.5" />
@@ -1021,7 +1020,7 @@ export function IminWorkspace({
             <button
               type="button"
               disabled={!canSave || saveState === "saving"}
-              title={canSave ? undefined : "Disponible con el paquete IMIN"}
+              title={canSave ? undefined : t("es.imin.editor.save.locked")}
               onClick={() => void handleSave()}
               className={cn(
                 "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-[0.7rem] uppercase tracking-[0.18em] transition",
@@ -1032,22 +1031,22 @@ export function IminWorkspace({
               )}
             >
               {saveState === "saving"
-                ? "Guardando..."
+                ? t("es.imin.editor.save.saving")
                 : saveState === "saved"
-                  ? "Cambios guardados"
+                  ? t("es.imin.editor.save.saved")
                   : saveState === "error"
-                    ? "Error al guardar"
-                    : "Guardar cambios"}
+                    ? t("es.imin.editor.save.error")
+                    : t("es.imin.editor.save.action")}
             </button>
             {variant === "panel" && siteOptions.length > 0 ? (
               <label className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2 text-blue-600">
                 <LuMonitor className="h-3.5 w-3.5" aria-hidden="true" />
-                <span className="sr-only">Cambiar sitio</span>
+                <span className="sr-only">{t("es.imin.editor.site.change")}</span>
                 <select
                   value={projectSlug}
                   onChange={(event) => onSiteChange?.(event.target.value)}
                   className="max-w-56 cursor-pointer bg-transparent text-xs font-semibold outline-none"
-                  aria-label="Cambiar proyecto de IMIN"
+                  aria-label={t("es.imin.editor.site.select")}
                 >
                   {siteOptions.map((site) => (
                     <option key={site.slug} value={site.slug}>
@@ -1110,7 +1109,7 @@ export function IminWorkspace({
               {previewStatus === "loading" ? (
                 <>
                   <LuLoaderCircle className="h-6 w-6 animate-spin text-blue-500" aria-hidden="true" />
-                  <p className="text-sm text-slate-500">Cargando la vista previa de {siteName}...</p>
+                  <p className="text-sm text-slate-500">{t("es.imin.editor.preview.loading", { site: siteName ?? "" })}</p>
                 </>
               ) : (
                 <>
@@ -1118,10 +1117,10 @@ export function IminWorkspace({
                     <span className="text-lg font-semibold">!</span>
                   </div>
                   <p className="max-w-xs text-sm font-medium text-slate-700">
-                    No se pudo cargar la vista previa de {siteName}.
+                    {t("es.imin.editor.preview.failed", { site: siteName ?? "" })}
                   </p>
                   <p className="max-w-xs text-xs text-slate-400">
-                    El sitio no respondio a tiempo. Puede estar temporalmente fuera de linea.
+                    {t("es.imin.editor.preview.timeout")}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
                     <button
@@ -1129,14 +1128,14 @@ export function IminWorkspace({
                       onClick={retryPreview}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700"
                     >
-                      <LuRotateCcw className="h-3.5 w-3.5" /> Reintentar
+                      <LuRotateCcw className="h-3.5 w-3.5" /> {t("es.imin.editor.preview.retry")}
                     </button>
                     <button
                       type="button"
                       onClick={() => window.open(siteUrl, "_blank", "noopener,noreferrer")}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
                     >
-                      <LuExternalLink className="h-3.5 w-3.5" /> Abrir en pestaña
+                      <LuExternalLink className="h-3.5 w-3.5" /> {t("es.imin.editor.preview.openTab")}
                     </button>
                   </div>
                 </>
@@ -1155,17 +1154,16 @@ export function IminWorkspace({
               <span className="text-lg font-semibold">!</span>
             </div>
             <h3 className="text-base font-semibold text-slate-900">
-              Cambios sin guardar
+              {t("es.imin.editor.unsaved.title")}
             </h3>
             <p className="mt-2 text-sm text-slate-500">
-              Hiciste cambios en el sitio. ¿Deseas guardarlos antes de volver al
-              modo navegacion?
+              {t("es.imin.editor.unsaved.description")}
             </p>
             <div className="mt-5 flex flex-col gap-2">
               <button
                 type="button"
                 disabled={!canSave || saveState === "saving"}
-                title={canSave ? undefined : "Disponible con el paquete IMIN"}
+                title={canSave ? undefined : t("es.imin.editor.save.locked")}
                 onClick={() => void handleSave()}
                 className={cn(
                   "w-full rounded-full px-4 py-2 text-sm font-medium transition",
@@ -1174,21 +1172,21 @@ export function IminWorkspace({
                     : "cursor-not-allowed bg-slate-100 text-slate-400",
                 )}
               >
-                {saveState === "saving" ? "Guardando..." : "Guardar cambios"}
+                {saveState === "saving" ? t("es.imin.editor.save.saving") : t("es.imin.editor.save.action")}
               </button>
               <button
                 type="button"
                 onClick={handleDiscard}
                 className="w-full rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
               >
-                Descartar cambios
+                {t("es.imin.editor.unsaved.discard")}
               </button>
               <button
                 type="button"
                 onClick={() => setPendingMode(null)}
                 className="w-full px-4 py-2 text-sm text-slate-400 transition hover:text-slate-600"
               >
-                Cancelar
+                {t("es.imin.editor.cancel")}
               </button>
             </div>
           </div>
@@ -1203,9 +1201,9 @@ export function IminWorkspace({
             <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-[#0455a2] ring-1 ring-blue-100">
               <LuType className="h-5 w-5" aria-hidden="true" />
             </div>
-            <h3 className="text-base font-semibold text-slate-900">Cambiar texto</h3>
+            <h3 className="text-base font-semibold text-slate-900">{t("es.imin.editor.text.title")}</h3>
             <p className="mt-2 text-sm text-slate-500">
-              Edita el contenido o el color del texto seleccionado.
+              {t("es.imin.editor.text.description")}
             </p>
 
             <div className="mt-5 inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 p-1">
@@ -1219,7 +1217,7 @@ export function IminWorkspace({
                     textTab === tab ? "bg-[#0455a2] text-white" : "text-slate-500 hover:bg-slate-100",
                   )}
                 >
-                  {tab === "description" ? "Descripcion" : "Color"}
+                  {tab === "description" ? t("es.imin.editor.text.tab.description") : t("es.imin.editor.text.tab.color")}
                 </button>
               ))}
             </div>
@@ -1237,7 +1235,7 @@ export function IminWorkspace({
                   onClick={applyTextValue}
                   className="mt-4 w-full rounded-full bg-[#0455a2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#03407a]"
                 >
-                  Aplicar
+                  {t("es.imin.editor.apply")}
                 </button>
               </>
             ) : (
@@ -1255,14 +1253,14 @@ export function IminWorkspace({
                           : "text-slate-500 hover:bg-slate-100",
                       )}
                     >
-                      {fill === "solid" ? "Solido" : "Degradado"}
+                      {fill === "solid" ? t("es.imin.editor.fill.solid") : t("es.imin.editor.fill.gradient")}
                     </button>
                   ))}
                 </div>
 
                 <label className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 px-4 py-3">
                   <span className="text-sm text-slate-600">
-                    {textColorFill === "gradient" ? "Color inicial" : "Color"}
+                    {textColorFill === "gradient" ? t("es.imin.editor.color.start") : t("es.imin.editor.color.plain")}
                   </span>
                   <input
                     type="color"
@@ -1275,7 +1273,7 @@ export function IminWorkspace({
                 {textColorFill === "gradient" ? (
                   <>
                     <label className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 px-4 py-3">
-                      <span className="text-sm text-slate-600">Color final</span>
+                      <span className="text-sm text-slate-600">{t("es.imin.editor.color.end")}</span>
                       <input
                         type="color"
                         value={textColorEndValue}
@@ -1284,7 +1282,7 @@ export function IminWorkspace({
                       />
                     </label>
                     <div className="mt-3 grid grid-cols-2 gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1 sm:grid-cols-4">
-                      {GRADIENT_DIRECTIONS.map(({ value, label }) => (
+                      {GRADIENT_DIRECTIONS.map(({ value, labelKey }) => (
                         <button
                           key={value}
                           type="button"
@@ -1296,7 +1294,7 @@ export function IminWorkspace({
                               : "text-slate-500 hover:bg-slate-100",
                           )}
                         >
-                          {label}
+                          {t(labelKey)}
                         </button>
                       ))}
                     </div>
@@ -1304,7 +1302,7 @@ export function IminWorkspace({
                 ) : null}
 
                 <div className="mt-4 rounded-2xl border border-slate-200 p-3">
-                  <p className="text-xs uppercase tracking-wide text-slate-400">Vista previa</p>
+                  <p className="text-xs uppercase tracking-wide text-slate-400">{t("es.imin.editor.preview.label")}</p>
                   <span
                     className="mt-2 inline-block max-w-full break-words text-2xl font-bold"
                     style={
@@ -1318,7 +1316,7 @@ export function IminWorkspace({
                         : { color: textColorValue }
                     }
                   >
-                    {textDraft || "Texto de ejemplo"}
+                    {textDraft || t("es.imin.editor.text.sample")}
                   </span>
                 </div>
 
@@ -1327,7 +1325,7 @@ export function IminWorkspace({
                   onClick={applyTextColor}
                   className="mt-4 w-full rounded-full bg-[#0455a2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#03407a]"
                 >
-                  Aplicar
+                  {t("es.imin.editor.apply")}
                 </button>
               </>
             )}
@@ -1343,10 +1341,9 @@ export function IminWorkspace({
             <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
               <LuPalette className="h-5 w-5" aria-hidden="true" />
             </div>
-            <h3 className="text-base font-semibold text-slate-900">Cambiar fondo</h3>
+            <h3 className="text-base font-semibold text-slate-900">{t("es.imin.editor.background.title")}</h3>
             <p className="mt-2 text-sm text-slate-500">
-              Elige el fondo del contenedor seleccionado. Para cambiar el color de un texto usa el
-              modo “Editar textos”.
+              {t("es.imin.editor.background.description")}
             </p>
 
             <div className="mt-4 inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 p-1">
@@ -1362,14 +1359,14 @@ export function IminWorkspace({
                       : "text-slate-500 hover:bg-slate-100",
                   )}
                 >
-                  {fill === "solid" ? "Solido" : "Degradado"}
+                  {fill === "solid" ? t("es.imin.editor.fill.solid") : t("es.imin.editor.fill.gradient")}
                 </button>
               ))}
             </div>
 
             <label className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 px-4 py-3">
               <span className="text-sm text-slate-600">
-                {colorFill === "gradient" ? "Color inicial" : "Color"}
+                {colorFill === "gradient" ? t("es.imin.editor.color.start") : t("es.imin.editor.color.plain")}
               </span>
               <input
                 type="color"
@@ -1382,7 +1379,7 @@ export function IminWorkspace({
             {colorFill === "gradient" ? (
               <>
                 <label className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 px-4 py-3">
-                  <span className="text-sm text-slate-600">Color final</span>
+                  <span className="text-sm text-slate-600">{t("es.imin.editor.color.end")}</span>
                   <input
                     type="color"
                     value={colorEndValue}
@@ -1392,7 +1389,7 @@ export function IminWorkspace({
                 </label>
 
                 <div className="mt-3 grid grid-cols-2 gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1 sm:grid-cols-4">
-                  {GRADIENT_DIRECTIONS.map(({ value, label }) => (
+                  {GRADIENT_DIRECTIONS.map(({ value, labelKey }) => (
                     <button
                       key={value}
                       type="button"
@@ -1404,7 +1401,7 @@ export function IminWorkspace({
                           : "text-slate-500 hover:bg-slate-100",
                       )}
                     >
-                      {label}
+                      {t(labelKey)}
                     </button>
                   ))}
                 </div>
@@ -1413,7 +1410,7 @@ export function IminWorkspace({
 
             <label className="mt-3 block rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
               <span className="flex items-center justify-between gap-3 text-sm text-slate-600">
-                <span>Opacidad</span>
+                <span>{t("es.imin.editor.opacity")}</span>
                 <span className="font-medium tabular-nums text-slate-900">{backgroundOpacity}%</span>
               </span>
               <input
@@ -1429,7 +1426,7 @@ export function IminWorkspace({
 
             {/* Vista previa: refleja exactamente lo que aplicara el bridge. */}
             <div className="mt-4 rounded-2xl border border-slate-200 p-3">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Vista previa</p>
+              <p className="text-xs uppercase tracking-wide text-slate-400">{t("es.imin.editor.preview.label")}</p>
               <div
                 className="mt-1 h-12 rounded-xl"
                 style={
@@ -1448,14 +1445,14 @@ export function IminWorkspace({
                 onClick={applyColor}
                 className="w-full rounded-full bg-[#0455a2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#03407a]"
               >
-                Aplicar fondo
+                {t("es.imin.editor.background.apply")}
               </button>
               <button
                 type="button"
                 onClick={() => setStyleEditor(null)}
                 className="w-full px-4 py-2 text-sm text-slate-400 transition hover:text-slate-600"
               >
-                Cancelar
+                {t("es.imin.editor.cancel")}
               </button>
             </div>
           </div>
@@ -1469,9 +1466,9 @@ export function IminWorkspace({
             <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
               <LuPalette className="h-5 w-5" aria-hidden="true" />
             </div>
-            <h3 className="text-base font-semibold text-slate-900">Elegir icono</h3>
+            <h3 className="text-base font-semibold text-slate-900">{t("es.imin.editor.icon.title")}</h3>
             <p className="mt-2 text-sm text-slate-500">
-              Selecciona el icono con el que quieres reemplazar el actual.
+              {t("es.imin.editor.icon.description")}
             </p>
 
             <div className="mt-4 flex flex-col gap-2">
@@ -1480,7 +1477,7 @@ export function IminWorkspace({
                 onChange={(event) => setIconLib(event.target.value)}
                 className="w-full min-w-0 rounded-full border border-slate-200 px-4 py-2 text-sm outline-none transition focus:border-[#0455a2]"
               >
-                <option value="curated">Sugeridos (por tema)</option>
+                <option value="curated">{t("es.imin.editor.icon.curated")}</option>
                 {ICON_LIBRARIES.map((library) => (
                   <option key={library.id} value={library.id}>
                     {library.label} — {library.note}
@@ -1493,7 +1490,9 @@ export function IminWorkspace({
                 value={iconQuery}
                 onChange={(event) => setIconQuery(event.target.value)}
                 placeholder={
-                  iconLib === "curated" ? "Buscar: llanta, envio, garantia..." : "Buscar: car, wrench, arrow..."
+                  iconLib === "curated"
+                    ? t("es.imin.editor.icon.search.curated")
+                    : t("es.imin.editor.icon.search.library")
                 }
                 className="w-full min-w-0 rounded-full border border-slate-200 px-4 py-2 text-sm outline-none transition focus:border-[#0455a2]"
               />
@@ -1502,20 +1501,21 @@ export function IminWorkspace({
             {iconLib !== "curated" ? (
               <p className="mt-2 text-xs text-slate-400">
                 {libLoading
-                  ? "Buscando..."
-                  : `${libTotal} iconos${
-                      libTotal > libLimit ? ` · mostrando ${libLimit}, refina la busqueda` : ""
-                    } · los nombres estan en ingles`}
+                  ? t("es.imin.editor.icon.searching")
+                  : t("es.imin.editor.icon.results", {
+                      total: libTotal,
+                      shown: libTotal > libLimit ? t("es.imin.editor.icon.showing", { limit: libLimit }) : "",
+                    })}
               </p>
             ) : null}
 
             <div className="mt-4 max-h-[50vh] overflow-y-auto pr-1">
               {iconLib !== "curated" ? (
                 libLoading && libIcons.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-slate-400">Cargando iconos...</p>
+                  <p className="py-6 text-center text-sm text-slate-400">{t("es.imin.editor.icon.loading")}</p>
                 ) : libIcons.length === 0 ? (
                   <p className="py-6 text-center text-sm text-slate-400">
-                    Sin resultados para “{iconQuery}”.
+                    {t("es.imin.editor.icon.noResults", { query: iconQuery })}
                   </p>
                 ) : (
                   <div className="grid grid-cols-5 gap-2 sm:grid-cols-7">
@@ -1535,7 +1535,7 @@ export function IminWorkspace({
                 )
               ) : visibleIconCategories.length === 0 ? (
                 <p className="py-6 text-center text-sm text-slate-400">
-                  Sin resultados para “{iconQuery}”.
+                  {t("es.imin.editor.icon.noResults", { query: iconQuery })}
                 </p>
               ) : (
                 visibleIconCategories.map(({ category, icons }) => (
@@ -1571,7 +1571,7 @@ export function IminWorkspace({
               onClick={() => setStyleEditor(null)}
               className="mt-5 w-full px-4 py-2 text-sm text-slate-400 transition hover:text-slate-600"
             >
-              Cancelar
+              {t("es.imin.editor.cancel")}
             </button>
           </div>
         </div>

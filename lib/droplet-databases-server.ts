@@ -13,9 +13,16 @@ import { getPgDatabaseUrl } from "@/db/runtime-driver";
 const IDENT = /^[A-Za-z0-9_]+$/;
 
 function baseUrl(): string {
-  const url = getPgDatabaseUrl();
+  const url = process.env.ADMIN_DATABASE_URL?.trim() || getPgDatabaseUrl();
   if (!url) throw new Error("No hay DATABASE_URL configurada para el explorador de bases.");
-  return url;
+  const parsed = new URL(url);
+  const adminHost = process.env.ADMIN_DATABASE_HOST?.trim();
+  if (adminHost) parsed.hostname = adminHost;
+  return parsed.toString();
+}
+
+export function getAdminDatabaseHost(): string {
+  return new URL(baseUrl()).hostname;
 }
 
 /** Conexion efimera (max 1) a la base indicada, o a la del URL si no se da una. */

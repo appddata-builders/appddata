@@ -3,10 +3,6 @@ const titles: Record<string, { title: string; subtitle: string }> = {
     title: "Planes",
     subtitle: "Vista general del panel interno. Aqui conectaras metricas y alertas.",
   },
-  analiticas: {
-    title: "Analiticas",
-    subtitle: "Graficos y embudos. Pendiente de integracion.",
-  },
   dominios: {
     title: "Dominios",
     subtitle: "Administracion de dominios y DNS.",
@@ -18,22 +14,6 @@ const titles: Record<string, { title: string; subtitle: string }> = {
   seguridad: {
     title: "Seguridad",
     subtitle: "Politicas, accesos y auditoria.",
-  },
-  agentes: {
-    title: "Agentes",
-    subtitle: "Automatizaciones asistidas.",
-  },
-  automatizaciones: {
-    title: "Automatizaciones",
-    subtitle: "Reglas y disparadores.",
-  },
-  registros: {
-    title: "Registros",
-    subtitle: "Bitacora de eventos del sistema.",
-  },
-  api: {
-    title: "API",
-    subtitle: "Documentacion interna y tokens.",
   },
   "configuracion/pagos": {
     title: "Configuracion: pagos",
@@ -123,6 +103,78 @@ export default async function DashboardCatchAllPage({ params }: DashboardCatchAl
       );
     }
   }
+  if (key === "dominios") {
+    const session = await requirePanelSession();
+    if (session) {
+      const isAppddataOwner = session.user.email.toLowerCase() === "isaac.eduardo.odriozola@gmail.com";
+      return (
+        <AccountDomains
+          domains={isAppddataOwner ? [{
+            domain: "appddata.com",
+            ownerEmail: "isaac.eduardo.odriozola@gmail.com",
+            registrar: "Squarespace",
+            project: "appddata",
+            status: "connected",
+            managedByAppddata: true,
+            renewalOwner: "client",
+          }] : []}
+        />
+      );
+    }
+  }
+  if (key === "seguridad") {
+    const session = await requirePanelSession();
+    if (session) {
+      const [accountSites, infra] = await Promise.all([getAccountSites(session), getInfraConsoleCached()]);
+      const routingManaged =
+        (infra.breakdown.ok && infra.breakdown.data.some((item) => /load balancer/i.test(item.product))) ||
+        (infra.workloads.ok && infra.workloads.data.some((workload) => workload.namespace === "ingress-nginx"));
+      const certificatesManaged =
+        infra.workloads.ok && infra.workloads.data.some((workload) => workload.namespace === "cert-manager");
+      const sites = accountSites.map((site) => {
+        const workload = infra.workloads.ok
+          ? infra.workloads.data.find((item) => item.namespace === site.slug)
+          : undefined;
+        let domain = site.name;
+        let https = false;
+        if (site.url) {
+          try {
+            const url = new URL(site.url);
+            domain = url.hostname.replace(/^www\./, "");
+            https = url.protocol === "https:";
+          } catch {
+            domain = site.name;
+          }
+        }
+        return {
+          domain,
+          project: site.slug,
+          https,
+          runningPods: workload?.runningPods ?? 0,
+          totalPods: workload?.pods.length ?? 0,
+          routingManaged,
+          certificatesManaged,
+          domainManaged: Boolean(site.url),
+        };
+      });
+      if (session.user.email.toLowerCase() === "isaac.eduardo.odriozola@gmail.com" && !sites.some((site) => site.domain === "appddata.com")) {
+        const workload = infra.workloads.ok
+          ? infra.workloads.data.find((item) => item.namespace === "appddata")
+          : undefined;
+        sites.unshift({
+          domain: "appddata.com",
+          project: "appddata",
+          https: true,
+          runningPods: workload?.runningPods ?? 0,
+          totalPods: workload?.pods.length ?? 0,
+          routingManaged,
+          certificatesManaged,
+          domainManaged: true,
+        });
+      }
+      return <AccountSecurity sites={sites} />;
+    }
+  }
   if (key === "configuracion/settings") {
     const session = await requirePanelSession();
     if (session) return <AccountSettings user={session.user} />;
@@ -162,6 +214,8 @@ import AccountBillingCard from "@/app/dashboard/account-billing";
 import DashboardSummary from "@/app/dashboard/dashboard-summary";
 import { AccountSubscriptions } from "@/app/dashboard/account-subscriptions";
 import { AccountSettings } from "@/app/dashboard/account-settings";
+import { AccountDomains } from "@/app/dashboard/account-domains";
+import { AccountSecurity } from "@/app/dashboard/account-security";
 import { SiteRequirements } from "@/app/dashboard/site-requirements";
 import { getAccountSites } from "@/lib/account-summary-server";
 import { getAccountSubscriptions, getUpcomingAccountCharges } from "@/lib/account-subscriptions-server";

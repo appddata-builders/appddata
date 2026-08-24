@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isRoot, requirePanelSession } from "@/lib/require-panel-session";
-import { listDatabases, listTables, readRows } from "@/lib/droplet-databases-server";
+import { getAdminDatabaseHost, listDatabases, listTables, readRows } from "@/lib/droplet-databases-server";
 
 /**
  * Explorador de bases del droplet (solo-lectura), exclusivo para cuentas root.
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
   try {
     if (!db) {
-      return NextResponse.json({ databases: await listDatabases() });
+      return NextResponse.json({ databases: await listDatabases(), host: getAdminDatabaseHost() });
     }
     if (!schema || !table) {
       return NextResponse.json({ tables: await listTables(db) });

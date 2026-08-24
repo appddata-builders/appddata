@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LuCheck, LuLoaderCircle, LuSave, LuUserRound } from "react-icons/lu";
 
 import { authClient } from "@/lib/auth-client";
+import { useT } from "@/lib/text/text-provider";
 
 type AccountSettingsProps = {
   user: {
@@ -16,6 +17,7 @@ type AccountSettingsProps = {
 };
 
 export function AccountSettings({ user }: AccountSettingsProps) {
+  const t = useT();
   const [name, setName] = useState(user.name ?? "");
   const [email, setEmail] = useState(user.email);
   const [phone, setPhone] = useState(user.phone ?? "");
@@ -37,7 +39,7 @@ export function AccountSettings({ user }: AccountSettingsProps) {
     });
 
     if (profileResult.error) {
-      setError(profileResult.error.message ?? "No fue posible guardar los cambios.");
+      setError(profileResult.error.message ?? t("es.dashboard.settings.error.save"));
       setSaving(false);
       return;
     }
@@ -48,13 +50,13 @@ export function AccountSettings({ user }: AccountSettingsProps) {
         callbackURL: "/dashboard/configuracion/settings",
       });
       if (emailResult.error) {
-        setError(emailResult.error.message ?? "El perfil se guardó, pero no fue posible cambiar el correo.");
+        setError(emailResult.error.message ?? t("es.dashboard.settings.error.email"));
         setSaving(false);
         return;
       }
-      setMessage("Perfil guardado. Revisa tu correo para confirmar la nueva dirección.");
+      setMessage(t("es.dashboard.settings.saved.email"));
     } else {
-      setMessage("Los datos de tu cuenta se guardaron correctamente.");
+      setMessage(t("es.dashboard.settings.saved.ok"));
     }
     setSaving(false);
   }
@@ -62,9 +64,9 @@ export function AccountSettings({ user }: AccountSettingsProps) {
   return (
     <section className="mx-auto w-full max-w-4xl space-y-5">
       <div>
-        <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Configuración</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-900">Datos de la cuenta</h1>
-        <p className="mt-2 text-sm text-slate-600">Actualiza la información vinculada con tu usuario de Appddata.</p>
+        <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">{t("es.dashboard.settings.eyebrow")}</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-900">{t("es.dashboard.settings.title")}</h1>
+        <p className="mt-2 text-sm text-slate-600">{t("es.dashboard.settings.description")}</p>
       </div>
 
       <form onSubmit={saveAccount} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -76,23 +78,25 @@ export function AccountSettings({ user }: AccountSettingsProps) {
             {!image ? <LuUserRound className="h-6 w-6" /> : null}
           </span>
           <div>
-            <p className="font-semibold text-slate-900">{name || "Usuario Appddata"}</p>
-            <p className="text-xs text-slate-500">{user.displayId ? `ID ${user.displayId}` : email}</p>
+            <p className="font-semibold text-slate-900">{name || t("es.dashboard.settings.defaultName")}</p>
+            <p className="text-xs text-slate-500">
+              {user.displayId ? t("es.dashboard.settings.displayId", { id: user.displayId }) : email}
+            </p>
           </div>
         </div>
 
         <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
-          <Field label="Nombre" htmlFor="account-name">
+          <Field label={t("es.dashboard.settings.field.name")} htmlFor="account-name">
             <input id="account-name" value={name} onChange={(event) => setName(event.target.value)} required maxLength={120} className={inputClass} />
           </Field>
-          <Field label="Correo electrónico" htmlFor="account-email">
+          <Field label={t("es.dashboard.settings.field.email")} htmlFor="account-email">
             <input id="account-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required className={inputClass} />
           </Field>
-          <Field label="Teléfono" htmlFor="account-phone">
-            <input id="account-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={40} placeholder="+52 55 0000 0000" className={inputClass} />
+          <Field label={t("es.dashboard.settings.field.phone")} htmlFor="account-phone">
+            <input id="account-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={40} placeholder={t("es.dashboard.settings.placeholder.phone")} className={inputClass} />
           </Field>
-          <Field label="URL de imagen de perfil" htmlFor="account-image">
-            <input id="account-image" type="url" value={image} onChange={(event) => setImage(event.target.value)} placeholder="https://..." className={inputClass} />
+          <Field label={t("es.dashboard.settings.field.image")} htmlFor="account-image">
+            <input id="account-image" type="url" value={image} onChange={(event) => setImage(event.target.value)} placeholder={t("es.dashboard.settings.placeholder.image")} className={inputClass} />
           </Field>
         </div>
 
@@ -103,7 +107,7 @@ export function AccountSettings({ user }: AccountSettingsProps) {
           </div>
           <button disabled={saving} type="submit" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#0C6CC6] px-5 text-sm font-medium text-white transition hover:bg-[#0a5aa6] disabled:cursor-wait disabled:opacity-60">
             {saving ? <LuLoaderCircle className="h-4 w-4 animate-spin" /> : <LuSave className="h-4 w-4" />}
-            {saving ? "Guardando…" : "Guardar cambios"}
+            {saving ? t("es.dashboard.settings.saving") : t("es.dashboard.settings.save")}
           </button>
         </div>
       </form>

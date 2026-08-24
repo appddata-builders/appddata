@@ -1,14 +1,20 @@
+"use client";
+
+import { useT } from "@/lib/text/text-provider";
+
 import Brand from "./brand";
 
 const footerLinks = [
-  { label: "PRODUCTS", href: "/products" },
-  { label: "IMIN", href: "/imin" },
-  { label: "ABOUT", href: "/about" },
-  { label: "TESTIMONIAL", href: "/products#testimonial" },
-  { label: "AVISO DE PRIVACIDAD", href: "/privacy-policy" },
+  { key: "es.footer.links.products", href: "/products" },
+  { key: "es.footer.links.imin", href: "/imin" },
+  { key: "es.footer.links.about", href: "/about" },
+  { key: "es.footer.links.testimonial", href: "/products#testimonial" },
+  { key: "es.footer.links.privacy", href: "/privacy-policy" },
 ];
 
 export default function SiteFooter() {
+  const t = useT();
+
   return (
     <footer className="w-full border-t border-slate-200 bg-stone-900">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-20 sm:px-6">
@@ -16,7 +22,7 @@ export default function SiteFooter() {
           <div className="space-y-4">
             <Brand size="sm" />
             <p className="max-w-md text-sm leading-7 tracking-[0.04em] text-slate-300">
-              - Innovating digital presence anywhere, anytime.
+              {t("es.footer.tagline")}
             </p>
           </div>
 
@@ -27,15 +33,15 @@ export default function SiteFooter() {
                 href={link.href}
                 className="text-[0.72rem] uppercase tracking-[0.34em] text-[#6ca5db] transition-opacity hover:opacity-75"
               >
-                {link.label}
+                {t(link.key)}
               </a>
             ))}
           </nav>
         </div>
 
         <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 text-[0.68rem] uppercase tracking-[0.28em] text-slate-50 sm:flex-row sm:items-center sm:justify-between">
-          <p>Precencia Digital.</p>
-          <p>Consulta nuestro aviso de privacidad para obtener más información sobre cómo recopilamos y utilizamos tu información personal.</p>
+          <p>{t("es.footer.legend")}</p>
+          <p>{t("es.footer.privacyNotice")}</p>
         </div>
       </div>
     </footer>

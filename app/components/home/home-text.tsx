@@ -1,18 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
+
+import { useT } from "@/lib/text/text-provider";
+
 import IminMark from "../imin/imin-mark";
 
-const textRows = [
-  "PERSONALIZA  TEXTO  IMAGEN  IDENTIDAD",
-  "TIPOGRAFIA  CONTENIDO  TEXTO  appddata",
-  "EDITOR  COLORES  TEXTO  PERSONALIZA",
-  "TEXTO  MENSAJES  IDENTIDAD  TEXTO  UI",
-  "appddata  IDENTIDAD  COLORES  TEXTO",
-  "MENSAJES  CONTENIDO  DISENO  WEB IDENTIDAD",
-  "PRODUCTO  PERSONALIZA  TEXTO  UI IMIN",
-  "EDITOR  MENSAJES  TEXTO  MARCA IDENTIDAD",
-];
+/** Las 8 tiras del fondo: cada una es una clave de `hydrate`. */
+const textRowKeys = Array.from({ length: 8 }, (_, index) => `es.home.text.rows.${index + 1}`);
 
 type TextStripProps = {
   text: string;
@@ -72,6 +67,9 @@ export default function HomeText({
   showMessageCard = true,
   className = "",
 }: HomeTextProps) {
+  const t = useT();
+  const textRows = textRowKeys.map((rowKey) => t(rowKey));
+
   return (
     <section
       className={`relative flex min-h-[144vh] w-full max-w-none items-center justify-center overflow-hidden rounded-[2.25rem] bg-slate-50/80 px-4 py-12 backdrop-blur-sm sm:px-10 ${className}`.trim()}
@@ -143,9 +141,7 @@ export default function HomeText({
           <div className="grid gap-4 text-center sm:grid-cols-[auto_1fr] sm:items-center sm:gap-5 sm:text-left">
             <IminMark className="mx-auto h-14 w-14 shrink-0 sm:mx-0 sm:h-20 sm:w-20" />
             <p className="mx-auto max-w-[34ch] text-sm leading-6 tracking-[0.03em] text-slate-900 sm:mx-0 sm:max-w-2xl sm:text-base sm:leading-7 sm:tracking-[0.04em]">
-              Administra tu contenido, personaliza tu identidad y da vida a tus
-              mensajes con IMIN, la herramienta para diseñar tu página web sin
-              programar y gestionar tamaños, imágenes y textos.
+              {t("es.home.text.message")}
             </p>
           </div>
         </motion.div>
