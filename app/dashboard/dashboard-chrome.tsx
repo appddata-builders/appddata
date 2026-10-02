@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  LuChartColumn,
   LuCreditCard,
   LuDatabase,
   LuGlobe,
@@ -10,10 +9,8 @@ import {
   LuMessageSquarePlus,
   LuPanelLeftClose,
   LuPanelLeftOpen,
-  LuPlug,
   LuShieldCheck,
   LuSlidersHorizontal,
-  LuTicket,
 } from "react-icons/lu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -28,7 +25,8 @@ import {
 } from "@/app/components/packages/site-package-identity";
 import { authClient } from "@/lib/auth-client";
 import type { PanelPlan } from "@/lib/plans";
-import { PLAN_LABELS } from "@/lib/plans";
+import { PLAN_LABEL_KEYS } from "@/lib/plans";
+import { useT } from "@/lib/text/text-provider";
 import { cn } from "@/lib/utils";
 import { getUserInitials } from "@/lib/user-initials";
 
@@ -42,7 +40,7 @@ type DashboardChromeProps = {
 
 type NavItem = {
   href: string;
-  label: string;
+  labelKey: string;
   icon: React.ComponentType<{ className?: string }>;
   /** Requiere el paquete IMIN; sin el se muestra con candado. */
   requiresImin?: boolean;
@@ -53,25 +51,23 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Plan activo", icon: LuLayoutDashboard },
-  { href: "/dashboard/build", label: "Constructor Appddata", icon: LuTicket },
-  { href: "/dashboard/imin", label: "IMIN", icon: IminMark, requiresImin: true },
-  { href: "/dashboard/analiticas", label: "Analiticas", icon: LuChartColumn, disabled: true },
-  { href: "/dashboard/dominios", label: "Dominios", icon: LuGlobe, disabled: true },
-  { href: "/dashboard/integraciones", label: "Integraciones", icon: LuPlug, disabled: true },
-  { href: "/dashboard/seguridad", label: "Seguridad", icon: LuShieldCheck, disabled: true },
-  { href: "/dashboard/requerimientos", label: "Requerimientos", icon: LuMessageSquarePlus },
-  { href: "/dashboard/databases", label: "Bases de datos", icon: LuDatabase, requiresRoot: true },
+  { href: "/dashboard", labelKey: "es.dashboard.nav.plan", icon: LuLayoutDashboard },
+  { href: "/dashboard/imin", labelKey: "es.dashboard.nav.imin", icon: IminMark, requiresImin: true },
+  { href: "/dashboard/dominios", labelKey: "es.dashboard.nav.domains", icon: LuGlobe },
+  { href: "/dashboard/seguridad", labelKey: "es.dashboard.nav.security", icon: LuShieldCheck },
+  { href: "/dashboard/requerimientos", labelKey: "es.dashboard.nav.requirements", icon: LuMessageSquarePlus },
+  { href: "/dashboard/databases", labelKey: "es.dashboard.nav.databases", icon: LuDatabase, requiresRoot: true },
 ];
 
 const configItems: NavItem[] = [
-  { href: "/dashboard/configuracion/pagos", label: "Pagos", icon: LuCreditCard },
-  { href: "/dashboard/configuracion/settings", label: "Cuenta", icon: LuSlidersHorizontal },
+  { href: "/dashboard/configuracion/pagos", labelKey: "es.dashboard.nav.payments", icon: LuCreditCard },
+  { href: "/dashboard/configuracion/settings", labelKey: "es.dashboard.nav.account", icon: LuSlidersHorizontal },
 ];
 
 const SIDEBAR_STORAGE_KEY = "appddata:dashboard-sidebar-collapsed";
 
 export function DashboardChrome({ email, name, plan, isRoot, children }: DashboardChromeProps) {
+  const t = useT();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -121,14 +117,13 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
   }
 
   function renderNavLink(item: NavItem) {
-    if (item.href === "/dashboard/build" && !plan.isInternal && !plan.hasUnassignedSitePackage) return null;
     if (item.requiresRoot && !isRoot) return null;
     // IMIN solo tiene sentido con un sitio que gestionar: en tier gratuito se
     // oculta; en cuanto hay un paquete de sitio contratado aparece con candado
     // (suscripcion a contratar) hasta que se active IMIN.
     if (item.requiresImin && !plan.hasImin && plan.sitePlan === "free") return null;
     const isPackageLink = item.href === "/dashboard";
-    const displayLabel = isPackageLink ? PLAN_LABELS[plan.sitePlan] : item.label;
+    const displayLabel = t(isPackageLink ? PLAN_LABEL_KEYS[plan.sitePlan] : item.labelKey);
     const active =
       item.href === "/dashboard"
         ? pathname === "/dashboard"
@@ -168,14 +163,12 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
             className={cn(
               "h-4 w-4 shrink-0",
               item.href === "/dashboard/imin" && "h-4.5 w-4.5",
-              item.href === "/dashboard/build" && "text-[#df7a3a]",
             )}
           />
         )}
         <span
           className={cn(
             "truncate",
-            item.href === "/dashboard/build" && "text-[#df7a3a]",
             sidebarCollapsed && "lg:hidden",
           )}
         >
@@ -204,12 +197,12 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
           type="button"
           className="-ml-1 rounded-md p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
           onClick={() => setMenuOpen(true)}
-          aria-label="Abrir menu"
+          aria-label={t("es.dashboard.chrome.openMenu")}
         >
           <span className="block h-px w-4 bg-current shadow-[0_4px_0_currentColor,0_-4px_0_currentColor]" />
         </button>
 
-        <Link href="/" aria-label="Ir al inicio de Appddata">
+        <Link href="/" aria-label={t("es.dashboard.chrome.goHomeAria")}>
           <Brand size="sm" textClassName="text-[1.05rem] tracking-[0.1em] sm:text-[1.05rem]" />
         </Link>
         <span
@@ -220,14 +213,14 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
         >
           <SitePackageIcon plan={plan.sitePlan} className="h-3.5 w-3.5" />
           <SitePackageName plan={plan.sitePlan}>
-            {PLAN_LABELS[plan.sitePlan]}
+            {t(PLAN_LABEL_KEYS[plan.sitePlan])}
           </SitePackageName>
         </span>
         {plan.hasImin ? (
           <span
             className="hidden h-8 w-8 place-items-center rounded-full border border-amber-200 bg-amber-50 sm:inline-grid"
-            title="IMIN incluido"
-            aria-label="IMIN incluido"
+            title={t("es.dashboard.chrome.iminIncluded")}
+            aria-label={t("es.dashboard.chrome.iminIncluded")}
           >
             <IminMark className="h-6 w-6" />
           </span>
@@ -244,14 +237,14 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
                   : "bg-[#0C6CC6] text-white hover:bg-[#0a5aa6]",
               )}
             >
-              {canUpgradeToImin ? "Obtener IMIN" : "Contratar"}
+              {canUpgradeToImin ? t("es.dashboard.chrome.getImin") : t("es.dashboard.chrome.hire")}
             </Link>
           ) : null}
           <Link
             href="/"
             className="hidden h-8 items-center rounded-md px-2.5 text-[0.8125rem] text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 sm:inline-flex"
           >
-            Ir al sitio
+            {t("es.dashboard.chrome.goToSite")}
           </Link>
 
           <div className="relative" ref={userMenuRef}>
@@ -277,7 +270,7 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
                   onClick={onSignOut}
                   className="mt-1 w-full rounded-md px-3 py-2 text-left text-[0.8125rem] text-slate-700 transition hover:bg-slate-50"
                 >
-                  Cerrar sesion
+                  {t("es.dashboard.chrome.signOut")}
                 </button>
               </div>
             ) : null}
@@ -294,21 +287,21 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
           )}
         >
           <div className="flex items-center justify-between px-2 pb-2 lg:hidden">
-            <span className="text-sm font-semibold">Menu</span>
+            <span className="text-sm font-semibold">{t("es.dashboard.chrome.menu")}</span>
             <button
               type="button"
               className="rounded-md px-2 py-1 text-xs text-slate-500 hover:bg-slate-100"
               onClick={() => setMenuOpen(false)}
             >
-              Cerrar
+              {t("es.dashboard.chrome.close")}
             </button>
           </div>
 
           <button
             type="button"
             onClick={toggleSidebar}
-            aria-label={sidebarCollapsed ? "Extender barra lateral" : "Colapsar barra lateral"}
-            title={sidebarCollapsed ? "Extender barra lateral" : "Colapsar barra lateral"}
+            aria-label={sidebarCollapsed ? t("es.dashboard.chrome.expandSidebar") : t("es.dashboard.chrome.collapseSidebar")}
+            title={sidebarCollapsed ? t("es.dashboard.chrome.expandSidebar") : t("es.dashboard.chrome.collapseSidebar")}
             className={cn(
               "mb-2 hidden h-9 items-center rounded-md text-[#589bf9] transition hover:bg-blue-50 hover:text-[#8a8b8c] lg:flex",
               sidebarCollapsed ? "justify-center" : "gap-2.5 px-2",
@@ -319,7 +312,7 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
             ) : (
               <LuPanelLeftClose className="h-4 w-4" aria-hidden="true" />
             )}
-            <span className={cn("text-xs", sidebarCollapsed && "hidden")}>Colapsar</span>
+            <span className={cn("text-xs", sidebarCollapsed && "hidden")}>{t("es.dashboard.chrome.collapse")}</span>
           </button>
 
           <nav className="grid gap-0.5 overflow-y-auto">{navItems.map(renderNavLink)}</nav>
@@ -349,15 +342,15 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
                   <SitePackageIcon plan="free" className="h-3.5 w-3.5" />
                 )}
                 {canUpgradeToImin ? (
-                  "Obtener IMIN"
+                  t("es.dashboard.chrome.getImin")
                 ) : (
-                  <SitePackageName plan="free">{PLAN_LABELS.free}</SitePackageName>
+                  <SitePackageName plan="free">{t(PLAN_LABEL_KEYS.free)}</SitePackageName>
                 )}
               </p>
               <p className="mt-1 text-[0.68rem] leading-4 text-slate-600">
                 {canUpgradeToImin
-                  ? "Personaliza y actualiza tu sitio cuando quieras con IMIN."
-                  : "Contrata un paquete con nosotros y da el salto a una nueva plataforma."}
+                  ? t("es.dashboard.chrome.upsell.imin")
+                  : t("es.dashboard.chrome.upsell.free")}
               </p>
               <Link
                 href={canUpgradeToImin ? "/dashboard/imin" : "/dashboard"}
@@ -369,7 +362,7 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
                     : "bg-[#0C6CC6] text-white hover:bg-[#0a5aa6]",
                 )}
               >
-                {canUpgradeToImin ? "Obtener IMIN" : "Contratar"}
+                {canUpgradeToImin ? t("es.dashboard.chrome.getImin") : t("es.dashboard.chrome.hire")}
               </Link>
             </div>
           ) : null}
@@ -377,8 +370,8 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
           {!plan.hasImin && sidebarCollapsed ? (
             <Link
               href={canUpgradeToImin ? "/dashboard/imin" : "/dashboard"}
-              title={canUpgradeToImin ? "Obtener IMIN" : "Contratar"}
-              aria-label={canUpgradeToImin ? "Obtener IMIN" : "Contratar"}
+              title={canUpgradeToImin ? t("es.dashboard.chrome.getImin") : t("es.dashboard.chrome.hire")}
+              aria-label={canUpgradeToImin ? t("es.dashboard.chrome.getImin") : t("es.dashboard.chrome.hire")}
               className={cn(
                 "mt-auto hidden h-9 items-center justify-center rounded-md transition lg:flex",
                 canUpgradeToImin
@@ -399,7 +392,7 @@ export function DashboardChrome({ email, name, plan, isRoot, children }: Dashboa
         {menuOpen ? (
           <button
             type="button"
-            aria-label="Cerrar menu"
+            aria-label={t("es.dashboard.chrome.closeMenu")}
             className="fixed inset-0 z-30 bg-slate-900/20 lg:hidden"
             onClick={() => setMenuOpen(false)}
           />

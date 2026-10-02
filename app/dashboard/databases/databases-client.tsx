@@ -18,6 +18,7 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 export function DatabasesClient() {
   const [databases, setDatabases] = useState<string[]>([]);
+  const [host, setHost] = useState("postgres-0");
   const [db, setDb] = useState<string | null>(null);
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [table, setTable] = useState<Selected | null>(null);
@@ -29,8 +30,9 @@ export function DatabasesClient() {
     setLoading("dbs");
     setError(null);
     try {
-      const data = await fetchJson<{ databases: string[] }>("/api/dashboard/databases");
+      const data = await fetchJson<{ databases: string[]; host: string }>("/api/dashboard/databases");
       setDatabases(data.databases);
+      setHost(data.host);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo listar las bases.");
     } finally {
@@ -83,7 +85,7 @@ export function DatabasesClient() {
           <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900">
             <LuDatabase className="h-5 w-5 text-slate-500" /> Databases
           </h1>
-          <p className="mt-1 text-xs text-slate-500">Explorador de solo-lectura de las bases del droplet.</p>
+          <p className="mt-1 text-xs text-slate-500">Explorador administrativo de solo lectura · {host}</p>
         </div>
         <button
           type="button"

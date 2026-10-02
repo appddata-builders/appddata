@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { requirePanelSession } from "@/lib/require-panel-session";
+import { getT } from "@/lib/text/server-text";
 
 import Brand from "../components/brand";
 
@@ -13,7 +14,9 @@ export default async function AccountPage() {
   return <AccountLanding />;
 }
 
-function AccountLanding() {
+async function AccountLanding() {
+  const t = await getT();
+
   return (
     <main className="app-min-h-screen bg-white px-4 pb-10 text-[#111827] sm:px-6 sm:pb-14">
       <div className="app-min-h-screen-nav-offset mx-auto flex w-full max-w-5xl items-center justify-center pt-24 sm:pt-28">
@@ -22,13 +25,13 @@ function AccountLanding() {
             <div className="max-w-2xl">
               <Brand size="md" />
               <p className="mt-8 text-[0.7rem] uppercase tracking-[0.42em] text-[#2a2a2b]">
-                Cuenta y panel interno
+                {t("es.account.landing.eyebrow")}
               </p>
               <h1 className="mt-4 text-3xl font-light tracking-[0.08em] text-[#111827] sm:text-5xl">
-                Accede a tu cuenta
+                {t("es.account.landing.title")}
               </h1>
               <p className="mt-6 max-w-xl text-sm leading-7 tracking-[0.04em] text-slate-700 sm:text-base">
-                Gestiona tus contenidos y manten tu sitio web actualizado.
+                {t("es.account.landing.description")}
               </p>
             </div>
 
@@ -37,25 +40,25 @@ function AccountLanding() {
                 href="/account/register"
                 className="rounded-full border border-[#589bf9]/24 bg-[#589bf9]/8 px-5 py-3 text-center text-sm uppercase tracking-[0.26em] text-blue-800 transition hover:bg-[#589bf9]/18"
               >
-                Crear cuenta
+                {t("es.account.landing.register")}
               </Link>
               <Link
                 href="/account/login"
                 className="rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-center text-sm uppercase tracking-[0.26em] text-slate-800 transition hover:bg-slate-100"
               >
-                Iniciar sesion
+                {t("es.account.landing.login")}
               </Link>
               <Link
                 href="/account/forgot-password"
                 className="rounded-full border border-slate-200 bg-transparent px-5 py-3 text-center text-sm uppercase tracking-[0.26em] text-slate-600 transition hover:text-slate-700"
               >
-                Olvide mi contrasena
+                {t("es.account.landing.forgot")}
               </Link>
               <Link
                 href="/"
                 className="pt-3 text-center text-[0.72rem] uppercase tracking-[0.3em] text-blue-600 transition hover:text-slate-700"
               >
-                Volver al home
+                {t("es.account.landing.backHome")}
               </Link>
             </div>
           </div>

@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
 
 import { BRAND_PLANE_URL } from "@/lib/public-assets";
+import { useT } from "@/lib/text/text-provider";
 
 export default function NotFound() {
+  const t = useT();
+
   return (
     <main className="app-min-h-screen relative isolate flex items-center overflow-hidden bg-[#f8fbff] px-4 pb-12 pt-28 text-slate-900 sm:px-6 sm:pt-32">
       <div
@@ -22,7 +27,7 @@ export default function NotFound() {
         <div className="text-center lg:text-left">
           <Link
             href="/"
-            aria-label="Ir al inicio de Appddata"
+            aria-label={t("es.notFound.home.aria")}
             className="inline-flex items-center transition-opacity hover:opacity-75"
           >
             <span className="relative h-[25px] w-[52px] shrink-0">
@@ -35,21 +40,20 @@ export default function NotFound() {
               />
             </span>
             <span className="flex overflow-hidden text-[1.35rem] font-semibold tracking-[0.12em]">
-              <span className="text-[#589bf9]">app</span>
-              <span className="text-[#8a8b8c]">ddata</span>
+              <span className="text-[#589bf9]">{t("es.brand.lead")}</span>
+              <span className="text-[#8a8b8c]">{t("es.brand.tail")}</span>
             </span>
           </Link>
 
           <p className="mt-10 text-[0.68rem] font-bold uppercase tracking-[0.38em] text-[#0C6CC6]">
-            Error 404 · Ruta no encontrada
+            {t("es.notFound.eyebrow")}
           </p>
           <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-[-0.04em] text-slate-900 sm:text-5xl lg:text-6xl">
-            Parece que este sitio
-            <span className="block text-[#589bf9]">tomó otro rumbo.</span>
+            {t("es.notFound.title")}
+            <span className="block text-[#589bf9]">{t("es.notFound.titleAccent")}</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-sm leading-7 tracking-[0.02em] text-slate-600 sm:text-base lg:mx-0">
-            La página que buscas no existe, cambió de dirección o todavía está por
-            despegar. Puedes regresar al inicio y continuar explorando.
+            {t("es.notFound.description")}
           </p>
 
           <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
@@ -71,13 +75,13 @@ export default function NotFound() {
                 <path d="M5 10v10h14V10" />
                 <path d="M9 20v-6h6v6" />
               </svg>
-              Volver al inicio
+              {t("es.notFound.backHome")}
             </Link>
             <Link
               href="/products"
               className="group inline-flex min-h-12 items-center justify-center gap-3 rounded-full border border-[#b9daf7] bg-white/80 px-6 text-xs font-semibold uppercase tracking-[0.22em] text-[#0C6CC6] transition hover:-translate-y-0.5 hover:border-[#589bf9] hover:bg-white"
             >
-              Ver productos
+              {t("es.notFound.seeProducts")}
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -131,7 +135,7 @@ export default function NotFound() {
                 <path d="m15 18-6-6 6-6" />
                 <path d="M21 12H9" />
               </svg>
-              Regresemos a casa
+              {t("es.notFound.aside")}
             </div>
           </div>
         </div>

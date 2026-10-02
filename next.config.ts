@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Deja en .next/standalone un server.js con solo las dependencias que el
+  // trace encontro necesarias. Es lo que copia el Dockerfile: sin esto habria
+  // que meter node_modules entero en la imagen.
+  output: "standalone",
   // react-icons se resuelve desde node_modules en runtime: son ~52,000 iconos
   // que solo usa la ruta /api/imin/icons, y empaquetarlos inflaria la funcion.
   serverExternalPackages: ["better-sqlite3", "react-icons"],

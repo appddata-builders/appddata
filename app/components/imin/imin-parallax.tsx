@@ -4,27 +4,24 @@ import { AnimatePresence, motion, useScroll, useTransform, type MotionValue } fr
 import { useEffect, useRef, useState } from "react";
 
 import { BRAND_PLANE_URL, IMIN_LOGO_URL } from "@/lib/public-assets";
+import { useT } from "@/lib/text/text-provider";
 
+/**
+ * Las dos tarjetas del parallax. Solo el degradado, las imagenes (que son
+ * assets del build, no contenido) y que animacion usa cada una viven aqui; el
+ * texto sale de `hydrate` bajo "es.imin.parallax.cards.<n>.*".
+ */
 const imageCards = [
   {
-    label: "Ajusta Imágenes",
-    title: "Una imagen siempre vigente.",
-    description:
-      "Cambia imágenes para reflejar promociones, temporadas y nuevas etapas de tu negocio.",
+    key: "es.imin.parallax.cards.1",
     imageSrc: IMIN_LOGO_URL,
-    imageAlt: "Vista base del sitio appddata",
     altImageSrc: BRAND_PLANE_URL,
-    altImageAlt: "Vista editable del branding appddata",
     accent: "from-[#589bf9]/28 via-transparent to-cyan-300/10",
   },
   {
-    label: "Ajusta Textos e Iconos",
-    title: "Una web que evoluciona contigo.",
-    descriptionPrefix: "Cambia textos, ",
-    descriptionAnimated: "colores e iconos",
-    descriptionSuffix: " para adaptar el sitio web.",
+    key: "es.imin.parallax.cards.2",
     imageSrc: IMIN_LOGO_URL,
-    imageAlt: "Vista editable de IMIN para personalizar un sitio",
+    altImageSrc: null,
     accent: "from-cyan-300/22 via-transparent to-[#589bf9]/18",
   },
 ] as const;
@@ -41,11 +38,13 @@ function SwappingPhoto({
   primaryAlt,
   secondarySrc,
   secondaryAlt,
+  ariaLabel,
 }: {
   primarySrc: string;
   primaryAlt: string;
   secondarySrc: string;
   secondaryAlt: string;
+  ariaLabel: string;
 }) {
   const [showSecondary, setShowSecondary] = useState(false);
 
@@ -64,7 +63,7 @@ function SwappingPhoto({
       type="button"
       onClick={() => setShowSecondary((current) => !current)}
       className="relative h-24 w-24 cursor-pointer sm:h-28 sm:w-28"
-      aria-label="Alternar vista principal"
+      aria-label={ariaLabel}
     >
       <AnimatePresence mode="wait">
         <motion.img
@@ -135,8 +134,9 @@ function TypingDescription({
 }
 
 function ParallaxCard({ card, y, rotate, className = "" }: ParallaxCardProps) {
-  const hasAltImage = "altImageSrc" in card;
-  const hasTyping = "descriptionAnimated" in card;
+  const t = useT();
+  // La primera tarjeta alterna dos imagenes; la segunda teclea una palabra.
+  const altImageSrc = card.altImageSrc;
 
   return (
     <motion.article
@@ -149,10 +149,10 @@ function ParallaxCard({ card, y, rotate, className = "" }: ParallaxCardProps) {
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
             <p className="text-[0.62rem] uppercase tracking-[0.36em] text-[#0C6CC6] font-extrabold pl-1">
-              {card.label}
+              {t(`${card.key}.label`)}
             </p>
             <h3 className="mt-3 text-xl font-light tracking-[0.08em] text-[#111827] sm:text-2xl">
-              {card.title}
+              {t(`${card.key}.title`)}
             </h3>
           </div>
         </div>
@@ -171,7 +171,7 @@ function ParallaxCard({ card, y, rotate, className = "" }: ParallaxCardProps) {
                 <div className="h-2.5 w-16 rounded-full bg-slate-100" />
               </div>
               <div className="rounded-full border border-[#589bf9]/18 bg-[#589bf9]/10 px-3 py-1 text-[0.56rem] uppercase tracking-[0.26em] text-[#0C6CC6]">
-                Edita con IMIN
+                {t("es.imin.parallax.badge")}
               </div>
             </div>
 
@@ -181,17 +181,18 @@ function ParallaxCard({ card, y, rotate, className = "" }: ParallaxCardProps) {
                 <div className="absolute left-4 top-4 h-14 w-32 rounded-2xl border border-slate-200 bg-slate-100" />
                 <div className="absolute bottom-4 left-4 right-4 h-20 rounded-2xl border border-slate-200 bg-slate-50" />
                 <div className="absolute inset-0 flex items-center justify-center p-6">
-                  {hasAltImage ? (
+                  {altImageSrc ? (
                     <SwappingPhoto
                       primarySrc={card.imageSrc}
-                      primaryAlt={card.imageAlt}
-                      secondarySrc={card.altImageSrc}
-                      secondaryAlt={card.altImageAlt}
+                      primaryAlt={t(`${card.key}.imageAlt`)}
+                      secondarySrc={altImageSrc}
+                      secondaryAlt={t(`${card.key}.altImageAlt`)}
+                      ariaLabel={t("es.imin.parallax.toggle")}
                     />
                   ) : (
                     <motion.img
                       src={card.imageSrc}
-                      alt={card.imageAlt}
+                      alt={t(`${card.key}.imageAlt`)}
                       className="h-24 w-24 object-contain drop-shadow-[0_18px_30px_rgba(128,82,221,0.18)] sm:h-28 sm:w-28"
                       loading="eager"
                       decoding="async"
@@ -206,32 +207,32 @@ function ParallaxCard({ card, y, rotate, className = "" }: ParallaxCardProps) {
               <div className="grid gap-3">
                 <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50 p-3">
                   <div className="text-[0.56rem] uppercase tracking-[0.28em] text-slate-600">
-                    Cambio
+                    {t("es.imin.parallax.change")}
                   </div>
-                  {hasTyping ? (
-                    <TypingDescription
-                      prefix={card.descriptionPrefix}
-                      animated={card.descriptionAnimated}
-                      suffix={card.descriptionSuffix}
-                    />
-                  ) : (
+                  {altImageSrc ? (
                     <p className="mt-3 text-sm leading-6 tracking-[0.03em] text-slate-700 h-18">
-                      {card.description}
+                      {t(`${card.key}.description`)}
                     </p>
+                  ) : (
+                    <TypingDescription
+                      prefix={t(`${card.key}.descriptionPrefix`)}
+                      animated={t(`${card.key}.descriptionAnimated`)}
+                      suffix={t(`${card.key}.descriptionSuffix`)}
+                    />
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50 p-3">
                     <div className="text-[0.56rem] uppercase tracking-[0.28em] text-slate-600">
-                      Texto
+                      {t("es.imin.parallax.text")}
                     </div>
                     <div className="mt-3 h-2.5 w-full rounded-full bg-slate-300" />
                     <div className="mt-2 h-2.5 w-3/4 rounded-full bg-slate-100" />
                   </div>
                   <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50 p-3">
                     <div className="text-[0.56rem] uppercase tracking-[0.28em] text-slate-600">
-                      Imagen
+                      {t("es.imin.parallax.image")}
                     </div>
                     <div className="mt-3 h-12 rounded-[0.9rem] bg-linear-to-br from-[#589bf9]/24 to-cyan-300/12" />
                   </div>
@@ -246,6 +247,7 @@ function ParallaxCard({ card, y, rotate, className = "" }: ParallaxCardProps) {
 }
 
 export default function IminParallax() {
+  const t = useT();
   const sectionRef = useRef<HTMLElement | null>(null);
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -261,15 +263,13 @@ export default function IminParallax() {
     <section ref={sectionRef} className="relative w-full max-w-6xl px-4 py-16 sm:px-6 mb-12">
       <div className="max-w-3xl">
         <p className="text-[0.68rem] uppercase tracking-[0.42em] text-[#0E7EE6] font-bold">
-          CAMBIOS REALES, SIN CÓDIGO
+          {t("es.imin.parallax.eyebrow")}
         </p>
         <h2 className="mt-4 text-3xl font-light tracking-[0.08em] text-[#111827] sm:text-5xl">
-          Mantén tu sitio actualizado sin depender de un desarrollador
+          {t("es.imin.parallax.title")}
         </h2>
         <p className="mt-6 max-w-2xl text-sm leading-7 tracking-[0.04em] text-slate-700 sm:text-base">
-          Con IMIN puedes actualizar contenido y presentación sin rehacer el sitio.
-          Selecciona lo que quieres cambiar, guarda y continúa operando con una
-          página vigente durante todo tu periodo de acceso.
+          {t("es.imin.parallax.description")}
         </p>
       </div>
 

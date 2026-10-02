@@ -13,9 +13,14 @@ function isKind(value: unknown): value is AccountSubscriptionKind {
 }
 
 function priceId(kind: AccountSubscriptionKind): string | undefined {
-  return kind === "cloud-server"
-    ? process.env.STRIPE_CLOUD_SERVER_MONTHLY_PRICE_ID
-    : process.env.STRIPE_TECNICAL_SUPPORT_PRICE_ID;
+  if (kind === "cloud-server") return process.env.STRIPE_CLOUD_SERVER_MONTHLY_PRICE_ID;
+  // El nombre correcto es TECHNICAL; STRIPE_TECNICAL_SUPPORT_PRICE_ID es un typo
+  // heredado que se acepta como respaldo para no romper un entorno que todavia
+  // lo defina asi. Se puede borrar en cuanto el Secret use el nombre nuevo.
+  return (
+    process.env.STRIPE_TECHNICAL_SUPPORT_PRICE_ID ||
+    process.env.STRIPE_TECNICAL_SUPPORT_PRICE_ID
+  );
 }
 
 async function openCheckout(request: Request, kind: unknown) {

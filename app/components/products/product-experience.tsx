@@ -2,69 +2,40 @@
 
 import { motion } from "framer-motion";
 
-const LAKE_SPORT_LOGO =
-  "https://lakesport-media.s3.amazonaws.com/media/logo_sf.png";
-const LAKE_SPORT_URL = "https://www.lakesportclub.com.mx/";
-const REFAUTOMEX_LOGO =
-  "https://refautomex.s3.amazonaws.com/refautomex.svg";
-const REFAUTOMEX_URL = "https://www.refautomex.com/";
-const PULSETY_LOGO =
-  "https://pulsety.s3.us-east-1.amazonaws.com/pulsety.png";
-const PULSETY_URL = "https://www.pulsety.com/";
+import { useT } from "@/lib/text/text-provider";
 
-
+/**
+ * Los sitios de muestra solo declaran su degradado; nombre, giro, descripcion,
+ * logo y enlace salen de `hydrate` bajo "es.products.showcase.<n>.*", para que
+ * agregar o cambiar un caso no requiera tocar el componente.
+ */
 const prototypeSites = [
-  {
-    name: "Lake Sport Club",
-    type: "Club Deportivo Integral",
-    description:
-      "Con clases de salón, gimnasio y alberca que brinda a sus clientes la mejor experiencia.",
-    accent: "from-[#589bf9]/24 via-transparent to-cyan-300/12",
-    logoSrc: LAKE_SPORT_LOGO,
-    logoAlt: "Lake Sport Club logo",
-    href: LAKE_SPORT_URL,
-  },
-  {
-    name: "Refautomex",
-    type: "Refaccionaria de Autopartes",
-    description:
-      "E-commerce con un catalogo de productos automotrices, dando una excelencia en autopartes al consumidor.",
-    accent: "from-cyan-300/18 via-transparent to-[#589bf9]/16",
-    logoSrc: REFAUTOMEX_LOGO,
-    logoAlt: "Lake Sport Club logo",
-    href: REFAUTOMEX_URL,
-  },
-  {
-    name: "Pulsety",
-    type: "Equipo Médico Profesional",
-    description:
-      "E-commerce dedicado a la venta de equipo médico profesional, ofrecen innovación, calidad y servicio.",
-    accent: "from-fuchsia-300/16 via-transparent to-[#589bf9]/18",
-    logoSrc: PULSETY_LOGO,
-    logoAlt: "Lake Sport Club logo",
-    href: PULSETY_URL,
-  },
+  { key: "es.products.showcase.1", accent: "from-[#589bf9]/24 via-transparent to-cyan-300/12" },
+  { key: "es.products.showcase.2", accent: "from-cyan-300/18 via-transparent to-[#589bf9]/16" },
+  { key: "es.products.showcase.3", accent: "from-fuchsia-300/16 via-transparent to-[#589bf9]/18" },
 ];
 
 export default function ProductExperience() {
+  const t = useT();
+
   return (
     <section className="w-full max-w-6xl px-4 pb-20 pt-6 sm:px-6 sm:pb-24">
       <div className="mb-8 max-w-3xl">
         <p className="text-[0.7rem] uppercase tracking-[0.45em] text-[#0C6CC6] font-bold">
-          Conoce appddata en acción
+          {t("es.products.showcase.eyebrow")}
         </p>
         <h2 className="mt-4 text-3xl font-light tracking-[0.08em] text-[#111827] sm:text-5xl">
-          Sitios web que nos respaldan
+          {t("es.products.showcase.title")}
         </h2>
         <p className="mt-5 text-sm leading-7 tracking-[0.04em] text-slate-700 sm:text-base">
-          Mira los diseños de sitios que nuestros clientes han lanzado con appddata, cada uno con su propia identidad y propósito:
+          {t("es.products.showcase.description")}
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {prototypeSites.map((site, index) => (
           <motion.article
-            key={site.name}
+            key={site.key}
             initial={{ opacity: 0, y: 28, filter: "blur(14px)" }}
             whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             viewport={{ amount: 0.35 }}
@@ -93,15 +64,15 @@ export default function ProductExperience() {
                       <div className="absolute bottom-3 left-3 h-7 w-12 rounded-[0.9rem] bg-slate-100" />
                       <div className="absolute bottom-3 right-3 h-7 w-16 rounded-[0.9rem] bg-slate-100" />
                       <a
-                        href={site.href}
+                        href={t(`${site.key}.href`)}
                         target="_blank"
                         rel="noreferrer"
                         className="absolute inset-0 flex items-center justify-center z-50"
-                        aria-label={`Abrir ${site.name}`}
+                        aria-label={t("es.products.showcase.open", { name: t(`${site.key}.name`) })}
                       >
                         <motion.img
-                          src={site.logoSrc}
-                          alt={site.logoAlt}
+                          src={t(`${site.key}.logoSrc`)}
+                          alt={t(`${site.key}.logoAlt`)}
                           className="h-16 w-auto max-w-[72%] object-contain drop-shadow-[0_18px_40px_rgba(255,255,255,0.1)] sm:h-[4.5rem]"
                           loading="eager"
                           decoding="async"
@@ -131,13 +102,13 @@ export default function ProductExperience() {
 
             <div className="p-5">
               <p className="text-[0.62rem] uppercase tracking-[0.36em] text-[#eaa24a]">
-                {site.type}
+                {t(`${site.key}.type`)}
               </p>
               <h3 className="mt-4 text-2xl font-light tracking-[0.08em] text-[#111827]">
-                {site.name}
+                {t(`${site.key}.name`)}
               </h3>
               <p className="mt-4 text-sm leading-7 tracking-[0.04em] text-slate-700">
-                {site.description}
+                {t(`${site.key}.description`)}
               </p>
             </div>
           </motion.article>

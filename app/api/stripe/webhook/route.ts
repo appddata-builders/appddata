@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { getDb } from "@/db";
 import { accountSubscription, siteEntitlement } from "@/db/schema";
 import { ensureAccountSubscriptionSchema, type AccountSubscriptionKind } from "@/lib/account-subscriptions-server";
+import { markPeriodsPaidByInvoice } from "@/lib/billing-ledger-server";
 import { ensureSiteEntitlementSchema } from "@/lib/site-entitlements-server";
 import { isPaidSitePlan, stripeRequest } from "@/lib/stripe";
 
@@ -41,6 +42,14 @@ export async function POST(request: Request) {
   };
 
   const checkout = event.data?.object;
+
+  // La factura del periodo cerrado se paga fuera del panel (link de Stripe):
+  // este evento es el unico que nos dice que ya se cobro.
+  if (event.type === "invoice.paid" || event.type === "invoice.payment_succeeded") {
+    if (checkout?.id) await markPeriodsPaidByInvoice(checkout.id);
+    return Response.json({ received: true });
+  }
+
   if (
     event.type === "customer.subscription.updated" ||
     event.type === "customer.subscription.deleted"

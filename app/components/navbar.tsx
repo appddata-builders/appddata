@@ -10,14 +10,15 @@ import { AiFillProduct } from "react-icons/ai";
 import { TfiWrite } from "react-icons/tfi";
 
 import { authClient } from "@/lib/auth-client";
+import { useT } from "@/lib/text/text-provider";
 import { getUserInitials } from "@/lib/user-initials";
 
 import Brand from "./brand";
 
 const navItems = [
-  { label: "IMIN", href: "/imin", icon: FaRegEdit },
-  { label: "NOSOTROS", href: "/about", icon: TfiWrite },
-  { label: "PRODUCTOS", href: "/products", icon: AiFillProduct },
+  { key: "es.navbar.imin", href: "/imin", icon: FaRegEdit },
+  { key: "es.navbar.about", href: "/about", icon: TfiWrite },
+  { key: "es.navbar.products", href: "/products", icon: AiFillProduct },
 ];
 
 type NavbarContentProps = {
@@ -27,6 +28,7 @@ type NavbarContentProps = {
 };
 
 function NavbarContent({ pathname, accountName, accountEmail }: NavbarContentProps) {
+  const t = useT();
   const [openPathname, setOpenPathname] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const isOpen = openPathname === pathname;
@@ -65,7 +67,7 @@ function NavbarContent({ pathname, accountName, accountEmail }: NavbarContentPro
         <div className="flex items-center gap-3 sm:gap-4">
           <button
             type="button"
-            aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
+            aria-label={isOpen ? t("es.navbar.menu.close") : t("es.navbar.menu.open")}
             aria-expanded={isOpen}
             onClick={() => setOpenPathname((current) => (current === pathname ? null : pathname))}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-800 transition-colors hover:bg-slate-100 sm:h-11 sm:w-11"
@@ -91,8 +93,12 @@ function NavbarContent({ pathname, accountName, accountEmail }: NavbarContentPro
 
           <a
             href="/account"
-            aria-label={initials ? `Abrir cuenta de ${accountName ?? accountEmail}` : "Crear cuenta o iniciar sesion"}
-            title={initials ? accountName ?? accountEmail ?? "Mi cuenta" : undefined}
+            aria-label={
+              initials
+                ? t("es.navbar.account.open", { name: accountName ?? accountEmail ?? "" })
+                : t("es.navbar.account.signIn")
+            }
+            title={initials ? accountName ?? accountEmail ?? t("es.navbar.account.mine") : undefined}
             className={`flex h-9 items-center justify-center gap-2 rounded-full border transition sm:h-11 ${
               initials
                 ? "grid w-9 place-items-center border-slate-900 bg-slate-900 px-0 text-[0.68rem] font-semibold leading-none tracking-[0.08em] text-white hover:bg-slate-700 sm:w-11 sm:text-[0.72rem]"
@@ -107,7 +113,7 @@ function NavbarContent({ pathname, accountName, accountEmail }: NavbarContentPro
               <>
                 <FaUserCircle className="h-4 w-4 shrink-0 sm:h-[1.05rem] sm:w-[1.05rem]" />
                 <span className="hidden text-[0.68rem] uppercase tracking-[0.24em] sm:inline-block">
-                  Cuenta
+                  {t("es.navbar.account.label")}
                 </span>
               </>
             )}
@@ -135,7 +141,7 @@ function NavbarContent({ pathname, accountName, accountEmail }: NavbarContentPro
                   onClick={() => setOpenPathname(null)}
                   className="flex min-h-11 items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm uppercase tracking-[0.24em] text-slate-700 transition-colors hover:bg-slate-100"
                 >
-                  <span>{item.label}</span>
+                  <span>{t(item.key)}</span>
                   <span className="text-slate-600">
                     <item.icon className="h-4 w-4" />
                   </span>
@@ -154,7 +160,7 @@ function NavbarContent({ pathname, accountName, accountEmail }: NavbarContentPro
                   ) : (
                     <FaUserCircle className="h-[1.05rem] w-[1.05rem] shrink-0" />
                   )}
-                  <span>{initials ? accountName ?? "Mi cuenta" : "Cuenta"}</span>
+                  <span>{initials ? accountName ?? t("es.navbar.account.mine") : t("es.navbar.account.label")}</span>
                 </span>
                 <span className="text-blue-700">
                   <CiLogin className="h-4 w-4" />

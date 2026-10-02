@@ -2,34 +2,18 @@
 
 import { motion } from "framer-motion";
 
-const processSteps = [
-  {
-    step: "1",
-    title: "Definicion de necesidades",
-    description:
-      "Aterrizamos necesidades, objetivos y comportamiento esperado del sitio antes de diseñar cualquier pantalla.",
-  },
-  {
-    step: "2",
-    title: "Identidad digital y diseño",
-    description:
-      "Reunimos toda la materia visual y narrativa para que la presencia digital tenga identidad y consistencia como tu marca.",
-  },
-  {
-    step: "3",
-    title: "Soluciones satisfactorias",
-    description:
-      "Cuidamos la experiencia comercial de tu sitio, asegurando que cubra tus necesidades y las de tus clientes, sin complicaciones ni fricciones innecesarias.",
-  },
-  {
-    step: "4",
-    title: "Mantenimiento y soporte",
-    description:
-      "Despues del lanzamiento acompañamos el sitio con soporte, sesiones de seguimiento y claridad operativa.",
-  },
+import { useT } from "@/lib/text/text-provider";
+
+const processStepKeys = [
+  "es.home.lifecircle.steps.1",
+  "es.home.lifecircle.steps.2",
+  "es.home.lifecircle.steps.3",
+  "es.home.lifecircle.steps.4",
 ];
 
 export default function HomeLifecircle() {
+  const t = useT();
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 30, filter: "blur(14px)" }}
@@ -43,13 +27,13 @@ export default function HomeLifecircle() {
     >
       <div className="max-w-3xl">
         <p className="text-[0.7rem] uppercase tracking-[0.45em] text-[#071E9C]">
-          Ciclo de vida
+          {t("es.home.lifecircle.eyebrow")}
         </p>
         <h2 className="mt-4 text-3xl font-light tracking-[0.08em] text-[#111827] sm:text-5xl">
-          Crecemos contigo
+          {t("es.home.lifecircle.title")}
         </h2>
         <p className="mt-5 text-sm leading-7 tracking-[0.04em] text-slate-700 sm:text-base">
-          Nuestro flujo de trabajo te acompaña en cada etapa, desde el diseño inicial hasta el mantenimiento continuo. Nos aseguramos de que tu sitio web evolucione contigo, adaptándose a tus necesidades y objetivos a medida que creces.
+          {t("es.home.lifecircle.description")}
         </p>
       </div>
 
@@ -57,12 +41,12 @@ export default function HomeLifecircle() {
         <div className="absolute left-5 top-0 h-full w-px bg-linear-to-b from-[#0E7EE6]/70 via-stone-300 to-transparent sm:left-1/2 sm:-translate-x-1/2" />
 
         <div className="grid gap-6">
-          {processSteps.map((step, index) => {
+          {processStepKeys.map((stepKey, index) => {
             const isRight = index % 2 === 1;
 
             return (
               <motion.article
-                key={step.step}
+                key={stepKey}
                 initial={{
                   opacity: 0,
                   y: 28,
@@ -92,15 +76,15 @@ export default function HomeLifecircle() {
                 >
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 min-h-8 min-w-8 shrink-0 aspect-square items-center justify-center rounded-full border border-[#589bf9]/22 bg-blue-50/10 text-[0.62rem] uppercase tracking-[0.16em] text-[#0C6CC6] shadow-slate-300 sm:left-auto sm:right-[-2.85rem] sm:h-10 sm:w-10 sm:min-h-10 sm:min-w-10 pt-1">
-                      {step.step}
+                      {t(`${stepKey}.step`)}
                     </div>
                     <h6 className="text-2xl font-light tracking-[0.08em] text-[#111827]">
-                      {step.title}
+                      {t(`${stepKey}.title`)}
                     </h6>
                   </div>
 
                   <p className="mt-4 text-sm leading-7 tracking-[0.04em] text-slate-700 sm:text-base">
-                    {step.description}
+                    {t(`${stepKey}.description`)}
                   </p>
                 </div>
               </motion.article>

@@ -21,22 +21,27 @@ import {
 import type { ComponentType } from "react";
 
 import { BRAND_PLANE_URL, publicAssetUrl } from "@/lib/public-assets";
-import { getSitePackage } from "@/lib/site-packages";
+import { getSitePackage, sitePackageKey } from "@/lib/site-packages";
 
 export type BuildPlanId = "beginner" | "super" | "premium";
 export const PLAN_ORDER: BuildPlanId[] = ["beginner", "super", "premium"];
 export const MAX_WIDGETS_PER_PAGE = 4;
 export const MAX_WIDGETS_CONTACT = 1;
 
+/**
+ * Los campos de texto son claves de `hydrate`, no cadenas: el componente que
+ * pinta el plan las resuelve con `t()`. Los colores si viven aqui porque son
+ * parte del tema del armador, no contenido editable.
+ */
 export type PlanMeta = {
   id: BuildPlanId;
-  name: string;
-  price: string;
-  description: string;
+  nameKey: string;
+  priceKey: string;
+  descriptionKey: string;
   imin: boolean;
-  iminLabel: string;
-  soporte: string;
-  extras: string[];
+  iminLabelKey: string;
+  soporteKey: string;
+  extraKeys: string[];
   accent: string;
   accentSoft: string;
   accentText: string;
@@ -45,36 +50,34 @@ export type PlanMeta = {
 function planFrom(
   id: BuildPlanId,
   imin: boolean,
-  iminLabel: string,
-  soporte: string,
   colors: { accent: string; accentSoft: string; accentText: string },
 ): PlanMeta {
   const pkg = getSitePackage(id);
   return {
     id,
-    name: pkg?.name ?? id,
-    price: pkg?.price ?? "",
-    description: pkg?.idealFor ?? "",
+    nameKey: sitePackageKey(id, "name"),
+    priceKey: sitePackageKey(id, "price"),
+    descriptionKey: sitePackageKey(id, "idealFor"),
     imin,
-    iminLabel,
-    soporte,
-    extras: [...(pkg?.extras ?? [])],
+    iminLabelKey: `es.build.plans.${id}.imin`,
+    soporteKey: `es.build.plans.${id}.support`,
+    extraKeys: [...(pkg?.extraKeys ?? [])],
     ...colors,
   };
 }
 
 export const BUILD_PLANS: Record<BuildPlanId, PlanMeta> = {
-  beginner: planFrom("beginner", false, "Sin IMIN", "Soporte por correo", {
+  beginner: planFrom("beginner", false, {
     accent: "#4f9b7a",
     accentSoft: "#e8f4ee",
     accentText: "#2f6b51",
   }),
-  super: planFrom("super", false, "Sin IMIN", "Soporte prioritario", {
+  super: planFrom("super", false, {
     accent: "#d97706",
     accentSoft: "#fdf1e0",
     accentText: "#a85c05",
   }),
-  premium: planFrom("premium", true, "3 meses de IMIN", "3 consultas personalizadas", {
+  premium: planFrom("premium", true, {
     accent: "#0C6CC6",
     accentSoft: "#e7f2fd",
     accentText: "#0a5aa6",

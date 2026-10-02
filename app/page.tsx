@@ -23,61 +23,32 @@ import HomeLifecircle from "./components/home/home-lifecircle";
 import HomeText from "./components/home/home-text";
 import Loader from "./components/loader";
 import SiteFooter from "./components/site-footer";
+import { useT } from "@/lib/text/text-provider";
 
 const LOADER_DURATION_MS = 4400;
 
-const bottomCards = [
-  {
-    label: "Crea Tu Entorno",
-    value: "Muestra tus ideas en tu sito web, sin necesidad de instalaciones extra.",
-    icon: FiLayout,
-  },
-  {
-    label: "Escala tu proyecto",
-    value: "Puedes escalar tu proyecto y actualizarlo cuando quieras con nosotros.",
-    icon: FiTrendingUp,
-  },
-  {
-    label: "Modifica tu proyecto",
-    value: "con IMIN puedes modificar y actualizar tu proyecto, en cualquier momento.",
-    icon: FiEdit3,
-  },
+/**
+ * Las tarjetas y los servicios solo declaran su icono y su indice: el texto de
+ * cada uno sale de `hydrate` con la clave "es.home.cards.<n>.*" y
+ * "es.home.services.<n>.*".
+ */
+const bottomCards: { key: string; icon: IconType }[] = [
+  { key: "es.home.cards.1", icon: FiLayout },
+  { key: "es.home.cards.2", icon: FiTrendingUp },
+  { key: "es.home.cards.3", icon: FiEdit3 },
 ];
 
-const services: { title: string; description: string; icon: IconType }[] = [
-  {
-    title: "Apps internas",
-    description: "Paneles, flujos y herramientas para operar sin hojas sueltas.",
-    icon: FiLayout,
-  },
-  {
-    title: "Automatizaciones",
-    description: "Procesos conectados para reducir captura manual y seguimiento disperso.",
-    icon: FiZap,
-  },
-  {
-    title: "CRM operativo",
-    description: "Contactos, embudo de ventas, servicios y reservaciones en un sistema claro.",
-    icon: FiDatabase,
-  },
-  {
-    title: "Web apps",
-    description: "Interfaces rápidas, responsivas y pensadas para trabajo diario.",
-    icon: FiCode,
-  },
-  {
-    title: "Integraciones",
-    description: "Conectamos APIs, formularios, pagos, datos y herramientas existentes.",
-    icon: FiCloud,
-  },
-  {
-    title: "Soporte técnico",
-    description: "Mantenimiento, mejoras y estabilidad para que el sistema siga vivo.",
-    icon: FiShield,
-  },
+const services: { key: string; icon: IconType }[] = [
+  { key: "es.home.services.1", icon: FiLayout },
+  { key: "es.home.services.2", icon: FiZap },
+  { key: "es.home.services.3", icon: FiDatabase },
+  { key: "es.home.services.4", icon: FiCode },
+  { key: "es.home.services.5", icon: FiCloud },
+  { key: "es.home.services.6", icon: FiShield },
 ];
 
 function ServicesCarousel({ reduceMotion }: { reduceMotion: boolean }) {
+  const t = useT();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -125,12 +96,12 @@ function ServicesCarousel({ reduceMotion }: { reduceMotion: boolean }) {
     >
       <div className="mb-4 flex items-center justify-between gap-1">
         <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.36em] text-[#0C6CC6]">
-          Servicios
+          {t("es.home.services.eyebrow")}
         </p>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            aria-label="Servicio anterior"
+            aria-label={t("es.home.services.previous")}
             onClick={goToPrevious}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-[#bfdef8] bg-white text-[#0C6CC6] transition hover:bg-[#eaf5ff]"
           >
@@ -138,7 +109,7 @@ function ServicesCarousel({ reduceMotion }: { reduceMotion: boolean }) {
           </button>
           <button
             type="button"
-            aria-label="Servicio siguiente"
+            aria-label={t("es.home.services.next")}
             onClick={goToNext}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-[#bfdef8] bg-white text-[#0C6CC6] transition hover:bg-[#eaf5ff]"
           >
@@ -172,7 +143,7 @@ function ServicesCarousel({ reduceMotion }: { reduceMotion: boolean }) {
 
           return (
             <motion.article
-              key={service.title}
+              key={service.key}
               className="absolute left-1/2 top-3 flex h-52 w-68 cursor-pointer items-start gap-4 rounded-3xl border border-[#d3e8fb] bg-white px-5 py-5 shadow-[0_18px_48px_rgba(12,108,198,0.08)] sm:w-[20rem]"
               initial={false}
               animate={{
@@ -192,10 +163,10 @@ function ServicesCarousel({ reduceMotion }: { reduceMotion: boolean }) {
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-[#0C6CC6]">
-                  {service.title}
+                  {t(`${service.key}.title`)}
                 </h3>
                 <p className="mt-3 text-sm leading-6 tracking-[0.03em] text-slate-700">
-                  {service.description}
+                  {t(`${service.key}.description`)}
                 </p>
               </div>
             </motion.article>
@@ -206,9 +177,9 @@ function ServicesCarousel({ reduceMotion }: { reduceMotion: boolean }) {
       <div className="mt-3 flex justify-center gap-2">
         {services.map((service, index) => (
           <button
-            key={service.title}
+            key={service.key}
             type="button"
-            aria-label={`Ver ${service.title}`}
+            aria-label={t("es.home.services.goTo", { title: t(`${service.key}.title`) })}
             onClick={() => setActiveIndex(index)}
             className={`h-2 rounded-full transition-all ${
               index === activeIndex ? "w-8 bg-[#0C6CC6]" : "w-2 bg-[#bfdef8] hover:bg-[#8fc7f4]"
@@ -221,6 +192,7 @@ function ServicesCarousel({ reduceMotion }: { reduceMotion: boolean }) {
 }
 
 export default function Home() {
+  const t = useT();
   const [showLoader, setShowLoader] = useState(true);
   const shouldReduceMotion = useReducedMotion() ?? false;
 
@@ -248,20 +220,20 @@ export default function Home() {
           >
             <div className="mx-auto mb-10 max-w-3xl text-center">
               <p className="text-[0.7rem] font-extrabold uppercase tracking-[0.42em] text-[#0C6CC6]">
-                Imagina, Nosotros lo hacemos realidad.
+                {t("es.home.hero.eyebrow")}
               </p>
               <h1 className="mt-4 text-3xl font-light leading-tight tracking-[0.06em] text-[#111827] sm:text-5xl">
-                ¿Tu software necesita rediseñarse?
+                {t("es.home.hero.title")}
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 tracking-[0.04em] text-slate-700 sm:text-base">
-                Gestiona todo tu proyecto con nosotros, desde el diseño hasta el desarrollo, y actualízalo cuando quieras. Con IMIN, tu software siempre estará a la vanguardia.
+                {t("es.home.hero.description")}
               </p>
             </div>
 
             <div className="grid w-full gap-4 md:grid-cols-3">
               {bottomCards.map((card, index) => (
                 <motion.div
-                  key={card.label}
+                  key={card.key}
                   initial={{
                     opacity: 0,
                     y: shouldReduceMotion ? 0 : 20,
@@ -288,10 +260,10 @@ export default function Home() {
                     </div>
                     <div className="min-w-0">
                       <div className="text-[0.62rem] font-extrabold uppercase tracking-[0.36em] text-[#0C6CC6]">
-                        {card.label}
+                        {t(`${card.key}.label`)}
                       </div>
                       <div className="mt-3 text-base font-light leading-7 tracking-[0.06em] text-[#222325] sm:text-lg">
-                        {card.value}
+                        {t(`${card.key}.value`)}
                       </div>
                     </div>
                   </div>

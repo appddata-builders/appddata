@@ -3,15 +3,11 @@
 import { LuArrowRight, LuCheck, LuSparkles } from "react-icons/lu";
 
 import { SitePackageIcon, SitePackageName } from "@/app/components/packages/site-package-identity";
-import { SITE_PACKAGES } from "@/lib/site-packages";
-
-const PREMIUM_QUOTE_URL = `https://api.whatsapp.com/send?phone=5512879683&text=${encodeURIComponent(
-  "Hola, quisiera cotizar el paquete Premium de Appddata.",
-)}`;
+import { SITE_PACKAGES, sitePackageKey } from "@/lib/site-packages";
+import { useT } from "@/lib/text/text-provider";
 
 const tierStyles = {
   beginner: {
-    eyebrow: "Presencia digital",
     border: "border-emerald-200",
     top: "bg-emerald-400",
     soft: "bg-emerald-50",
@@ -19,7 +15,6 @@ const tierStyles = {
     button: "bg-emerald-700 hover:bg-emerald-800",
   },
   super: {
-    eyebrow: "Vende o automatiza",
     border: "border-amber-200",
     top: "bg-amber-400",
     soft: "bg-amber-50",
@@ -27,7 +22,6 @@ const tierStyles = {
     button: "bg-amber-500 hover:bg-amber-600",
   },
   premium: {
-    eyebrow: "Plataforma a medida",
     border: "border-blue-200",
     top: "bg-[#589bf9]",
     soft: "bg-blue-50",
@@ -37,34 +31,31 @@ const tierStyles = {
 } as const;
 
 export default function HomeDevelop({ compact = false }: { compact?: boolean }) {
+  const t = useT();
+  const premiumQuoteUrl = `https://api.whatsapp.com/send?phone=${t("es.whatsapp.phone")}&text=${encodeURIComponent(
+    t("es.packages.premium.quoteMessage"),
+  )}`;
+
   return (
     <section className={compact ? "w-full py-4" : "w-full px-4 py-16 sm:px-6"}>
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto mb-4 max-w-3xl text-center">
           <p className="text-[0.7rem] uppercase tracking-[0.45em] text-[#071E9C]">
-            Paquetes Appddata
+            {t("es.packages.eyebrow")}
           </p>
           <h2 className="mt-4 text-3xl font-light tracking-[0.08em] text-[#111827] sm:text-5xl">
-            Escala cuando lo necesites.
+            {t("es.packages.title")}
           </h2>
         </div>
 
         <div className="mx-auto mb-7 max-w-3xl rounded-2xl border border-slate-200 bg-white px-5 py-4">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-slate-500">
-            Consideraciones
+            {t("es.packages.notes.title")}
           </p>
           <ul className="mt-3 grid gap-2 text-xs leading-5 text-slate-600">
-            <li>
-              Algunas funcionalidades pueden requerir servidor y base de datos con un pago mensual.
-            </li>
-            <li>
-              El dominio no está incluido en los paquetes; se cotiza y cobra por separado, sujeto
-              a disponibilidad.
-            </li>
-            <li>
-              El alcance, las integraciones avanzadas, licencias, comisiones de pago y servicios
-              externos se revisan y cotizan por separado.
-            </li>
+            <li>{t("es.packages.notes.1")}</li>
+            <li>{t("es.packages.notes.2")}</li>
+            <li>{t("es.packages.notes.3")}</li>
           </ul>
         </div>
 
@@ -84,42 +75,42 @@ export default function HomeDevelop({ compact = false }: { compact?: boolean }) 
                 {isSuper ? (
                   <span className="absolute right-5 top-5 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-amber-800">
                     <LuSparkles className="h-3 w-3" />
-                    Más elegido
+                    {t("es.packages.mostChosen")}
                   </span>
                 ) : null}
 
                 <div className="flex flex-1 flex-col p-6 sm:p-7">
                   <div>
                     <p className={`text-[0.65rem] font-bold uppercase tracking-[0.28em] ${styles.text}`}>
-                      {styles.eyebrow}
+                      {t(`es.packages.${tier.id}.eyebrow`)}
                     </p>
                     <h3 className="mt-4 flex items-center gap-2 text-2xl font-bold tracking-[0.06em] text-slate-950">
                       <SitePackageIcon plan={tier.id} className="h-5 w-5 shrink-0" />
-                      <SitePackageName plan={tier.id}>{tier.name}</SitePackageName>
+                      <SitePackageName plan={tier.id}>{t(sitePackageKey(tier.id, "name"))}</SitePackageName>
                     </h3>
                   </div>
                   <div className="mt-5">
                     <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                      Ideal para
+                      {t("es.packages.idealFor")}
                     </p>
                     <p className="mt-2 text-sm font-medium leading-6 text-slate-800">
-                      {tier.idealFor}
+                      {t(sitePackageKey(tier.id, "idealFor"))}
                     </p>
                   </div>
                   <div className={`mt-1 rounded-2xl border ${styles.border} ${styles.soft} p-4`}>
-                    <p className={`text-lg font-bold ${styles.text}`}>{tier.capacity}</p>
+                    <p className={`text-lg font-bold ${styles.text}`}>{t(sitePackageKey(tier.id, "capacity"))}</p>
                   </div>
                   <div className="mt-5">
                     <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                      Ejemplo
+                      {t("es.packages.example")}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {tier.examples.map((example) => (
+                      {tier.exampleKeys.map((exampleKey) => (
                         <span
-                          key={example}
+                          key={exampleKey}
                           className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600"
                         >
-                          {example}
+                          {t(exampleKey)}
                         </span>
                       ))}
                     </div>
@@ -127,15 +118,15 @@ export default function HomeDevelop({ compact = false }: { compact?: boolean }) 
 
                   <div className="mt-6 border-t border-slate-100 pt-5">
                     <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                      Características del paquete
+                      {t("es.packages.features")}
                     </p>
                     <ul className="mt-3 grid gap-2.5">
-                      {tier.extras.map((item) => (
-                        <li key={item} className="flex items-start gap-2.5 text-xs leading-5 text-slate-600">
+                      {tier.extraKeys.map((extraKey) => (
+                        <li key={extraKey} className="flex items-start gap-2.5 text-xs leading-5 text-slate-600">
                           <span className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full ${styles.soft} ${styles.text}`}>
                             <LuCheck className="h-3 w-3" />
                           </span>
-                          {item}
+                          {t(extraKey)}
                         </li>
                       ))}
                     </ul>
@@ -143,7 +134,7 @@ export default function HomeDevelop({ compact = false }: { compact?: boolean }) 
 
                   {isPremium ? (
                     <p className="mt-5 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2.5 text-xs leading-5 text-blue-800">
-                      El precio final depende de la complejidad y las integraciones elegidas.
+                      {t("es.packages.premium.note")}
                     </p>
                   ) : null}
 
@@ -151,22 +142,22 @@ export default function HomeDevelop({ compact = false }: { compact?: boolean }) 
                     {!isPremium ? (
                       <>
                         <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                          Inversión
+                          {t("es.packages.investment")}
                         </p>
                         <p className="mt-1 text-2xl font-bold tracking-[-0.03em] text-slate-950">
-                          {tier.price}
+                          {t(sitePackageKey(tier.id, "price"))}
                         </p>
                       </>
                     ) : null}
 
                     {isPremium ? (
                       <a
-                        href={PREMIUM_QUOTE_URL}
+                        href={premiumQuoteUrl}
                         target="_blank"
                         rel="noreferrer"
                         className={`mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white transition ${styles.button}`}
                       >
-                        Cotizar paquete Premium
+                        {t("es.packages.premium.quote")}
                         <LuArrowRight className="h-4 w-4" />
                       </a>
                     ) : (
@@ -176,7 +167,7 @@ export default function HomeDevelop({ compact = false }: { compact?: boolean }) 
                           type="submit"
                           className={`inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white transition ${styles.button}`}
                         >
-                          Comprar paquete {tier.name}
+                          {t("es.packages.buy", { name: t(sitePackageKey(tier.id, "name")) })}
                           <LuArrowRight className="h-4 w-4" />
                         </button>
                       </form>

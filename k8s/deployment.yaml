@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appddata-admin
+  namespace: appddata
+  labels:
+    app: appddata-admin
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: appddata-admin
+
+  template:
+    metadata:
+      labels:
+        app: appddata-admin
+    spec:
+      containers:
+        - name: appddata-admin
+          image: __IMAGE__
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 3000
+
+          env:
+            - name: NODE_OPTIONS
+              value: --max-old-space-size=256
+            - name: ADMIN_DATABASE_HOST
+              value: postgres-0
+            # Origen publico del despliegue. Better Auth valida contra el la
+            # cabecera Origin de cada peticion: sin esta variable el registro y
+            # el login responden 403 INVALID_ORIGIN.
+            - name: BETTER_AUTH_URL
+              value: https://appddata.com
+            # NEXT_PUBLIC_APP_URL no va aqui: Next congela las variables
+            # NEXT_PUBLIC_* en `next build`, asi que ponerla en runtime no
+            # tiene efecto. Va en --build-arg NEXT_PUBLIC_ENV del Dockerfile.
+
+          envFrom:
+            # Sin `optional`: el Secret trae BETTER_AUTH_SECRET y DATABASE_URL.
+            # Si falta, el pod debe fallar el arranque en vez de degradar a los
+            # valores por defecto de desarrollo.
+            - secretRef:
+                name: appddata-secrets
+            - secretRef:
+                name: postgres-credentials
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+
+          resources:
+            requests:
+              cpu: 98m
+              memory: 240Mi
+            limits:
+              cpu: 450m
+              memory: 384Mi

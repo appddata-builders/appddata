@@ -81,6 +81,7 @@ import {
   TEXT_BLOCK,
 } from "@/lib/react-site/widget-contract";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/text/text-provider";
 import { resolvePublicAssetUrl } from "@/lib/public-assets";
 import type { AvailableSitePackages } from "@/lib/plans";
 
@@ -172,6 +173,7 @@ export default function BuildWorkspace({
   availableSitePackages: AvailableSitePackages;
   isInternal: boolean;
 }) {
+  const t = useT();
   const [plan, setPlan] = useState<BuildPlanId>(initialPlan);
   const [template, setTemplate] = useState<TemplateId>("aurora");
   const [navMode, setNavMode] = useState<NavMode>("single");
@@ -460,7 +462,7 @@ export default function BuildWorkspace({
           className="inline-flex items-center gap-1.5 rounded-full border border-[#f3c49f] bg-[#fff4e8] px-2.5 py-1 text-[0.68rem] font-semibold text-[#b85f28]"
         >
           <LuTicket className="h-3.5 w-3.5 text-[#df7a3a]" />
-          {availableSitePackages[id]} {availableSitePackages[id] === 1 ? "sitio" : "sitios"} {BUILD_PLANS[id].name}
+          {availableSitePackages[id]} {availableSitePackages[id] === 1 ? "sitio" : "sitios"} {t(BUILD_PLANS[id].nameKey)}
         </span>
       ))}
     </div>
@@ -500,7 +502,7 @@ export default function BuildWorkspace({
                       )}
                       style={active ? { borderColor: meta.accent, backgroundColor: meta.accent } : undefined}
                     >
-                      <span className="block">{meta.name}</span>
+                      <span className="block">{t(meta.nameKey)}</span>
                       {!isInternal ? <span className={cn("mt-0.5 block text-[0.62rem]", active ? "text-white/80" : "text-slate-400")}>{availableSitePackages[id]} disponible{availableSitePackages[id] === 1 ? "" : "s"}</span> : null}
                     </button>
                   );
@@ -564,7 +566,7 @@ export default function BuildWorkspace({
                     )}
                     style={active ? { backgroundColor: meta.accent } : undefined}
                   >
-                    {meta.name}
+                    {t(meta.nameKey)}
                   </button>
                 );
               })}
@@ -932,18 +934,20 @@ function PanelHeading({ children }: { children: React.ReactNode }) {
 }
 
 function PackageCard({ plan }: { plan: (typeof BUILD_PLANS)[BuildPlanId] }) {
+  const t = useT();
+
   return (
     <section
       className="rounded-xl border p-3"
       style={{ borderColor: `${plan.accent}44`, backgroundColor: plan.accentSoft }}
     >
       <span className="text-sm font-semibold" style={{ color: plan.accentText }}>
-        Paquete {plan.name}
+        {t("es.build.packageCard.title", { name: t(plan.nameKey) })}
       </span>
       <ul className="mt-2 space-y-1 text-[0.7rem] text-slate-600">
         <FeatureRow ok label="Inicio, Nosotros, Productos, Contacto y pie de página" />
-        <FeatureRow ok={plan.imin} label={plan.iminLabel} />
-        <FeatureRow ok label={plan.soporte} />
+        <FeatureRow ok={plan.imin} label={t(plan.iminLabelKey)} />
+        <FeatureRow ok label={t(plan.soporteKey)} />
       </ul>
     </section>
   );
