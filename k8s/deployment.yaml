@@ -31,11 +31,21 @@ spec:
               value: --max-old-space-size=256
             - name: ADMIN_DATABASE_HOST
               value: postgres-0
+            # Origen publico del despliegue. Better Auth valida contra el la
+            # cabecera Origin de cada peticion: sin esta variable el registro y
+            # el login responden 403 INVALID_ORIGIN.
+            - name: BETTER_AUTH_URL
+              value: https://appddata.com
+            # NEXT_PUBLIC_APP_URL no va aqui: Next congela las variables
+            # NEXT_PUBLIC_* en `next build`, asi que ponerla en runtime no
+            # tiene efecto. Va en --build-arg NEXT_PUBLIC_ENV del Dockerfile.
 
           envFrom:
+            # Sin `optional`: el Secret trae BETTER_AUTH_SECRET y DATABASE_URL.
+            # Si falta, el pod debe fallar el arranque en vez de degradar a los
+            # valores por defecto de desarrollo.
             - secretRef:
                 name: appddata-secrets
-                optional: true
             - secretRef:
                 name: postgres-credentials
 
